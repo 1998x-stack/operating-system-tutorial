@@ -159,16 +159,11 @@ crash> mod       # 列出加载的内核模块</code></pre>
         <h3>1. KASAN：内核地址消毒器</h3>
         <p>KASAN在编译时在每次内存访问前后插入检测代码，并在每个内存对象的周围放置"红色区域"（redzone）。如果有人访问了已释放的内存或越界读写，KASAN会立即触发panic并打印出详细的错误报告——告诉你什么类型的错误、哪个地址、哪个线程、什么时候分配和释放的。</p>
 
-        <pre><code># 在 kernel config 中开启 KASAN
+        <pre><code># 在 kernel config 中启用 KASAN，并按架构选择受支持的实现
 CONFIG_KASAN=y
-CONFIG_KASAN_INLINE=y
-CONFIG_KASAN_OUTLINE=n
-
-# 或者使用更轻量级的 Generic KASAN（推荐开发调试用）
 CONFIG_KASAN_GENERIC=y
-
-# 开启栈溢出检测
-CONFIG_KASAN_STACK=y</code></pre>
+# arm64 等平台还可能支持 CONFIG_KASAN_SW_TAGS 或 CONFIG_KASAN_HW_TAGS
+# 具体互斥关系、依赖与编译器要求请查目标内核的 Kconfig/文档</code></pre>>
 
         <p>KASAN 会增加内存占用与运行时开销，具体幅度取决于 KASAN 模式（Generic、Software Tag-Based、Hardware Tag-Based）、架构、编译器和工作负载，不宜写成固定的 2–3 倍。报告通常可包含访问栈、分配栈和释放栈等线索，但可用信息取决于配置、对象分配路径和符号信息。</p>
 

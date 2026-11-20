@@ -56,7 +56,7 @@
         <p>虚拟化不是凭空产生的，它是为了在x86架构上运行多个操作系统而"打补丁"打出来的技术。三条路线代表了不同的设计哲学。</p>
 
         <h3>Popek-Goldberg定理：虚拟化的理论基础</h3>
-        <p>1974年，Gerald Popek和Robert Goldberg提出了虚拟机形式化的理论基础。一条指令被划分为三类：特权指令（只能在ring 0执行）、敏感指令（涉及硬件状态）、普通指令（不影响虚拟化）。虚拟化的核心挑战是：让Guest OS执行特权/敏感指令时，由VMM（虚拟机监控器）截获并模拟。x86架构的问题在于——有一些敏感指令不是特权指令（比如 <code>SIDT</code>、<code>SGDT</code> 读取IDT/GDT寄存器），它们在用户态执行时不会触发trap，导致Guest OS认为自己在ring 0，但实际不是。这被称为"可虚拟化漏洞"——x86严格来说不符合Popek-Goldberg定理。</p>
+        <p>1974年，Gerald Popek和Robert Goldberg提出了虚拟机形式化的理论基础。一条指令被划分为三类：特权指令（只能在ring 0执行）、敏感指令（涉及硬件状态）、普通指令（不影响虚拟化）。虚拟化的核心挑战是：让Guest OS执行特权/敏感指令时，由VMM（虚拟机监控器）截获并模拟。x86架构的问题在于——有一些敏感指令不是特权指令（比如 <code>SIDT</code>、<code>SGDT</code> 读取IDT/GDT寄存器），它们在用户态执行时不会触发trap，导致在经典 x86 体系（缺少 VT-x/AMD-V 的硬件辅助虚拟化扩展）中，部分敏感指令并非特权指令，传统 trap-and-emulate 难以直接满足 Popek–Goldberg 的经典条件，因此早期 VMM 采用二进制翻译等技术。不能把这个历史结论不加限定地套用到现代带硬件虚拟化扩展的 x86 平台。</p>
 
         <h3>第一条路：全虚拟化（软件模拟）</h3>
         <p>早期的VMware Workstation采用"二进制翻译"（Binary Translation）技术。VMM在运行时扫描Guest OS的指令序列，把敏感的非特权指令动态替换为模拟实现。Guest OS完全不知道自己被虚拟化了——它以为自己在物理机上。代价是二进制翻译的开销很大，尤其是上下文敏感指令频繁执行时。</p>
@@ -65,7 +65,7 @@
         <p>Xen采用的策略更直接：既然x86不可虚拟化，那就改Guest OS。Guest OS的内核经过修改，把原来执行敏感指令的地方显式调用"hypercall"（超级调用）——就像系统调用一样切换到VMM去处理。优点是性能好（没有二进制翻译的额外开销），缺点是需要修改Guest OS——Windows不能跑在Xen上（直到微软主动适配）。</p>
 
         <h3>第三条路：硬件辅助虚拟化</h3>
-        <p>Intel VT-x和AMD-V在CPU层面直接解决了这个问题。CPU增加了新的运行模式：VMX root mode（VMM运行在此模式）和VMX non-root mode（Guest OS运行在此模式）。敏感指令在non-root mode下执行时自动触发VM-Exit陷入VMM。从此不再需要二进制翻译，也不再需要修改Guest OS。从Intel Nehalem架构（2008年）开始，主流x86 CPU都支持硬件辅助虚拟化。</p>
+        <p>Intel VT-x和AMD-V在CPU层面直接解决了这个问题。CPU增加了新的运行模式：在 Intel VT-x 下，VMX root/non-root 是两种 VMX operation 模式；哪些事件导致 VM exit 由 VM-execution controls 等配置决定，并非所有敏感指令都无条件自动退出。AMD SVM 的术语与控制结构不同。从此不再需要二进制翻译，也不再需要修改Guest OS。从Intel Nehalem架构（2008年）开始，主流x86 CPU都支持硬件辅助虚拟化。</p>
 
         <table>
             <tr><th>维度</th><th>全虚拟化</th><th>半虚拟化</th><th>硬件辅助虚拟化</th></tr>
@@ -81,7 +81,7 @@
 
         <h2 id="section-02">KVM：Linux变身Hypervisor</h2>
 
-        <p>2007年，KVM（Kernel-based Virtual Machine）被合入Linux主线内核。它让Linux内核本身变成了一个Type-2 Hypervisor。这个设计的精妙之处在于：不需要一个单独的VMM软件层，而是把虚拟化功能直接嵌入内核。</p>
+        <p>2007年，KVM（Kernel-based Virtual Machine）被合入Linux主线内核。KVM 将硬件虚拟化能力集成到 Linux 内核，并通过 <code>/dev/kvm</code> 向用户态 VMM 暴露 ioctl API。Type-1/Type-2 分类对 KVM + QEMU 组合并不总是清晰：内核承担 hypervisor 功能，QEMU 通常承担用户态 VMM/设备模型；应描述组件边界，而不是将 KVM 简单归类为 Type-2。</p>
 
         <h3>/dev/kvm：一个设备文件开启虚拟化</h3>
         <p>KVM对外暴露的是一个简单的字符设备——<code>/dev/kvm</code>。用户态通过 <code>open("/dev/kvm")</code> 获得一个文件描述符，然后通过 <code>ioctl</code> 来管理虚拟机：</p>
@@ -90,7 +90,7 @@
             <li><code>KVM_CREATE_VM</code>：创建一个虚拟机实例，返回VM文件描述符。</li>
             <li><code>KVM_CREATE_VCPU</code>：在VM中创建一个vCPU（本质上是宿主机上的一个线程）。</li>
             <li><code>KVM_SET_USER_MEMORY_REGION</code>：为虚拟机分配物理内存（背后是宿主机的匿名内存页）。</li>
-            <li><code>KVM_RUN</code>：让vCPU开始执行Guest OS代码。这个ioctl会触发VM-Entry进入VMX non-root mode，运行Guest指令，直到发生VM-Exit（如中断、I/O操作、访问MMIO）才返回用户态。</li>
+            <li><code>KVM_RUN</code>：让vCPU开始执行Guest OS代码。<code>KVM_RUN</code> 让指定 vCPU 执行客户机代码，直到发生需要返回用户态处理的 VM exit、信号或其他退出条件。VMX root/non-root 是 Intel x86 的术语；AMD SVM、Arm 等架构使用不同的硬件虚拟化状态与退出机制。</li>
         </ul>
 
         <h3>QEMU：用户态设备模拟器</h3>

@@ -83,13 +83,11 @@
 
         <p>Linux内核中，创建进程和线程都通过 <code>clone()</code> 系统调用实现。区别只在于flags参数：</p>
 
-        <pre><code>// 创建进程：fork() 实际上调用 clone(SIGCHLD, 0)
-clone(SIGCHLD, 0);
-
-// 创建线程：pthread_create() 内部调用
-// clone(CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND |
-//       CLONE_THREAD | CLONE_SETTLS | CLONE_PARENT_SETTID |
-//       CLONE_CHILD_CLEARTID | CLONE_SYSVSEM, ...)</code></pre>
+        <pre><code>// 概念示意：fork() 与 pthread_create() 最终都会请求内核创建任务，
+// 但 libc 包装层、clone/clone3 系统调用选择及附加 flags
+// 会随 libc、架构和内核版本变化。
+// fork() 的语义等价于不共享地址空间的子进程创建（SIGCHLD）；
+// pthread 的共享资源标志由线程库按 ABI 约定组合。</code></pre>
 
         <p>关键的flags含义如下：</p>
 
@@ -133,17 +131,17 @@ clone(SIGCHLD, 0);
         </table>
 
         <h3>Go Goroutine的M:N调度</h3>
-        <p>Go语言的Goroutine是M:N模型最成功的工业实践。Go运行时维护一个M（Machine，内核线程）对N（Goroutine，用户态协程）的映射，用G（Goroutine）、M（Machine）、P（Processor）三个结构体实现了高效的M:N调度。Go的调度器在程序主动让出（channel操作、time.Sleep、系统调用）时自动切换Goroutine，避免了内核态切换的开销。</p>
+        <p>Go语言的Goroutine是M:N模型最成功的工业实践。Go运行时维护一个M（Machine，内核线程）对N（Goroutine，用户态协程）的映射，用G（Goroutine）、M（Machine）、P（Processor）三个结构体实现了高效的M:N调度。Go 运行时在 channel、定时器、网络轮询和阻塞系统调用等路径上协调 G 的挂起与恢复；发生阻塞系统调用时，运行时可让出 P 给其他 M/G 继续执行。并非每次系统调用都会切换 G，也不能把所有调度成本描述为“避免内核态切换”。</p>
 
         <div class="highlight">
-            <p><strong>性能对比</strong>：创建一个pthread大约需要微秒级别的时间和数KB的栈空间（可设置最小栈）。而创建一个Goroutine的开销仅为约4KB的栈和不到百纳秒的创建时间。这也是为什么Go可以轻松启动数十万个Goroutine，而同等数量的pthread会导致系统资源耗尽。</p>
+            <p><strong>不要把创建成本写成固定数字。</strong>pthread 的默认栈保留空间、实际提交页数和创建耗时受 libc、ulimit、架构及系统负载影响。Go goroutine 使用可增长的用户栈，初始栈大小由运行时实现决定；当前 Go 运行时以约 2 KiB 的固定最小值为基础，并可根据 GC 统计调整后续 goroutine 的起始大小。两者的比较必须注明 Go 版本、线程属性、并发数、测量方法和机器配置。</p>
         </div>
 
         <h2 id="section-04">协程的本质</h2>
 
         <p>讲完了线程，我们来聊聊协程（Coroutine）。其实协程的思路比线程更古老——它最早可以追溯到1958年Melvin Conway的论文。协程的核心思想就是：让函数可以暂停执行，在某个时刻恢复执行。</p>
 
-        <p>线程是抢占式调度的——内核在任意时刻都可以打断一个线程的执行，切换到另一个线程。协程是协作式调度的——协程自己决定何时让出执行权（yield），操作系统没有能力在任意时刻打断一个协程。</p>
+        <p>内核调度的是承载协程的线程；操作系统可以抢占该线程，但通常不知道线程内部哪个用户态协程正在运行。协程何时挂起由语言运行时、事件循环或协程库决定：有的实现主要依赖协作式让出，有的运行时还提供抢占式抢占点。因此“协程一定是协作式调度”并不成立。</p>
 
         <h3>有栈协程 vs 无栈协程</h3>
 
@@ -157,7 +155,7 @@ clone(SIGCHLD, 0);
             <tr><td>语言代表</td><td>Go Goroutine、C++ Boost.Coroutine</td><td>Python async/await、Rust async、C++20 coroutine</td></tr>
         </table>
 
-        <p>Go的Goroutine是有栈协程。每个Goroutine有自己的栈（初始4KB，动态增长），可以在任意嵌套函数中调用 <code>runtime.Gosched()</code> 让出。Python的async/await是无栈协程——它把协程的"暂停点"用状态机表示，不维护独立的调用栈。</p>
+        <p>Go goroutine 是有栈、可增长的用户态执行单元；初始栈不是固定的 4 KiB 常数，运行时实现与版本会影响实际分配策略。<code>runtime.Gosched()</code> 会让出当前 goroutine 的执行机会，但不是“任意嵌套函数都能透明挂起”的通用协程关键字。Python 的 <code>async</code>/<code>await</code> 通过 coroutine 对象和事件循环协作保存/恢复执行状态，不能简单等同于“没有调用栈”。</p>
 
         <h3>async/await的底层原理</h3>
 

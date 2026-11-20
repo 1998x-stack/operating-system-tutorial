@@ -101,14 +101,14 @@
 
         <p>服务端在调用 <code>listen()</code> 后，内核为这个监听socket创建两个队列：</p>
         <ul>
-            <li><strong>SYN队列（半连接队列）</strong>：收到SYN包后，连接进入 <code>SYN_RECV</code> 状态，挂在这个队列上。队列大小由 <code>net.ipv4.tcp_max_syn_backlog</code> 控制。</li>
-            <li><strong>Accept队列（全连接队列）</strong>：三次握手完成后（收到ACK），连接进入 <code>ESTABLISHED</code> 状态，转移到此队列。应用调用 <code>accept()</code> 从此取走连接。队列最大长度由 <code>listen(fd, backlog)</code> 的backlog参数和 <code>net.core.somaxconn</code> 中较小的值决定。</li>
+            <li><strong>SYN队列（半连接队列）</strong>：收到SYN包后，连接进入 <code>SYN_RECV</code> 状态，挂在这个队列上。该监听 socket 的未完成连接请求数量受 <code>net.ipv4.tcp_max_syn_backlog</code> 等内核策略影响；这是 per-listener 上限，不应当作系统所有监听 socket 共享的单一队列大小。</li>
+            <li><strong>Accept队列（全连接队列）</strong>：握手完成的连接进入 accept queue，应用调用 <code>accept()</code> 后从队列取走。队列长度由 <code>listen(fd, backlog)</code> 请求值与 <code>net.core.somaxconn</code> 上限共同约束；内核版本和 socket 类型会影响具体细节。</li>
         </ul>
 
         <table>
             <tr><th>队列</th><th>状态</th><th>参数控制</th><th>满了会怎样</th></tr>
             <tr><td>SYN队列（半连接）</td><td>SYN_RECV</td><td><code>tcp_max_syn_backlog</code></td><td>丢SYN包（可启用syncookies）</td></tr>
-            <tr><td>Accept队列（全连接）</td><td>ESTABLISHED</td><td><code>backlog</code> / <code>somaxconn</code></td><td>发送RST或自动丢弃ACK（看 <code>tcp_abort_on_overflow</code>）</td></tr>
+            <tr><td>Accept队列（全连接）</td><td>ESTABLISHED</td><td><code>backlog</code> / <code>somaxconn</code></td><td>行为受 <code>tcp_abort_on_overflow</code>、重传与内核实现影响；不能概括为固定发送 RST 或丢弃 ACK</td></tr>
         </table>
 
         <div class="warning">
@@ -119,7 +119,7 @@
 
         <p>SYN Flood攻击的思路极其简单：攻击者伪造源IP发送大量SYN包，服务端回复SYN+ACK后等待客户端应答——但攻击者永远不回ACK。于是SYN队列被占满，正常用户的连接请求被丢弃。</p>
 
-        <p>内核的防御武器是SYN Cookie。开启 <code>net.ipv4.tcp_syncookies = 1</code> 后（多数发行版默认开启），内核在SYN队列满时不真正分配连接资源，而是将连接信息（MSS等）编码成一个cookie作为初始seq number发回去。等客户端的ACK回来时，内核从ACK中的seq-1解码出cookie，验证合法性后直接创建连接。这样一来，即使SYN Flood攻击再猛烈，服务端也无需为每个伪造SYN维护状态。</p>
+        <p>内核的防御武器是SYN Cookie。开启 <code>net.ipv4.tcp_syncookies = 1</code> 后（多数发行版默认开启），当 SYN backlog 溢出且 syncookies 已启用时，内核可使用 SYN cookie 避免为每个半连接保留常规 request socket 状态；客户端 ACK 返回后再验证 cookie 并继续建立连接。它是过载/攻击时的后备机制，不是提高合法连接速率的容量调优方案；某些 TCP 扩展选项可能受限，必须结合内核文档和业务兼容性评估。</p>
 
         <pre><code># 查看当前连接队列状态
 $ ss -tnlp | head -20
@@ -134,8 +134,9 @@ $ sysctl -w net.core.somaxconn=1024
 # 启用SYN Cookie（数据完整性有轻微代价）
 $ sysctl -w net.ipv4.tcp_syncookies=1
 
-# 加快TIME_WAIT回收（谨慎使用）
-$ sysctl -w net.ipv4.tcp_tw_reuse=1</code></pre>
+# 不要把 tcp_tw_reuse 当作通用的 TIME_WAIT 清理开关。
+# 当前内核的取值、默认值和安全边界请先查 ip-sysctl 文档；
+# 不建议在不了解 PAWS/timestamp 与网络拓扑时修改。</code></pre>
 
         <h2 id="section-03">Netfilter五链四表</h2>
 

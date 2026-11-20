@@ -68,7 +68,7 @@ try {
     for (const failure of failures) console.error(" - " + failure);
     process.exitCode = 1;
   } else {
-    console.log("BROWSER QA PASS: homepage at 360/390/1440px; 28 chapter pages; keyboard skip link.");
+    console.log("BROWSER QA PASS: homepage at 360/390/1440px; all 28 chapters at 360/1440px; keyboard skip link.");
   }
 } finally {
   await browser.close();

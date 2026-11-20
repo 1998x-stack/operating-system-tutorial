@@ -46,6 +46,24 @@
       "locator": "Rust",
       "status": "verified",
       "notes": "可用接口受内核版本、配置与安全抽象覆盖度限制。"
+    },
+    {
+      "id": "drv-16-06",
+      "claim": "Rust for Linux 主线使用者包括 Android Binder、PHY 驱动、Nova/Tyr GPU、DRM Panic 和 Null Block 等；项目清单会随主线变化。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://rust-for-linux.com/",
+      "locator": "Users — in mainline",
+      "status": "verified",
+      "notes": "不能将当前列表当成固定版本 API。"
+    },
+    {
+      "id": "drv-16-07",
+      "claim": "Safe Rust 可避免其安全子集中未定义行为，但 unsafe 代码承担额外安全契约；不能声称所有 Rust 内核代码天然无内存安全缺陷。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://rust.docs.kernel.org/next/core/keyword.unsafe.html",
+      "locator": "Unsafe abilities",
+      "status": "verified",
+      "notes": "驱动中的硬件访问和 FFI 仍需审计 unsafe 边界。"
     }
   ]
 }

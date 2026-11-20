@@ -67,7 +67,7 @@
         </table>
 
         <div class="highlight">
-            <p><strong>关键认知</strong>：很多开发者以为epoll就是"异步I/O"，这是不对的。epoll只是在第一阶段帮你等数据，第二阶段仍然要应用主动调用read()去拷贝数据——这一步依然是阻塞的。真正的异步I/O是io_uring这样的，连拷贝数据都不需要应用操心，内核全权处理完毕后再通知你。</p>
+            <p><strong>关键认知</strong>：很多开发者以为epoll就是"异步I/O"，这是不对的。epoll只是在第一阶段帮你等数据，第二阶段仍然要应用主动调用read()去拷贝数据——这一步依然是阻塞的。io_uring 提供提交/完成队列式异步接口，但这不意味着所有操作都异步完成，也不意味着数据拷贝自动消失。应用仍需检查完成结果、处理短读写与错误；具体请求是否可异步执行取决于文件类型、操作、驱动和内核实现。</p>
         </div>
 
         <h3>阻塞I/O：最朴素但最浪费</h3>
@@ -83,7 +83,7 @@
         <p>通过 <code>SIGIO</code> 信号在数据到达时通知进程。听起来完美，但信号上下文中能做的工作极有限，且信号可能丢失。除了一些高版本的UDP服务外，TCP场景下几乎没人使用。</p>
 
         <h3>异步I/O：终局方案</h3>
-        <p>应用发起一次I/O请求后立即返回，内核完全接管后续工作。当整个I/O完成后（包括数据已经拷贝到用户缓冲区），内核通知应用。应用不需要在任何时刻等待——这才是真正的异步。io_uring是当前Linux上最完善的异步I/O实现。</p>
+        <p>应用可先把请求提交到 SQ，再通过 CQ 获取完成事件；提交操作是否立即返回、请求是否需要 worker、以及等待 CQ 时是否阻塞，都由具体操作和提交方式决定。io_uring 是 Linux 提供的通用异步 I/O 接口之一，但不是每类文件与设备操作都保证真正异步。</p>
 
         <h2 id="section-02">二、epoll与C10K问题</h2>
 
@@ -173,20 +173,20 @@ io_uring_cqe_seen(&ring, &cqe);</code></pre>
         <p>io_uring从Linux 5.1开始，几乎每个内核版本都有新特性加入。让我们看看截至Linux 6.19时代的一些重要演进：</p>
 
         <h3>IORING_SETUP_SQE_MIXED</h3>
-        <p>传统上，一旦io_uring开始处理请求，SQ条目就不能再被应用修改。SQE MIXED允许在请求已提交但尚未被内核消费时，应用仍然"撤回"或修改SQE内容。这在某些竞态场景下非常有用——比如你提交了一个read请求，但应用逻辑决定放弃等待，可以将SQE修改为cancel命令。</p>
+        <p><code>IORING_SETUP_SQE_MIXED</code> 允许同一个 ring 混用 64-byte 与 128-byte SQE：普通请求使用较小条目，需要扩展字段的请求（例如部分 <code>IORING_OP_URING_CMD</code>）使用大条目。它不是撤回或修改已提交请求的机制；取消请求应使用对应的 cancel 操作。该标志有内核版本和组合条件限制。</p>
 
         <h3>零拷贝接收（zcrx）</h3>
-        <p>这是io_uring的杀手级特性。在传统的网卡接收路径中，数据包从网卡DMA到内核缓冲区，然后通过 <code>recvmsg</code> 拷贝到用户空间——两次拷贝。io_uring的零拷贝接收（zcrx）让网卡直接将数据DMA到用户空间的预先注册缓冲区，完全绕过了内核缓冲区。这在高性能网络应用中（DPDK的替代方案？）具有革命性意义。</p>
+        <p>io_uring ZC Rx 的目标是减少网络接收路径中的 kernel-to-user payload copy：在满足硬件与驱动条件时，网卡可将 payload DMA 到用户态预注册区域；包头仍由内核接收并由内核 TCP 栈处理。该功能要求 NIC 支持 header/data split、专用 RX queue、flow steering 和 RSS，且需用户配置网卡队列；它不是通用网卡能力，也不是绕过整个内核协议栈。</p>
 
         <div class="tip">
-            <p><strong>io_uring zcrx vs DPDK</strong>：DPDK通过完全绕过内核协议栈来实现极致性能，但代价是应用必须自己实现TCP/IP协议栈——开发成本和维护成本极高。io_uring的零拷贝接收在内核框架内实现了类似效果，应用仍然使用标准的socket API，只是buf可以映射到用户空间而不经过内核。这意味着你既可以享受零拷贝的性能，又不必放弃内核协议栈的成熟和兼容性。</p>
+            <p><strong>io_uring zcrx vs DPDK</strong>：DPDK 通常通过用户态轮询与 PMD 数据路径绕开常规内核网络栈；应用可选择 DPDK 提供的用户态协议栈或其他协议栈方案。io_uring ZC Rx 则保留内核协议栈对包头/TCP 的处理，仅在满足 NIC 和队列条件时把 payload 放入用户态缓冲区。两者的资源模型、部署条件和可编程边界不同，不能简单称为等价替代。</p>
         </div>
 
         <h3>BPF控制io_uring</h3>
-        <p>从Linux 6.x开始，io_uring可以注册BPF（Berkeley Packet Filter）程序来过滤或修改I/O请求。比如在存储场景下，可以在BPF程序中实现自定义的数据压缩或加密——在I/O数据到达用户空间之前就完成了处理。这种"内核内计算"的思路代表了OS演进的一个重要方向。</p>
+        <p>较新的内核开发中出现了用 BPF 对 io_uring 操作进行更细粒度限制/过滤的接口与补丁系列；这类功能的目标是按操作码或请求属性实施策略，并不等于可以任意改写 I/O 数据或在通用 I/O 路径中实现压缩/加密。是否可用需核对目标内核版本的 UAPI、配置和发行版回移情况。</p>
 
         <h3>dmabuf读写（Linux 6.12-6.19）</h3>
-        <p>dmabuf（DMA Buffer）是Linux内核中用于在设备之间共享DMA缓冲区的机制。io_uring在6.12到6.19版本中逐步支持了dmabuf的读写操作。这使得GPU和NIC之间可以直接交换数据，而不需要经过CPU。对AI训练场景来说，这意味着GPU可以直接读取NVMe盘上的训练数据，或者直接从网卡接收远程GPU数据——完全不需要CPU参与数据搬运。这就是GPUDirect Storage和GPUDirect RDMA的io_uring集成版本。</p>
+        <p>dmabuf（DMA Buffer）是Linux内核中用于在设备之间共享DMA缓冲区的机制。DMA-BUF-backed registered buffers 与 io_uring read/write 的集成是面向兼容文件/设备的 opt-in 能力，具体支持范围取决于目标内核、驱动和文件操作实现。它不能直接推导为 GPU、NIC、NVMe 之间普遍可实现 peer-to-peer 直连，也不等同于 GPUDirect Storage 或 GPUDirect RDMA；是否发生 CPU 拷贝必须按实际 DMA/IOMMU 路径验证。</p>
 
         <h2 id="section-05">五、零拷贝技术矩阵</h2>
 

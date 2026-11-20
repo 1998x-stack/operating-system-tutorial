@@ -28,6 +28,15 @@
       "locator": "DESCRIPTION",
       "status": "verified",
       "notes": "swap 是内存回收策略之一，不是虚拟内存抽象的定义。"
+    },
+    {
+      "id": "vm-12-04",
+      "claim": "mTHP 支持的匿名/共享内存页阶与尺寸依赖基础页大小、架构和内核配置，不能假定所有系统具有同一尺寸列表。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://docs.kernel.org/admin-guide/mm/transhuge.html",
+      "locator": "Multi-size THP; per-size controls",
+      "status": "verified",
+      "notes": "检查目标系统的 sysfs per-size 控制项。"
     }
   ]
 }

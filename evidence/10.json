@@ -28,6 +28,15 @@
       "locator": "CFS run queues and scheduling",
       "status": "derived",
       "notes": "本文删除无来源的统一 CPU 百分比。"
+    },
+    {
+      "id": "sched-10-04",
+      "claim": "sched_ext 通过 struct sched_ext_ops 与 BPF 调度程序协作，调度器 ABI 不保证跨内核版本稳定。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://docs.kernel.org/scheduler/sched-ext.html",
+      "locator": "Basics; ABI Instability",
+      "status": "verified",
+      "notes": "使用前应固定内核版本并检查同版本 tools/sched_ext 示例。"
     }
   ]
 }

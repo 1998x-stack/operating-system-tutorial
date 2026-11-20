@@ -37,6 +37,15 @@
       "locator": "Basics; ABI Instability",
       "status": "verified",
       "notes": "使用前应固定内核版本并检查同版本 tools/sched_ext 示例。"
+    },
+    {
+      "id": "sched-10-05",
+      "claim": "Linux 公平调度类自 Linux 6.6 开始转向 EEVDF：在 lag 非负的 eligible 任务中按最早虚拟截止时间选择任务；CFS 文档现将 EEVDF 作为后续调度模型介绍。",
+      "kind": "scheduler implementation/version",
+      "source_url": "https://docs.kernel.org/scheduler/sched-eevdf.html",
+      "locator": "EEVDF Scheduler; transition from CFS",
+      "status": "verified",
+      "notes": "旧内核仍需按对应版本阅读 CFS 实现。"
     }
   ]
 }

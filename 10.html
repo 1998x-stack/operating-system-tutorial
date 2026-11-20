@@ -90,10 +90,10 @@
 
         <p>vruntime的计算考虑了优先级：高优先级进程的vruntime增长得慢（同样的实际运行时间，高优先级进程的vruntime数值增加得更少），因此它们更有可能成为红黑树中最左边的节点，获得更多CPU时间。</p>
 
-        <pre><code>// 简化的CFS vruntime更新逻辑
+        <pre><code>// 历史 CFS 机制示意（伪代码，不是当前内核源码摘录，也不可直接编译）
 // 核心公式：vruntime += 实际运行时间 × (NICE_0_LOAD / 进程权重)
 
-// 内核中实际路径（来自 kernel/sched/fair.c）
+// Linux 6.6 起公平调度类开始转向 EEVDF；当前实现请阅读目标版本源码。
 static void update_curr(struct cfs_rq *cfs_rq)
 {
     struct sched_entity *curr = cfs_rq->curr;

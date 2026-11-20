@@ -60,56 +60,72 @@
 
         <p>创建一个<code>runqlat.bpf.c</code>文件，使用BPF Map记录每个进程在运行队列中的等待时间：</p>
 
-        <pre><code>// runqlat.bpf.c — 追踪进程调度延迟
-#include &lt;linux/bpf.h&gt;
-#include &lt;bpf/bpf_helpers.h&gt;
-#include &lt;bpf/bpf_tracing.h&gt;
+        <pre><code>// runqlat.bpf.c — 教学骨架；需要匹配目标内核的 vmlinux.h
+#include "vmlinux.h"
+#include <bpf/bpf_helpers.h>
+#include <bpf/bpf_tracing.h>
 
 char LICENSE[] SEC("license") = "GPL";
 
-// 存储每个进程的入队时间戳
 struct {
     __uint(type, BPF_MAP_TYPE_HASH);
-    __uint(max_entries, 10240);
-    __type(key, u32);      // PID
-    __type(value, u64);    // 时间戳(ns)
+    __uint(max_entries, 16384);
+    __type(key, __u32);
+    __type(value, __u64);
 } enqueue_ts SEC(".maps");
 
-// 存储延迟分布直方图（槽位: 0-1us, 1-2us, ... 1024+us）
 struct {
-    __uint(type, BPF_MAP_TYPE_ARRAY);
-    __uint(max_entries, 11); // 2^0 到 2^10
-    __type(key, u32);
-    __type(value, u64);
+    __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+    __uint(max_entries, 11);
+    __type(key, __u32);
+    __type(value, __u64);
 } latency_hist SEC(".maps");
 
-SEC("tp_btf/sched_switch")
-int trace_sched_switch(u64 *ctx)
+static __always_inline int record_wakeup(__u32 pid)
 {
-    // 获取被切换出去的进程的PID
-    u32 prev_pid = (u32)ctx[1];
-    u64 now = bpf_ktime_get_ns();
+    __u64 now = bpf_ktime_get_ns();
+    bpf_map_update_elem(&enqueue_ts, &pid, &now, BPF_ANY);
+    return 0;
+}
 
-    // 记录被切换出去进程的入队时间
-    bpf_map_update_elem(&amp;enqueue_ts, &amp;prev_pid, &amp;now, BPF_ANY);
+SEC("tp/sched/sched_wakeup")
+int on_sched_wakeup(struct trace_event_raw_sched_wakeup *ctx)
+{
+    return record_wakeup(ctx->pid);
+}
 
-    // 获取即将运行的进程的PID
-    u32 next_pid = (u32)ctx[2];
-    u64 *start_ts = bpf_map_lookup_elem(&amp;enqueue_ts, &amp;next_pid);
-    if (start_ts) {
-        u64 delta = now - *start_ts;
-        // 计算log2槽位
-        u32 slot = 0;
-        u64 v = delta &gt;&gt; 3; // 除8近似转换为微秒
-        while (v &gt;= 2 && slot &lt; 10) {
-            v &gt;&gt;= 1;
-            slot++;
-        }
-        u64 *cnt = bpf_map_lookup_elem(&amp;latency_hist, &amp;slot);
-        if (cnt) {
-            __sync_fetch_and_add(cnt, 1);
-        }
+SEC("tp/sched/sched_wakeup_new")
+int on_sched_wakeup_new(struct trace_event_raw_sched_wakeup *ctx)
+{
+    return record_wakeup(ctx->pid);
+}
+
+SEC("tp/sched/sched_switch")
+int on_sched_switch(struct trace_event_raw_sched_switch *ctx)
+{
+    __u64 now = bpf_ktime_get_ns();
+
+    /* 被抢占且仍处于 TASK_RUNNING 的 prev 重新进入等待队列。 */
+    if (ctx->prev_pid > 0 && ctx->prev_state == TASK_RUNNING)
+        bpf_map_update_elem(&enqueue_ts, &ctx->prev_pid, &now, BPF_ANY);
+
+    __u32 pid = ctx->next_pid;
+    __u64 *start = bpf_map_lookup_elem(&enqueue_ts, &pid);
+    if (!start)
+        return 0;
+
+    __u64 delta_us = (now - *start) / 1000;
+    __u32 slot = 0; /* 0: 0-1us, 1: 2-3us, ... 10: 1024us 以上 */
+    while (delta_us > 1 && slot < 10) {
+        delta_us >>= 1;
+        slot++;
     }
+
+    __u64 *count = bpf_map_lookup_elem(&latency_hist, &slot);
+    if (count)
+        (*count)++; /* PERCPU_ARRAY：每 CPU 独立计数 */
+
+    bpf_map_delete_elem(&enqueue_ts, &pid);
     return 0;
 }</code></pre>
 
@@ -341,102 +357,18 @@ static DEVICE_ATTR_RW(buffer_size);</code></pre>
 
         <p>写时拷贝（Copy-on-Write, COW）是Linux等现代OS中<code>fork()</code>的标准实现方式。它的核心思想是：<strong>先共享，需要时再复制</strong>。</p>
 
-        <h3>COW实现步骤</h3>
-
-        <p><strong>第一步：修改fork时的页表处理</strong></p>
-
-        <p>在xv6的<code>fork()</code>函数中（通常在<code>kernel/proc.c</code>），将父进程的页表项权限设置为只读，并增加一个代表COW的标志位（比如PTE_COW，可以复用PTE的保留位）。父进程和子进程共享同一份物理页面：</p>
-
-        <pre><code>// 修改后的fork()中的uvmcopy逻辑（COW版本）
-int uvmcopy_cow(pagetable_t old, pagetable_t new, uint64 sz)
-{
-    pte_t *pte;
-    uint64 pa, i;
-    uint flags;
-
-    for (i = 0; i &lt; sz; i += PGSIZE) {
-        if ((pte = walk(old, i, 0)) == 0)
-            panic("uvmcopy: pte should exist");
-        if ((*pte &amp; PTE_V) == 0)
-            panic("uvmcopy: page not present");
-
-        pa = PTE2PA(*pte);
-        flags = PTE_FLAGS(*pte);
-
-        // 标记为COW：清除写权限，设置COW标志位
-        *pte &amp;= ~PTE_W;
-        *pte |= PTE_COW;      // 自定义标志位
-        flags &amp;= ~PTE_W;
-        flags |= PTE_COW;
-
-        // 增加物理页的引用计数
-        incref((void*)pa);
-
-        // 子进程映射到同一个物理页（只读）
-        if (mappages(new, i, PGSIZE, pa, flags) != 0) {
-            // 回滚
-            decref((void*)pa);
-            uvmunmap(new, 0, i / PGSIZE, 0);
-            return -1;
-        }
-    }
-    return 0;
-}</code></pre>
-
-        <p><strong>第二步：在page fault处理中触发复制</strong></p>
-
-        <p>当父进程或子进程试图写入一个COW页时，CPU会触发page fault（因为页表项是只读的）。在<code>usertrap()</code>中捕获这个fault，判断是否是COW页（检查PTE_COW标志），如果是则分配新物理页，复制内容，并将新页映射到触发fault的进程页表中（赋予读写权限）：</p>
-
-        <pre><code>// 在usertrap()中处理COW page fault
-void cow_page_fault(pagetable_t pagetable, uint64 va)
-{
-    pte_t *pte = walk(pagetable, va, 0);
-    if (pte == 0 || (*pte &amp; PTE_V) == 0 || (*pte &amp; PTE_COW) == 0)
-        panic("cow: unexpected fault");
-
-    uint64 old_pa = PTE2PA(*pte);
-    uint64 new_pa = (uint64)kalloc();
-    if (new_pa == 0)
-        panic("cow: out of memory");
-
-    // 复制物理页内容
-    memmove((void*)new_pa, (void*)old_pa, PGSIZE);
-
-    // 减少旧页引用计数，如果归零则释放
-    decref((void*)old_pa);
-
-    // 映射新页为可读写
-    uint flags = (PTE_FLAGS(*pte) &amp; ~PTE_COW) | PTE_W;
-    uvmunmap(pagetable, PGROUNDDOWN(va), 1, 0);
-    mappages(pagetable, PGROUNDDOWN(va), PGSIZE, new_pa, flags);
-}</code></pre>
-
-        <p><strong>第三步：实现物理页的引用计数管理</strong></p>
-
-        <p>需要一个数组来跟踪每个物理页被多少个进程的页表引用：</p>
-
-        <pre><code>// kernel/kalloc.c — 引用计数管理
-#define PHYSTOP 0x88000000   // xv6物理内存上限
-uint8 refcount[PHYSTOP / PGSIZE];
-
-void incref(void *pa) {
-    uint32 idx = (uint32)((uint64)pa / PGSIZE);
-    __sync_fetch_and_add(&amp;refcount[idx], 1);
-}
-
-void decref(void *pa) {
-    uint32 idx = (uint32)((uint64)pa / PGSIZE);
-    if (__sync_fetch_and_sub(&amp;refcount[idx], 1) == 1) {
-        // 引用计数降到0，释放物理页
-        kfree(pa);
-    }
-}</code></pre>
-
-        <div class="highlight">
-            <p><strong>检验标准</strong>：完成COW实现后，运行一个测试程序——父进程分配一个大数组（如4MB），然后fork()，子进程读取数组内容但不修改，接着子进程exec()一个新程序。在eager copy版本中，这个过程会拷贝4MB的物理页面；在COW版本中，实际拷贝量为0（如果子进程只读且最终调用了exec）。只有在子进程真正修改页面时，才会触发实际的页面复制。这就是COW的核心效率来源。</p>
-        </div>
-
-        <h2 id="section-04">四、项目四：生成内核调用火焰图</h2>
+        <h3>COW 实现步骤</h3>
+<p>请以所选 MIT xv6 课程年份的仓库与 lab handout 为准。不同课程分支的文件布局、页表辅助函数和测试可能不同；下面是实现清单，不是可直接粘贴的完整补丁。</p>
+<ol>
+<li><strong>修改 <code>uvmcopy()</code>：</strong>子进程页表映射到父进程已有物理页；父子对应用户 PTE 都清除 <code>PTE_W</code> 并设置软件可用的 COW 标记（RISC-V 可使用 PTE 的 RSW 位）。仅对原本可写的用户页设置 COW 标记，保留只读文本页的权限语义。</li>
+<li><strong>维护物理页引用计数：</strong><code>kalloc()</code> 分配页时初始化引用计数；fork 共享映射时递增；任何路径移除映射时递减；只有最后一个引用消失后才能把页放回空闲链表。引用计数更新需要锁保护，并与 <code>kalloc()</code>/<code>kfree()</code> 的既有锁顺序协调，不能简单对任意指针做无锁字节原子操作。</li>
+<li><strong>处理用户写缺页：</strong><code>usertrap()</code> 检查 fault 地址、PTE 有效位和 COW 标记；若引用数为 1，可直接恢复写权限；否则分配新页、复制旧页、替换 PTE、减少旧页引用计数。分配失败要返回正确错误路径，不应在正常内存压力下无条件 panic。</li>
+<li><strong>处理内核写用户页：</strong>检查 <code>copyout()</code> 是否可能写入 COW 页；MIT 的 COW lab 明确要求为此路径增加 COW 处理，否则从文件读取等内核到用户拷贝场景仍可能失败。</li>
+<li><strong>刷新地址转换：</strong>修改当前进程页表后按目标 RISC-V xv6 版本要求执行必要的 TLB 刷新/页表同步；进程退出、exec、fork 失败回滚等路径都必须正确维护引用计数。</li>
+<li><strong>运行完整测试：</strong>执行 <code>cowtest</code> 与 <code>usertests</code>，并检查 fork 失败回滚、连续 fork、父子分别写入、exec、进程退出和内存不足等边界。</li>
+</ol>
+<div class="warning"><p><strong>重要：</strong>当前示例仓库中的简化代码不能视为已完成 COW 实现。尤其是“引用计数归零时释放页”的逻辑必须与 xv6 的 <code>kfree()</code> 设计统一；不能在外部 decref 后再由原有 kfree 再次递减。不要把示意片段直接复制进 xv6 后宣称实验通过。</p></div>
+<h2 id="section-04">四、项目四：生成内核调用火焰图</h2>
 
         <p>性能分析是OS工程师的必修课。火焰图（Flame Graph）由Brendan Gregg发明，是目前最直观的性能分析可视化工具。我们将在第24章perf知识的基础上，生成一份完整的内核调用火焰图并撰写分析报告。</p>
 

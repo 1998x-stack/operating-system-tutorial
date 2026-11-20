@@ -160,8 +160,8 @@
         <p>Linux内核中同时存在多个CPU调度器类：CFS（公平调度）、RT（实时调度）、DL（Deadline调度）、IDLE（空闲调度）。每一类都在吞吐量和延迟之间做着不同的权衡。</p>
 
         <ul>
-            <li><strong>CFS（默认）</strong>：追求公平性，每个进程按权重分配CPU时间。吞吐量优秀，尾部延迟一般。适合通用服务器。</li>
-            <li><strong>SCHED_DEADLINE</strong>：最早截止时间优先（EDF）实现。延迟确定性强，但吞吐量可能不如CFS。适合需要实时保障的场景。</li>
+            <li><strong>公平调度类（Linux 6.6 起采用 EEVDF）</strong>：按权重分配公平 CPU 时间；EEVDF 在具备正 lag 的 eligible 任务中选择虚拟截止时间最早者。较旧内核使用 CFS 选择模型，具体实现应按内核版本阅读。</li>
+            <li><strong>SCHED_DEADLINE</strong>：基于 CBS 与 EDF，使用 runtime/deadline/period 参数和带宽准入控制；在系统负载与准入假设满足时可提供预算/截止时间保证，不是无条件的端到端实时保证。</li>
             <li><strong>SCHED_RT（FIFO/RR）</strong>：静态优先级，高优先级任务抢占低优先级。延迟最低但公平性最差。适合音频/视频处理等需要低延迟的场景。</li>
         </ul>
 
@@ -174,7 +174,7 @@
             <li><strong>激进策略</strong>：在内存还比较充裕时就开始后台回收。优点是延迟抖动小。缺点是CPU开销更高，而且可能把还在使用的页面换出。</li>
         </ul>
 
-        <p>Linux的默认策略在两者之间：<code>vm.vfs_cache_pressure</code>和<code>vm.swappiness</code>是两个关键参数，允许系统管理员根据自己的场景调整激进程度。对于数据库服务器（追求低延迟抖动），通常设置为较低<code>swappiness</code>以更保守地使用交换；对于内存密集型的批处理任务，可以适当提高<code>swappiness</code>让内核更早开始回收。</p>
+        <p>Linux的默认策略在两者之间：<code>vm.vfs_cache_pressure</code>和<code>vm.swappiness</code>是两个关键参数，允许系统管理员根据自己的场景调整激进程度。<code>vm.swappiness</code> 调整匿名页与文件页回收的相对倾向，并非简单的“越低越少回收/越低延迟”；<code>vm.vfs_cache_pressure</code> 主要影响 dentry/inode 等 VFS 缓存回收倾向。应根据工作集、swap 设备、文件缓存命中率与 PSI 数据做负载测试，不应给数据库或批处理套用固定推荐值。</p>
 
         <pre><code># 查看当前内存回收策略参数
 $ cat /proc/sys/vm/swappiness

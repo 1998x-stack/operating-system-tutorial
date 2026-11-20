@@ -50,11 +50,7 @@
 <li><a href="#section-04">四、时间子系统踩坑集</a></li>
 <li><a href="#section-05">五、结语与下一章预告</a></li></ol></details></nav>
 <div class="article-body">
-<p>大家好，我是你们的讲师。时间对操作系统来说是一个既普通又神奇的东西——普通到每个系统调用都牵涉到它，神奇到一旦它不准确，整个系统都会陷入混乱。试想：你的 <code>sleep(1)</code> 睡了2秒才返回，<code>gettimeofday()</code> 返回的时间忽快忽慢，定时器触发的间隔忽长忽短——整个系统将变得不可用。</p>
-
-        <p>操作系统的时间管理远比你想像的复杂。从古老的PIT计数器到现代CPU的TSC（时间戳计数器），从传统的 <code>jiffies</code> 到纳秒级的 <code>hrtimer</code>，从 <code>timer_list</code> 到时间轮算法——OS的"计时能力"经历了从粗糙到精密、从简单到复杂的演进。理解这些机制不仅对内核开发者重要，对每一个写过 <code>sleep</code>、<code>timeout</code>、<code>cron</code>、<code>latency</code> 相关代码的工程师都至关重要。</p>
-
-        <p>分享一个令人难忘的线上故障。某金融公司的一台交易服务器每隔几个月就会在特定时刻"挂死"几分钟，然后自动恢复。日志里没有任何异常，CPU和内存都正常，网络也在通。排查了半年，最终发现是Linux内核的 <code>ktime_get()</code> 在遭遇"闰秒"（leap second）时出现了死锁。2012年Linux内核的一个bug导致闰秒插入时 <code>hrtimer</code> 的锁粒度过大，引发全局 <code>clocksource_watchdog</code> 锁竞争——所有依赖 <code>gettimeofday</code> 的线程都在排队等锁。这让你明白：一个错误的时间管理机制可以拖垮整个系统。</p>
+<p>操作系统里的“时间”并不是一个单一计数器。内核需要测量时间间隔、安排定时事件、提供墙上时钟，并在 CPU 频率变化、虚拟机迁移和系统休眠等条件下保持合理的时间语义。不同任务需要的精度、稳定性和读取成本也不同。</p><p>本章区分 jiffies/HZ、clocksource、clockevent、hrtimer 与用户可见时钟，再比较 TSC、HPET 和虚拟化时钟的角色。NTP/PTP 校时与单调时钟也不能混为一谈：墙上时钟可能被校正，测量耗时通常应选择单调时钟。具体时钟源选择由架构、固件、内核和虚拟化环境共同决定。</p>
 
         <h2 id="section-01">一、内核的时间观：jiffies与HZ</h2>
 

@@ -42,10 +42,10 @@
 <li><a href="28.html">28 · 综合项目</a></li></ol></details></nav>
 <main id="content" class="content-column"><article class="chapter-article" aria-labelledby="chapter-title">
 <header class="article-header"><p class="kicker">OPERATING SYSTEMS · CHAPTER 26</p><h1 id="chapter-title">第 26 章 · 现代OS前沿趋势</h1><p class="article-dek">新语言、架构与安全机制怎样影响内核工程？</p></header>
-<section class="learning-map" aria-labelledby="learning-map-title"><h2 id="learning-map-title">先建立问题地图</h2><p>新的系统语言、开放指令集与隔离技术改变实现选择，但不会消除性能与兼容性约束。</p><div class="concept-steps" role="list"><div role="listitem"><strong>起点</strong><span>Rust for Linux</span></div><div role="listitem"><strong>机制</strong><span>LDOS AI驱动OS</span></div><div role="listitem"><strong>拓展</strong><span>seL4微内核复兴 / RISC-V+Rust生态</span></div></div><p class="map-note">这是帮助建立概念依赖的阅读地图，不表示内核内部的实际执行时序。</p></section>
+<section class="learning-map" aria-labelledby="learning-map-title"><h2 id="learning-map-title">先建立问题地图</h2><p>新的系统语言、开放指令集与隔离技术改变实现选择，但不会消除性能与兼容性约束。</p><div class="concept-steps" role="list"><div role="listitem"><strong>起点</strong><span>Rust for Linux</span></div><div role="listitem"><strong>机制</strong><span>机器学习辅助系统策略</span></div><div role="listitem"><strong>拓展</strong><span>seL4微内核复兴 / RISC-V+Rust生态</span></div></div><p class="map-note">这是帮助建立概念依赖的阅读地图，不表示内核内部的实际执行时序。</p></section>
 
 <nav class="page-toc" aria-label="本章小节"><details open><summary>本章目录 · 6 个部分</summary><ol><li><a href="#section-01">一、Rust for Linux：内核中的安全抽象与渐进式采用</a></li>
-<li><a href="#section-02">二、LDOS：AI驱动的操作系统</a></li>
+<li><a href="#section-02">二、Learning-Driven OS：机器学习辅助系统策略的研究方向</a></li>
 <li><a href="#section-03">三、微内核复兴：seL4与LionsOS</a></li>
 <li><a href="#section-04">四、RISC-V + Rust OS新生态</a></li>
 <li><a href="#section-05">五、机密计算：AMD SEV-SNP / Intel TDX 与 PCIe链路加密</a></li>
@@ -69,7 +69,7 @@
         <p>Maple Tree 是 Linux 内核用于管理范围映射（包括 VMA 管理）的数据结构，已用于替代部分旧有数据结构。不要据此声称已有完整、稳定的 Rust Maple Tree API 或“为 Rust 调度器铺平道路”；Rust for Linux 的可用抽象应以目标版本的 Rust 文档和主线源码为准。</p>
 
         <pre><code>// Rust内核模块的简单示例
-// Linux 6.18中的Rust内核模块结构
+// 教学骨架：Rust module API 与工具链要求随目标内核版本变化
 #![no_std]
 #![no_main]
 
@@ -162,28 +162,24 @@ impl Drop for HelloModule {
 
         <p>AMD的SEV-SNP（Secure Encrypted Virtualization-Secure Nested Paging）和Intel的TDX（Trusted Domain Extensions）从硬件层面提供了虚拟机内存加密。CPU内置的内存加密引擎（AMD的SME/Intel的MKTME）使用每个虚拟机独有的密钥对内存进行加密。即使Hypervisor被攻破，攻击者也无法读取虚拟机内部的内存数据——因为读取到的都是密文。</p>
 
-        <p>2025年，Linux 6.19合入了PCIe链路加密支持。这意味着：不仅内存中的加密，连设备（如GPU、NVMe SSD）与CPU之间的PCIe数据传输也被加密。想象一下，你在云上训练一个AI模型，GPU从系统内存读取训练数据时，即使有人物理接入了PCIe探针，也无法窃取数据。</p>
+        <p>PCIe IDE（Integrity and Data Encryption）是 PCIe 链路级保护机制，可在支持的链路两端对传输 TLP 提供机密性与完整性保护。它需要平台、Root Port、Endpoint、固件和密钥管理链路共同支持；不能推导为所有 GPU/NVMe 与 CPU 之间的 DMA 流量默认加密，也不能声称任何物理探针场景都被完全防护。实际支持情况应按 PCIe 设备能力、平台固件和操作系统驱动核验。</p>
 
         <h3>CoCo：Confidential Containers</h3>
 
-        <p>CoCo（Confidential Containers）项目将机密计算的能力下放到了容器层面。通过Kata Containers或Enclave技术，每个容器运行在自己的加密执行环境中。在Kubernetes集群中，敏感工作负载（如密钥管理服务、金融数据处理）可以在CoCo保护的容器中运行，而集群管理员都无法看到容器的内存内容。</p>
+        <p>CoCo（Confidential Containers）项目探索在 Kubernetes 中运行于机密虚拟机（CVM）中的 Pod，并结合 attestation、guest components 与 key broker 等组件建立信任链。通常是 Pod/VM 级隔离，不应描述为每个容器都必然拥有独立硬件加密环境。保护范围还受镜像测量、固件、虚拟化平台、设备直通、密钥释放策略和运行时配置影响；集群管理员不能仅凭“启用 CoCo”就被假定完全无法观察任何元数据或 I/O。</p>
 
-        <pre><code># 使用CoCo运行一个机密容器
-# cococtl是CoCo项目的CLI工具
-
-# 创建一个加密的Pod VM
-$ cococtl run --runtime=kata-qemu-tdx \
-    --image=docker.io/myapp:latest \
-    --memory-encryption=tdx \
-    --pcie-encryption=true \
-    my-confidential-app
-
-# 验证机密环境
-$ cococtl attest my-confidential-app
-{"measurement": "abc123...", "tdx": true, "pcie-encrypted": true}</code></pre>
+        <pre><code># 部署步骤取决于 CoCo 发行版、Kata runtime、CVM 类型和 Kubernetes 集成。
+# 不存在跨平台通用的 cococtl run --pcie-encryption 命令。
+# 请按所选 CoCo release 的官方部署指南：
+# 1. 配置受支持的 confidential VM runtime class；
+# 2. 配置 attestation agent 与 key broker；
+# 3. 使用对应 RuntimeClass 部署测试 Pod；
+# 4. 验证远程证明报告与密钥释放策略。
+$ kubectl get runtimeclass
+$ kubectl describe pod <confidential-pod></code></pre>>
 
         <div class="highlight">
-            <p><strong>行业趋势</strong>：机密计算正在成为云原生安全的"最后一块拼图"。2025年，主流云厂商（AWS Nitro、Azure ACS、Google Cloud C3）都已提供基于SEV-SNP/TDX的机密VM实例。对OS开发者而言，这意味着内核需要支持新的安全生命周期管理、新的DMA隔离机制和新的内存加密协议——这是未来几年内核开发的重要方向。</p>
+            <p><strong>行业趋势</strong>：机密计算正在成为云原生安全的"最后一块拼图"。云厂商的机密 VM 产品、CPU 平台和可用区域会持续变化；部署前应查对应区域的产品矩阵与 attestation 文档，不要把 Nitro Enclaves、SEV-SNP 和 TDX 当作同一种技术。对OS开发者而言，这意味着内核需要支持新的安全生命周期管理、新的DMA隔离机制和新的内存加密、DMA 隔离和远程证明协议——这些都是内核与平台软件需要协同支持的方向。</p>
         </div>
 
         <h2 id="section-06">六、本章小结</h2>

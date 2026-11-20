@@ -72,7 +72,7 @@
             <tr><td>软中断（softirq）</td><td>Linux 2.3</td><td>否</td><td>中断上下文</td><td>静态分配，可并发（同类型可在不同CPU同时执行）</td></tr>
             <tr><td>tasklet</td><td>Linux 2.3</td><td>否</td><td>中断上下文</td><td>基于softirq构建，同类型串行执行，更安全</td></tr>
             <tr><td>工作队列（workqueue）</td><td>Linux 2.5</td><td>是</td><td>进程上下文（内核线程）</td><td>允许阻塞、可以持有锁、执行大量操作</td></tr>
-            <tr><td>线程化中断</td><td>Linux 2.6.30</td><td>是</td><td>内核线程（request_threaded_irq）</td><td>将整个中断处理放入内核线程，彻底避免中断上下文限制</td></tr>
+            <tr><td>线程化中断</td><td>Linux 2.6.30</td><td>是</td><td>内核线程（request_threaded_irq）</td><td>将整个中断处理放入内核线程，将主要处理逻辑移到线程上下文，减少对硬中断上下文的依赖</td></tr>
         </table>
 
         <h3>softirq：性能最高的下半部</h3>
@@ -93,7 +93,7 @@ $ cat /proc/softirqs
          RCU:     789012     765432     801234     776543</code></pre>
 
         <h3>tasklet：更安全但退化的软中断</h3>
-        <p>tasklet基于softirq实现，但加了一个关键限制：同类型的tasklet在任何时刻最多只能在一个CPU上执行。这消除了并发问题，让驱动作者不需要考虑锁的问题。但代价就是不能利用多核并行加速同一个tasklet。tasklet曾经是最广泛使用的下半部机制，但在现代Linux内核中已被标记为deprecated（弃用），推荐使用工作队列或线程化中断。</p>
+        <p>tasklet基于softirq实现，但加了一个关键限制：同类型的tasklet在任何时刻最多只能在一个CPU上执行。tasklet 同类型实例不会在多个 CPU 上并发执行，但仍可能与其他上下文访问共享数据；这不等于整个驱动不需要锁。但代价就是不能利用多核并行加速同一个tasklet。tasklet 是基于 softirq 的历史机制，仍需按目标内核版本检查其状态与维护方向。新驱动通常应优先评估 workqueue、threaded IRQ 或其他适合的机制；选择取决于是否允许睡眠、并发要求和延迟目标。</p>
 
         <h3>workqueue：能睡觉的下半部</h3>
         <p>工作队列（workqueue）将下半部的工作推迟到内核线程中执行。这意味着你可以在workqueue回调中调用任何可能阻塞的函数——<code>mutex_lock</code>、<code>kmalloc(GFP_KERNEL)</code>、<code>copy_to_user</code>，甚至文件系统操作。workqueue使用内核全局的工作者线程池（每个CPU一个"kworker"线程），但也支持创建专用的workqueue。</p>
@@ -125,7 +125,7 @@ void my_work_handler(struct work_struct *work) {
         <h3>线程化中断：最新最通用的方案</h3>
         <p>从Linux 2.6.30开始，<code>request_threaded_irq()</code> 允许将整个中断处理（包括上半部）放在一个内核线程中。你提供一个"上半部"函数（在中断上下文中执行，return IRQ_WAKE_THREAD 时唤醒线程），和一个"thread_fn"（在进程上下文中执行）。如果你不需要在真正的上半部做任何紧急操作，可以传入 <code>IRQF_ONESHOT</code> 标志让内核自动管理中断屏蔽——线程化中断会在执行期间自动屏蔽该中断线，执行完成后重新使能。</p>
 
-        <p>线程化中断已成为新驱动开发的首选方案，因为它在不牺牲太多性能的前提下极大地简化了驱动逻辑。事实上，PREEMPT_RT实时内核将所有中断都强制线程化了——这引出了我们后面的话题。</p>
+        <p>线程化中断适合需要在可调度上下文中完成主要处理的设备，但并非所有驱动都应默认采用；性能与延迟需实测。在 PREEMPT_RT 下，大多数中断会被强制线程化，但 IRQF_NO_THREAD、IRQF_PERCPU 等特定中断类型存在例外，具体以当前内核实时文档为准。</p>
 
         <h2 id="section-03">三、中断亲和性与CPU绑定</h2>
 

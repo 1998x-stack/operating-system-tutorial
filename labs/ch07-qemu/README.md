@@ -33,3 +33,11 @@ gdb ./vmlinux
 ## 安全边界
 
 不要把 GDB stub 暴露到公网或不可信网络。优先使用本机回环地址或 Unix socket；实验 Guest 与宿主机共享目录时，也要将 Guest 视为可能执行任意内核代码的环境。
+
+## 预期结果
+
+QEMU 启动后 Guest CPU 保持暂停，GDB 显示远程目标已连接；设置 `start_kernel` 断点后执行 continue，若符号和镜像匹配，应在内核启动路径命中断点。若 Guest 继续运行但未命中，检查 `vmlinux` 与 `bzImage` 是否来自同一构建、调试符号是否保留，以及架构和 KASLR 设置。
+
+## 清理
+
+在 GDB 中执行 `detach` 后退出 GDB；在 QEMU 终端按 `Ctrl-C` 结束 Guest。确认 QEMU 进程退出并释放本地 1234 端口。实验生成的内核、initramfs 与构建目录按需删除；不要删除共享或宿主机正在使用的镜像。

@@ -141,7 +141,7 @@ $ bpftool gen skeleton runqlat.bpf.o > runqlat.skel.h
 # bpf_program__attach_tracepoint(..., "sched", "sched_wakeup")
 # bpf_program__attach_tracepoint(..., "sched", "sched_wakeup_new")
 # bpf_program__attach_tracepoint(..., "sched", "sched_switch")
-# bpftool prog load 只负责加载，不会自动 attach tracepoint。</code></pre>>
+# bpftool prog load 只负责加载，不会自动 attach tracepoint。</code></pre>
 
         <h3>步骤三：读取直方图数据</h3>
 
@@ -311,6 +311,7 @@ static struct file_operations fops = {
  * 较旧内核使用 class_create(THIS_MODULE, CLASS_NAME)。
  * 完整实现还需为每个失败分支做逆序资源回收。 */
 static dev_t devt;
+static struct device_attribute dev_attr_buffer_size; /* init() 中先引用，定义见下方 */
 
 static int __init memdevice_init(void)
 {

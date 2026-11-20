@@ -26,3 +26,25 @@
 - 未执行 eBPF 程序、KVM 虚拟机或 DPDK 的实际负载测试。
 - 未完成 Chromium 多视口、键盘可访问性与打印样式人工验收；这些不应被视为已通过。
 - GitHub Actions 和 Pages 部署状态以最新提交对应的 workflow 运行结果为准。
+
+## 第二轮版本敏感事实复核（2026-11）
+
+对照当前上游文档与接口后，追加修正：
+
+| 章节 | 本次追加修正 |
+| --- | --- |
+| 15 | 纠正 IORING_SETUP_SQE_MIXED 的真实含义（64/128-byte SQE 混合）；收紧 ZC Rx 的硬件前提与 kernel-to-user payload copy 边界；将 DMA-BUF read/write 限定为文件/设备 opt-in 能力；纠正 io_uring 不保证所有操作均真正异步。 |
+| 16 | 将 Rust 主线使用者列表改为当前项目维护的示例清单；移除“Linux 内核 70% 漏洞为内存安全问题”的错误归因；说明 Safe Rust 与 unsafe 边界，避免声称 Rust 自动消除所有数据竞争/UAF。 |
+| 17 | 修正 tasklet 作为历史机制的定位；说明 tasklet 串行约束不等于驱动不需要锁；限定 PREEMPT_RT 的线程化中断存在例外；避免将 workqueue worker 数量写成每 CPU 固定一个。 |
+| 18 | 修正 jiffies/HZ 与 NO_HZ 的关系；明确 HZ 不构成 hrtimer、clock_nanosleep 等接口的精度上限；修正 tickless 与用户态睡眠语义。 |
+| 19 | 修正 SYN backlog 为 per-listener 语义；补充 syncookies 是 backlog 溢出时的后备机制而非容量调优；移除将 tcp_tw_reuse=1 当作通用 TIME_WAIT 优化的命令；补充 DMA/网卡发送路径中的 CPU 参与。 |
+| 20 | 区分 perf event array 与 BPF ringbuf；修正 BPF map 样例的 PID/TID 取值和计数器注释；说明 verifier 对有界循环、复杂度与程序状态的约束。 |
+| 21 | 移除 KVM 是 Type-2 Hypervisor 的绝对分类；限定 VMX root/non-root 为 Intel VT-x 术语；区分 KVM 内核 API、QEMU 用户态设备模型和架构相关 VM exit 行为。 |
+
+本批追加证据已写入 `evidence/15.json` 至 `evidence/21.json`，新增上游链接覆盖 io_uring ZC Rx、SQE mixed、Rust for Linux 当前主线使用者、NO_HZ、TCP sysctl、BPF verifier/map 与 KVM API。
+
+### 验证边界
+
+- 本轮完成了文档/接口层面的事实修订与证据登记。
+- 未在真实 NIC 上配置 ZC Rx、未执行 io_uring DMA-BUF NVMe I/O、未加载驱动、未运行 PREEMPT_RT 压测、未实际运行 KVM/DPDK/eBPF 性能实验。
+- 设备树、DMA、中断、网络 offload 和 KVM 代码示例仍需在明确指定的架构、内核配置、驱动和硬件上进行编译/运行验收。

@@ -1,5 +1,7 @@
 # 第 07 章实验：MIT xv6-RISC-V
 
+## 环境
+
 xv6 是 MIT 课程使用的教学操作系统，不是生产 Linux 发行版。请按当前课程和仓库版本安装 RISC-V newlib 工具链与支持 `riscv64-softmmu` 的 QEMU。
 
 ## 获取源码与构建

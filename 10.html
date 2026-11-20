@@ -42,7 +42,7 @@
 <li><a href="28.html">28 · 综合项目</a></li></ol></details></nav>
 <main id="content" class="content-column"><article class="chapter-article" aria-labelledby="chapter-title">
 <header class="article-header"><p class="kicker">OPERATING SYSTEMS · CHAPTER 10</p><h1 id="chapter-title">第 10 章 · CPU调度</h1><p class="article-dek">多个任务都想运行时，谁先获得 CPU？</p></header>
-<section class="learning-map" aria-labelledby="learning-map-title"><h2 id="learning-map-title">先建立问题地图</h2><p>调度器根据策略在可运行任务间选择执行者，公平性和时延并非同一目标。</p><div class="concept-steps" role="list"><div role="listitem"><strong>起点</strong><span>O(n)→CFS→EEVDF</span></div><div role="listitem"><strong>机制</strong><span>vruntime红黑树</span></div><div role="listitem"><strong>拓展</strong><span>sched_ext用户态调度 / PREEMPT_RT实时</span></div></div><p class="map-note">这是帮助建立概念依赖的阅读地图，不表示内核内部的实际执行时序。</p></section>
+<section class="learning-map" aria-labelledby="learning-map-title"><h2 id="learning-map-title">先建立问题地图</h2><p>调度器根据策略在可运行任务间选择执行者，公平性和时延并非同一目标。</p><div class="concept-steps" role="list"><div role="listitem"><strong>起点</strong><span>O(n)→CFS→EEVDF</span></div><div role="listitem"><strong>机制</strong><span>vruntime红黑树</span></div><div role="listitem"><strong>拓展</strong><span>sched_ext 的 BPF 可编程调度 / PREEMPT_RT实时</span></div></div><p class="map-note">这是帮助建立概念依赖的阅读地图，不表示内核内部的实际执行时序。</p></section>
 <figure class="mechanism-figure"><img src="assets/diagrams/scheduler.svg" width="800" height="205" alt="调度器在可运行任务之间作出选择"><figcaption>任务等待、可运行和运行是不同状态；图中不预设某一 Linux 版本的具体调度算法。</figcaption></figure>
 <nav class="page-toc" aria-label="本章小节"><details open><summary>本章目录 · 5 个部分</summary><ol><li><a href="#section-01">调度器简史</a></li>
 <li><a href="#section-02">CFS完全公平调度器</a></li>
@@ -147,7 +147,7 @@ static struct sched_entity *__pick_first_entity(struct cfs_rq *cfs_rq)
 
         <p>如果说EEVDF是内核调度的自我革新，那sched_ext（从Linux 6.12开始合入）代表的则是一个更激进的范式转变——用eBPF让用户态写调度器。</p>
 
-        <p>传统上调度器是内核最核心的模块之一，修改它需要理解复杂的内核调度框架、通过LKML审核、合入主线。这对普通开发者来说门槛极高。sched_ext通过eBPF提供了一组调度器操作的钩子（ops），开发者可以用C语言（编译为BPF字节码）编写自定义调度策略，动态加载到内核中。</p>
+        <p>sched_ext 是可扩展调度类：用户空间加载并管理 BPF 调度器，BPF 程序通过 <code>struct sched_ext_ops</code> 回调与内核调度框架交互。它不是把调度器简单搬到用户态执行；调度决策的关键路径仍由内核中的 sched_ext 框架和 BPF 程序协作完成。sched_ext 的回调与 kfunc ABI 明确不保证跨内核版本稳定，实验必须固定内核版本并以对应内核树中的示例为准。</p>
 
         <pre><code>// sched_ext 调度器示例（极简伪代码）
 // 开发者只需实现几个回调函数
@@ -214,10 +214,10 @@ s32 my_pick_next_task(struct task_struct *prev)
             <li>将各种不可抢占的临界区缩小到极致</li>
         </ul>
 
-        <p>经过长达20年的补丁维护和主线合并工作，PREEMPT_RT在Linux 6.12中正式合入主线内核。这意味着任何Linux发行版都可以方便地开启完全可抢占模式，而不需要打额外的补丁。</p>
+        <p>PREEMPT_RT 的主要代码在 Linux 6.12 合入主线，但这不意味着所有发行版内核都启用该配置，也不意味着任意内核都能通过运行时开关变成 RT 内核。是否可用取决于内核版本、配置、架构和发行版构建。</p>
 
         <div class="tip">
-            <p><strong>实验命令</strong>：检查你的Linux内核是否支持PREEMPT_RT：<code>cat /boot/config-$(uname -r) | grep PREEMPT</code>。如果输出包含 <code>CONFIG_PREEMPT_RT=y</code>，你的内核就是一个正式支持的实时内核。在实时内核上，调度延迟的中位数通常在个位数微秒级别，最坏情况也能控制在几十微秒内。</p>
+            <p><strong>实验命令</strong>：检查你的Linux内核是否支持PREEMPT_RT：<code>cat /boot/config-$(uname -r) | grep PREEMPT</code>。如果配置中出现 <code>CONFIG_PREEMPT_RT=y</code>，说明该构建启用了 PREEMPT_RT；若配置文件不可读，可检查发行版提供的内核配置或启动日志。不能仅凭配置推断具体延迟指标，必须在目标硬件、驱动、负载和 IRQ 配置下使用 cyclictest 等工具测量分布与最坏观测值。</p>
         </div>
 
         <p>CPU调度器是操作系统的心脏——它决定了谁跑、跑多久、什么时候换人。从O(n)的蛮力遍历到CFS的vruntime公平模型，再到EEVDF的延迟感知，再到sched_ext的用户态可编程调度，每一步都是对更大规模、更多样化负载的适配。实时调度领域的PREEMPT_RT合入主线，更是Linux走向工业控制领域的里程碑事件。</p>

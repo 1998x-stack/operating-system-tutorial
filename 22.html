@@ -45,12 +45,12 @@
 <section class="learning-map" aria-labelledby="learning-map-title"><h2 id="learning-map-title">先建立问题地图</h2><p>Namespace 改变进程可见的系统资源视图，cgroup 管理资源，容器共享宿主机内核。</p><div class="concept-steps" role="list"><div role="listitem"><strong>起点</strong><span>六种Namespace</span></div><div role="listitem"><strong>机制</strong><span>cgroup v2层级</span></div><div role="listitem"><strong>拓展</strong><span>OverlayFS分层 / 从chroot到Docker</span></div></div><p class="map-note">这是帮助建立概念依赖的阅读地图，不表示内核内部的实际执行时序。</p></section>
 <figure class="mechanism-figure"><img src="assets/diagrams/container-layers.svg" width="800" height="302" alt="容器的隔离视图与共享内核"><figcaption>Namespace、cgroup 和共享内核解决不同问题；图中展示的是抽象层次而非容器启动的时序。</figcaption></figure>
 <nav class="page-toc" aria-label="本章小节"><details open><summary>本章目录 · 5 个部分</summary><ol><li><a href="#section-01">容器不是轻量级虚拟机</a></li>
-<li><a href="#section-02">六种Namespace深度解析</a></li>
+<li><a href="#section-02">Linux Namespace 全景解析</a></li>
 <li><a href="#section-03">cgroup v2层级结构</a></li>
 <li><a href="#section-04">OverlayFS与容器镜像</a></li>
 <li><a href="#section-05">从chroot到Docker的演进</a></li></ol></details></nav>
 <div class="article-body">
-<p>容器提供的是一组内核隔离与资源控制机制，而不是一台拥有独立内核的轻量虚拟机。Namespace 改变进程可见的系统资源视图，cgroup 对资源使用进行分组与限制，mount namespace 与 OverlayFS 则参与构建容器文件系统视图。它们共同构成容器运行时的基础，但并不自动等价于完整的安全边界。</p><p>本章逐一解释 UTS、PID、NET、MNT、USER 与 IPC namespace，再分析 cgroup v2 的层级控制和 OverlayFS 的 lower/upper/merged 目录。容器隔离效果取决于 capability、seccomp、LSM、用户命名空间映射、挂载选项、运行时配置和宿主机内核；“容器比虚拟机安全/更快”都不是脱离场景成立的结论。</p>
+<p>容器提供的是一组内核隔离与资源控制机制，而不是一台拥有独立内核的轻量虚拟机。Namespace 改变进程可见的系统资源视图，cgroup 对资源使用进行分组与限制，mount namespace 与 OverlayFS 则参与构建容器文件系统视图。它们共同构成容器运行时的基础，但并不自动等价于完整的安全边界。</p><p>本章介绍 Linux 的 8 种 namespace：UTS、PID、NET、MNT、USER、IPC、cgroup 与 time，再分析 cgroup v2 的层级控制和 OverlayFS 的 lower/upper/merged 目录。容器隔离效果取决于 capability、seccomp、LSM、用户命名空间映射、挂载选项、运行时配置和宿主机内核；“容器比虚拟机安全/更快”都不是脱离场景成立的结论。</p>
 
         <h2 id="section-01">容器不是轻量级虚拟机</h2>
 

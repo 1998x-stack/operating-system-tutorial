@@ -10,16 +10,29 @@
 <body class="home-page">
 <a class="skip-link" href="#content">跳转到课程内容</a>
 <div class="site-shell">
-  <header class="site-masthead"><a href="index.html">操作系统 · 中文实践教程</a><span class="section-mark">28 CHAPTERS · 阅读地图</span></header>
+  <header class="site-masthead"><a href="index.html">操作系统 · 中文实践教程</a><nav class="home-top-nav" aria-label="站点导航"><a href="#learning-routes">学习路线</a><a href="#foundation">全部章节</a><a href="labs/README.md">配套实验</a><a href="README.md">项目说明</a></nav><span class="section-mark">28 CHAPTERS · STUDY MAP</span></header>
   <main id="content">
     <section class="home-hero" aria-labelledby="home-title">
       <p class="kicker">OPERATING SYSTEMS · STUDY BY MECHANISM</p>
-      <h1 id="home-title">理解操作系统，<br>从现象一路追到内核。</h1>
-      <p>从用户程序如何得到 CPU 时间，到虚拟地址如何映射物理内存，再到容器如何隔离进程：把 28 章知识组织成一条可循的因果学习路径。读一段机制、验证一个假设，再进入下一章。</p>
-      <nav class="home-actions" aria-label="快速开始"><a href="01.html">从第 01 章开始</a><a href="#foundation">浏览学习路径</a><a href="https://github.com/1998x-stack/operating-system-tutorial">查看源码</a></nav>
+      <h1 id="home-title">理解操作系统，<br><span>从现象一路追到内核。</span></h1>
+      <p>从一次系统调用到一次缺页异常，从设备中断到容器隔离：沿着问题、机制与实验建立完整的操作系统心智模型。每章都围绕一个关键问题展开，并把概念连接到可观察的 Linux 行为。</p>
+      <nav class="home-actions" aria-label="快速开始"><a href="01.html">开始第一章 <span aria-hidden="true">→</span></a><a href="#learning-routes">选择学习路线</a><a href="labs/README.md">直接进入实验</a><a href="https://github.com/1998x-stack/operating-system-tutorial" target="_blank" rel="noopener noreferrer">查看 GitHub</a></nav>
     </section>
-    <div class="home-stats" aria-label="课程概览"><span><strong>28 章</strong> · 完整课程</span><span><strong>4 阶段</strong> · 按知识依赖组织</span><span><strong>静态 HTML</strong> · 本地可读</span></div>
+    <div class="home-stats" aria-label="课程概览"><span><strong>28 章</strong><small>完整知识体系</small></span><span><strong>4 阶段</strong><small>循序渐进的学习路径</small></span><span><strong>4 组实验</strong><small>从系统调用到 xv6</small></span><span><strong>离线可读</strong><small>静态 HTML，无需账号</small></span></div>
     <aside class="home-tip">学习建议：每章先读“问题地图”，再顺着小节目录阅读。章节中的内核命令、驱动和 eBPF 示例可能依赖内核版本、权限与环境；涉及系统配置的操作先在虚拟机中验证。</aside>
+    <section class="route-section" id="learning-routes" aria-labelledby="routes-title">
+      <div class="section-heading"><div><p class="kicker">CHOOSE YOUR PATH</p><h2 id="routes-title">从你的问题开始</h2><p>不必一口气读完。根据当前目标选择入口，再沿着章节依赖继续深入。</p></div><a href="docs/guides/learning-path.md">查看完整学习指南 <span aria-hidden="true">→</span></a></div>
+      <div class="route-grid">
+        <a class="route-card" href="01.html"><span class="route-index">01 — 07</span><strong>建立底层地图</strong><span>硬件、内核边界、启动过程与实验环境</span><em>适合初学者 · 从基础开始 →</em></a>
+        <a class="route-card" href="08.html"><span class="route-index">08 — 14</span><strong>理解资源管理</strong><span>进程、调度、同步、虚拟内存与文件系统</span><em>适合系统基础学习 →</em></a>
+        <a class="route-card" href="15.html"><span class="route-index">15 — 20</span><strong>追踪系统行为</strong><span>I/O、设备、中断、网络与 eBPF 可观测性</span><em>适合 Linux 工程实践 →</em></a>
+        <a class="route-card" href="21.html"><span class="route-index">21 — 28</span><strong>进入系统工程</strong><span>虚拟化、容器、调试、性能与综合项目</span><em>适合进阶与项目驱动 →</em></a>
+      </div>
+    </section>
+    <section class="study-method" aria-labelledby="method-title">
+      <div><p class="kicker">A REPEATABLE STUDY LOOP</p><h2 id="method-title">每章都用同一套方法学会一个机制</h2></div>
+      <ol><li><strong>提出问题</strong><span>先明确机制要解决的矛盾与约束。</span></li><li><strong>画出路径</strong><span>跟踪数据结构、状态变化和控制流。</span></li><li><strong>动手验证</strong><span>在隔离环境里运行命令、观察结果并记录版本。</span></li></ol>
+    </section>
     <section class="course-stage" id="foundation" aria-labelledby="foundation-title"><h2 id="foundation-title">第一阶段 · 计算机与内核基础</h2><p>01–07：先理解操作系统面对的硬件、权限边界和实验环境。</p><div class="course-grid">
 <article class="course-card"><div><span class="num">CHAPTER 01</span><h3><a href="01.html">什么是操作系统</a></h3><p>操作系统定义 · 发展历史 · OS分类与设计哲学</p></div><a class="read" href="01.html" aria-label="阅读第 1 章：什么是操作系统">阅读本章</a></article>
 <article class="course-card"><div><span class="num">CHAPTER 02</span><h3><a href="02.html">硬件架构基础</a></h3><p>冯·诺依曼架构 · x86/ARM/RISC-V · 存储金字塔 · 中断与异常</p></div><a class="read" href="02.html" aria-label="阅读第 2 章：硬件架构基础">阅读本章</a></article>
@@ -57,7 +70,7 @@
 <article class="course-card"><div><span class="num">CHAPTER 28</span><h3><a href="28.html">综合项目</a></h3><p>eBPF分析调度延迟 · 字符设备驱动 · xv6添加COW fork · 内核火焰图</p></div><a class="read" href="28.html" aria-label="阅读第 28 章：综合项目">阅读本章</a></article>
 </div></section>
   </main>
-  <footer class="site-footer">独立中文操作系统学习项目 · <a href="README.md">项目说明</a> · <a href="docs/guides/learning-path.md">学习路线</a></footer>
+  <footer class="site-footer"><strong>操作系统 · 中文实践教程</strong><span>独立教学项目 · 28 章 · 4 组配套实验</span><nav aria-label="页脚导航"><a href="README.md">项目说明</a><a href="docs/guides/learning-path.md">学习路线</a><a href="docs/guides/content-guide.md">内容规范</a><a href="https://github.com/1998x-stack/operating-system-tutorial" target="_blank" rel="noopener noreferrer">GitHub</a></nav></footer>
 </div>
 </body>
 </html>

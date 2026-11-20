@@ -1,0 +1,42 @@
+{
+  "chapter": "22",
+  "title": "容器与命名空间",
+  "claims": [
+    {
+      "id": "ctr-22-01",
+      "claim": "Linux namespaces isolate views of global resources such as process IDs, mounts, networking, users, IPC and hostnames.",
+      "kind": "kernel behavior, API or project documentation",
+      "source_url": "https://man7.org/linux/man-pages/man7/namespaces.7.html",
+      "locator": "DESCRIPTION",
+      "status": "verified",
+      "notes": "Namespace isolation is not by itself a complete security boundary."
+    },
+    {
+      "id": "ctr-22-02",
+      "claim": "cgroup v2 organizes processes hierarchically and exposes resource controllers through a unified hierarchy.",
+      "kind": "kernel behavior, API or project documentation",
+      "source_url": "https://docs.kernel.org/admin-guide/cgroup-v2.html",
+      "locator": "Control Group v2",
+      "status": "verified",
+      "notes": "Available controllers and delegation depend on kernel configuration and hierarchy setup."
+    },
+    {
+      "id": "ctr-22-03",
+      "claim": "OverlayFS combines lower and upper layers into a merged filesystem view and uses copy-up behavior for modifications.",
+      "kind": "kernel behavior, API or project documentation",
+      "source_url": "https://docs.kernel.org/filesystems/overlayfs.html",
+      "locator": "Overlay Filesystem",
+      "status": "verified",
+      "notes": "Exact copy-up and metadata behavior depends on mount options and kernel version."
+    },
+    {
+      "id": "ctr-22-04",
+      "claim": "Container isolation also depends on capabilities, seccomp, LSM policy and runtime configuration.",
+      "kind": "kernel behavior, API or project documentation",
+      "source_url": "https://docs.docker.com/engine/security/",
+      "locator": "Docker security",
+      "status": "derived",
+      "notes": "No single namespace configuration guarantees isolation from all host resources."
+    }
+  ]
+}

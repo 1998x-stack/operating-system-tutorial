@@ -240,7 +240,7 @@ static struct platform_driver my_driver = {
 
         <h2 id="section-04">四、Rust驱动开发初探</h2>
 
-        <p>2024-2025年的Linux内核（6.12-6.18版本）见证了一个历史性的转变：Rust语言在内核中从"实验性"走向了"可用"。虽然Rust for Linux的初始合并（6.1版本）只提供了基础设施，但到了6.12之后，真正的Rust驱动开始涌现。</p>
+        <p>Rust for Linux 的基础设施在 Linux 6.1 合入主线，此后逐步增加内核抽象与驱动使用者。当前主线已有 Android Binder、若干 PHY 驱动、Nova GPU、DRM Panic、Null Block、Tyr GPU 等 Rust 使用者；列表会随内核版本变化，不能用某个旧版本清单代表当前全部状态。</p>
 
         <table>
             <tr><th>驱动/模块</th><th>内核版本</th><th>说明</th></tr>
@@ -252,13 +252,13 @@ static struct platform_driver my_driver = {
         </table>
 
         <h3>为什么Rust在内核中如此重要？</h3>
-        <p>Linux内核中约70%的安全漏洞是内存安全问题（缓冲区溢出、释放后使用、空指针解引用）。C语言在驱动开发中尤其容易出问题——因为驱动要直接操作硬件寄存器、处理并发中断、管理DMA缓冲区。Rust的所有权模型在编译时就消除了数据竞争和use-after-free，这在驱动开发中极其有价值。</p>
+        <p>常被引用的“约 70%”内存安全漏洞统计来自 Microsoft/Google 等厂商公开的漏洞分类，不能直接说成 Linux 内核漏洞的比例。Rust 的安全子集可在编译期阻止许多悬垂引用、越界访问和数据竞争，但内核驱动仍需要 unsafe 代码与硬件交互；unsafe 抽象若不满足安全契约，仍可能引入内存安全问题。</p>
 
         <div class="highlight">
-            <p><strong>不仅仅是安全性</strong>：Rust的trait系统为驱动接口提供了比C函数指针更强类型的抽象。在C中，<code>file_operations</code> 是一个包含十几个函数指针的结构体，你很可能忘记初始化某个回调——内核会优雅地崩溃。在Rust中，trait保证你必须实现所有必要的方法。类型安全 + 内存安全，让Rust驱动的初始bug率显著低于同类C驱动。</p>
+            <p><strong>不仅仅是安全性</strong>：Rust的trait系统为驱动接口提供了比C函数指针更强类型的抽象。在C中，<code>file_operations</code> 是一个包含十几个函数指针的结构体，你很可能忘记初始化某个回调——内核会优雅地崩溃。Rust trait 可在类型层面表达接口约束，但不保证所有运行时条件都正确，也不能据此声称 Rust 驱动的 bug 率已被普遍量化为低于同类 C 驱动。安全性取决于 safe abstraction 的 soundness、unsafe 块、并发协议和驱动逻辑。</p>
         </div>
 
-        <p>Nova驱动的意义尤其重大：它是NVIDIA首次在内核中提供开源的GPU驱动（传统的NVIDIA闭源驱动一直是个黑盒）。虽然Nova依赖于GSP固件进行硬实时控制，但驱动核心使用Rust编写，这让安全性有了根本保障。加上Android Binder的Rust重写已经进入主线，我们有理由相信，在未来5-10年内，Rust将逐步取代C成为内核驱动开发的首选语言。</p>
+        <p>Nova驱动的意义尤其重大：它是NVIDIA首次在内核中提供开源的GPU驱动（传统的NVIDIA闭源驱动一直是个黑盒）。Nova 将一部分硬件管理工作交给 NVIDIA GSP 固件；Rust 代码可减少部分内存安全风险，但不能提供“根本保障”或消除固件、硬件和 unsafe 代码中的缺陷。Android Binder 与 Nova 等项目说明 Rust 已进入主线内核的实际使用阶段，但不能据此预测 Rust 会在 5–10 年内取代 C。</p>
 
         <h2 id="section-05">五、结语与下一章预告</h2>
 

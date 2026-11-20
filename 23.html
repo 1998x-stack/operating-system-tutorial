@@ -1,58 +1,62 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第23章 内核调试技术</title>
-    <link rel="stylesheet" href="theme.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="日志、内存转储和专用调试手段帮助还原故障现场，各有观测盲区。">
+  <title>第 23 章 · 内核调试技术 | 操作系统中文实践教程</title>
+  <link rel="stylesheet" href="assets/css/site.css">
 </head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>🖥️ 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 什么是操作系统</a></li>
-            <li><a href="02.html">第2章 硬件架构基础</a></li>
-            <li><a href="03.html">第3章 OS内核架构</a></li>
-            <li><a href="04.html">第4章 用户态与内核态</a></li>
-            <li><a href="05.html">第5章 引导与初始化</a></li>
-            <li><a href="06.html">第6章 OS内核源码初探</a></li>
-            <li><a href="07.html">第7章 OS实验环境搭建</a></li>
-            <li><a href="08.html">第8章 进程管理</a></li>
-            <li><a href="09.html">第9章 线程与协程</a></li>
-            <li><a href="10.html">第10章 CPU调度</a></li>
-            <li><a href="11.html">第11章 同步与互斥</a></li>
-            <li><a href="12.html">第12章 虚拟内存</a></li>
-            <li><a href="13.html">第13章 物理内存管理</a></li>
-            <li><a href="14.html">第14章 文件系统</a></li>
-            <li><a href="15.html">第15章 I/O模型与io_uring</a></li>
-            <li><a href="16.html">第16章 设备驱动</a></li>
-            <li><a href="17.html">第17章 中断与异常处理</a></li>
-            <li><a href="18.html">第18章 时间管理</a></li>
-            <li><a href="19.html">第19章 网络协议栈</a></li>
-            <li><a href="20.html">第20章 eBPF可观测性</a></li>
-            <li><a href="21.html">第21章 虚拟化技术</a></li>
-            <li><a href="22.html">第22章 容器与命名空间</a></li>
-            <li><a href="23.html" class="active">第23章 内核调试技术</a></li>
-            <li><a href="24.html">第24章 性能分析与调优</a></li>
-            <li><a href="25.html">第25章 动手写一个小OS</a></li>
-            <li><a href="26.html">第26章 现代OS前沿趋势</a></li>
-            <li><a href="27.html">第27章 OS内核设计决策</a></li>
-            <li><a href="28.html">第28章 综合项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
+<body class="chapter-page">
+<a class="skip-link" href="#content">跳转至正文</a>
+<div class="site-shell">
+<header class="site-masthead"><a href="index.html">操作系统 · 中文实践教程</a><span class="section-mark">CHAPTER 23 / 28</span></header>
+<div class="reading-layout">
+<nav class="sidebar" aria-label="课程章节"><details class="chapter-drawer" open><summary>全部 28 章</summary><ol><li><a href="01.html">01 · 什么是操作系统</a></li>
+<li><a href="02.html">02 · 硬件架构基础</a></li>
+<li><a href="03.html">03 · OS内核架构</a></li>
+<li><a href="04.html">04 · 用户态与内核态</a></li>
+<li><a href="05.html">05 · 引导与初始化</a></li>
+<li><a href="06.html">06 · OS内核源码初探</a></li>
+<li><a href="07.html">07 · OS实验环境搭建</a></li>
+<li><a href="08.html">08 · 进程管理</a></li>
+<li><a href="09.html">09 · 线程与协程</a></li>
+<li><a href="10.html">10 · CPU调度</a></li>
+<li><a href="11.html">11 · 同步与互斥</a></li>
+<li><a href="12.html">12 · 虚拟内存</a></li>
+<li><a href="13.html">13 · 物理内存管理</a></li>
+<li><a href="14.html">14 · 文件系统</a></li>
+<li><a href="15.html">15 · I/O模型与io_uring</a></li>
+<li><a href="16.html">16 · 设备驱动</a></li>
+<li><a href="17.html">17 · 中断与异常处理</a></li>
+<li><a href="18.html">18 · 时间管理</a></li>
+<li><a href="19.html">19 · 网络协议栈</a></li>
+<li><a href="20.html">20 · eBPF可观测性</a></li>
+<li><a href="21.html">21 · 虚拟化技术</a></li>
+<li><a href="22.html">22 · 容器与命名空间</a></li>
+<li><a href="23.html" aria-current="page">23 · 内核调试技术</a></li>
+<li><a href="24.html">24 · 性能分析与调优</a></li>
+<li><a href="25.html">25 · 动手写一个小OS</a></li>
+<li><a href="26.html">26 · 现代OS前沿趋势</a></li>
+<li><a href="27.html">27 · OS内核设计决策</a></li>
+<li><a href="28.html">28 · 综合项目</a></li></ol></details></nav>
+<main id="content" class="content-column"><article class="chapter-article" aria-labelledby="chapter-title">
+<header class="article-header"><p class="kicker">OPERATING SYSTEMS · CHAPTER 23</p><h1 id="chapter-title">第 23 章 · 内核调试技术</h1><p class="article-dek">内核崩溃时怎样留下可分析的证据？</p></header>
+<section class="learning-map" aria-labelledby="learning-map-title"><h2 id="learning-map-title">先建立问题地图</h2><p>日志、内存转储和专用调试手段帮助还原故障现场，各有观测盲区。</p><div class="concept-steps" role="list"><div role="listitem"><strong>起点</strong><span>printk动态调试</span></div><div role="listitem"><strong>机制</strong><span>kdump+crash分析</span></div><div role="listitem"><strong>拓展</strong><span>KASAN/UBSAN检测 / kgdb源码级调试</span></div></div><p class="map-note">这是帮助建立概念依赖的阅读地图，不表示内核内部的实际执行时序。</p></section>
 
-        <h2>第23章 内核调试技术</h2>
-
-        <p>大家好，我是你们的讲师。写用户态程序的时候，程序崩了就是 <code>Segmentation fault</code>，用 <code>gdb</code> 一追、打个 <code>printf</code> 就定位了。但内核崩了呢？内核是操作系统的灵魂，它没有另一个OS在底下帮它兜底。内核一挂，整个系统直接死给你看——黑屏、冻屏、或者一串让人脊背发凉的OOPS信息。调试内核就像在发动机运转的时候修车，没有点专业工具连门都摸不着。</p>
+<nav class="page-toc" aria-label="本章小节"><details open><summary>本章目录 · 5 个部分</summary><ol><li><a href="#section-01">一、printk的艺术</a></li>
+<li><a href="#section-02">二、kdump与crash工具</a></li>
+<li><a href="#section-03">三、KASAN与UBSAN</a></li>
+<li><a href="#section-04">四、kgdb内核源码级调试</a></li>
+<li><a href="#section-05">五、真实panic排查案例</a></li></ol></details></nav>
+<div class="article-body">
+<p>大家好，我是你们的讲师。写用户态程序的时候，程序崩了就是 <code>Segmentation fault</code>，用 <code>gdb</code> 一追、打个 <code>printf</code> 就定位了。但内核崩了呢？内核是操作系统的灵魂，它没有另一个OS在底下帮它兜底。内核一挂，整个系统直接死给你看——黑屏、冻屏、或者一串让人脊背发凉的OOPS信息。调试内核就像在发动机运转的时候修车，没有点专业工具连门都摸不着。</p>
 
         <p>坦白说，很多开发者写了多年内核模块，遇到panic还是只会"加printk重编重启"，一天能循环几十次。但真正高效的内核调试是有方法论的——printk有艺术、panic后有crash分析、内存越界有KASAN、源码级跟踪有kgdb。这一章我会把这套工具链从头到尾捋一遍，最后用一个真实的产线panic案例带你看完整排查流程。学会这些，你就不再是"盲调"内核了。</p>
 
         <p>先讲个我自己的教训。早些年我写一个文件系统驱动，碰到一个极其诡异的问题——系统运行几小时后必崩，但每次崩的位置都不一样。我试了各种printk，加了几十行日志，编译一次15分钟，一天下来什么问题都没定位到。后来一位同事问我："你开KASAN了吗？"我一愣，根本没开。打开KASAN重新编译，五分钟后就发现了——我在一个已释放的 slab 缓冲区后面多写了8个字节，use-after-free。从那以后我学乖了：调试内核之前，先把KASAN、UBSAN、lockdep这些利器全部打开，让工具替你干活。</p>
 
-        <h2>一、printk的艺术</h2>
+        <h2 id="section-01">一、printk的艺术</h2>
 
         <p>printk 是内核自带的"日志printf"，用法和用户态的printf几乎一样，但它有一些独特的机制你必须要懂。用好 printk，能解决至少80%的日常调试需求。</p>
 
@@ -110,7 +114,7 @@ pr_info("设备初始化完成\n");
             <p><strong>关键认知</strong>：printk 不只是"内核版printf"。它的日志等级、动态调试、pr_fmt、速率限制这套体系，本质上是在帮你解决一个核心矛盾——调试时需要足够的信息，生产时需要最少的信息。动态调试让你不用在两者之间做取舍。</p>
         </div>
 
-        <h2>二、kdump与crash工具</h2>
+        <h2 id="section-02">二、kdump与crash工具</h2>
 
         <p>有些bug极其隐蔽——系统跑了好几天才崩一次，你把printk加好了，一切就要等它复现。复现不了怎么办？这就是kdump的用武之地。</p>
 
@@ -152,7 +156,7 @@ crash> mod       # 列出加载的内核模块</code></pre>
             <p><strong>重要提示</strong>：vmcore 文件可能非常大——一个256GB内存的服务器，vmcore也有256GB。用 <code>makedumpfile</code> 可以在保存时压缩并排除不必要的内存页（比如全零页和用户态页），把vmcore缩小到原来的5%-10%。生产环境务必配置 makedumpfile 的过滤规则。</p>
         </div>
 
-        <h2>三、KASAN与UBSAN</h2>
+        <h2 id="section-03">三、KASAN与UBSAN</h2>
 
         <p>内核里最常见的bug类型是什么？不是逻辑错误，而是内存损坏——use-after-free、out-of-bounds、栈溢出。用户态有ASan，内核态有KASAN（Kernel Address Sanitizer）。</p>
 
@@ -188,7 +192,7 @@ CONFIG_UBSAN_DIV_ZERO=y</code></pre>
 
         <p>KASAN + UBSAN 双剑合璧，能覆盖绝大多数内存和算术类bug。唯一的问题是性能开销——因此这些选项最好在开发版本的kernel中打开，生产环境不建议开。</p>
 
-        <h2>四、kgdb内核源码级调试</h2>
+        <h2 id="section-04">四、kgdb内核源码级调试</h2>
 
         <p>如果printk和crash还搞不定——比如你需要单步跟踪一个复杂的竞态条件——那就要上kgdb了。kgdb允许你用GDB远程调试运行中的内核，就像调试一个用户态程序一样设置断点、查看变量、单步执行。</p>
 
@@ -224,7 +228,7 @@ $ gdb vmlinux
             <p><strong>调试建议</strong>：kgdb更适合开发环境或虚拟机中使用。在真实生产服务器上使用kgdb风险较高——内核被停住的期间，系统完全不可用，硬件watchdog可能触发重启。如果只是为了读取内核数据结构，优先考虑 <code>/dev/mem</code> 配合 <code>crash</code> 或 <code>gdb</code> 的离线分析模式（不打断内核执行）。</p>
         </div>
 
-        <h2>五、真实panic排查案例</h2>
+        <h2 id="section-05">五、真实panic排查案例</h2>
 
         <p>前面讲了这么多工具，我们来串一个真实的案例。这是我去年在生产环境中遇到的一个内核OOPS排查过程，完整还原一遍，让你感受一下实际战场什么样。</p>
 
@@ -270,14 +274,13 @@ Call Trace:
         </div>
 
         <p>这一章我们从printk的艺术到kdump+crash的离线和源码级分析，再到KASAN/UBSAN的自动检测和kgdb的交互式调试，最后用一个真实案例串起了整套工具链。内核调试的终极目标不是"会更多工具"，而是"用最少的工具快速锁定根因"。下一章我们将从"调试"转向"性能"——用perf、火焰图、blktrace等工具来分析和优化系统的性能瓶颈。性能调优的兴趣不比调试少，同样是硬功夫。</p>
-
-        <div class="footer-nav">
-            <a href="22.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="24.html">下一章 →</a>
-        </div>
-    </div>
 </div>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>设计一次 panic 分析的证据收集清单。</p><details><summary>查看思考提示</summary><p>至少记录内核版本、符号文件、触发条件与调用栈。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<nav class="footer-nav" aria-label="章节前后导航"><a href="22.html">← 上一章 · 容器与命名空间</a><a href="index.html">返回课程目录</a><a href="24.html">下一章 · 性能分析与调优 →</a></nav>
+</article></main>
+</div>
+<footer class="site-footer">操作系统中文实践教程 · <a href="docs/guides/learning-path.md">学习路线</a> · <a href="docs/guides/content-guide.md">内容规范</a></footer>
 </div>
 </body>
 </html>

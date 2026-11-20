@@ -28,6 +28,15 @@
       "locator": "Lock dependency validator",
       "status": "verified",
       "notes": "检测覆盖受运行路径与配置影响，不构成无死锁证明。"
+    },
+    {
+      "id": "sync-11-04",
+      "claim": "PREEMPT_RT 改变 spinlock_t 与 raw_spinlock_t 的语义；硬中断及核心低层路径需遵循 RT 专用锁规则。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://docs.kernel.org/core-api/real-time/differences.html",
+      "locator": "Locking; Execution context",
+      "status": "verified",
+      "notes": "不能将普通 spinlock_t 的非 RT 语义推广到 PREEMPT_RT。"
     }
   ]
 }

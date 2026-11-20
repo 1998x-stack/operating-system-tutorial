@@ -50,11 +50,7 @@
 <li><a href="#section-04">XDP：网卡驱动层的可编程数据路径</a></li>
 <li><a href="#section-05">内核旁路与DPDK</a></li></ol></details></nav>
 <div class="article-body">
-<p>大家好，我是你们的讲师。你有没有想过，当你在浏览器里输入 <code>https://www.google.com</code> 并按回车，到页面出现在屏幕上，这中间到底发生了什么？DNS查询、TCP三次握手、TLS协商、HTTP请求、路由转发、ARP解析……这一连串看似复杂的步骤，在你按下的那一瞬间就全部完成了。而承载这一切的，正是操作系统的网络协议栈（Network Stack）。</p>
-
-        <p>网络协议栈是操作系统里"存在感最强"的子系统之一。你几乎感觉不到它的存在——直到某个深夜，你发现服务器上 <code>ss -tuln</code> 显示几十万个 <code>TIME_WAIT</code> 连接，或者生产环境突然出现诡异的"Connection refused"。这时候你就知道，不懂网络协议栈是要吃大亏的。本章我们沿着数据包穿越内核的完整路径，把网络协议栈的各个关键环节一一拆解。</p>
-
-        <p>先分享一个真实的踩坑经历。有次线上告警：某台Nginx反向代理服务器的响应延迟从2ms飙到了2秒。分析后发现这台机器的 <code>/proc/net/netstat</code> 中 <code>ListenOverflows</code> 计数器在疯狂增长——Accept队列满了，新连接被内核直接丢弃。调整 <code>net.core.somaxconn</code> 和 <code>tcp_abort_on_overflow</code> 后立即恢复。如果不懂内核TCP连接建立的内部机制，面对这种问题你就是两眼一抹黑。</p>
+<p>应用调用 send 或 recv 时，数据并不会直接从应用跳到网卡。它会经过 socket 层、传输层、网络层、队列调度、驱动和设备；接收方向则沿着相反方向进入协议栈，并可能经过软中断、NAPI、Netfilter 与 socket 缓冲区。</p><p>本章沿着一个 TCP 数据包的发送和接收路径，解释连接建立、SYN/accept 队列、Netfilter hook、XDP 与 DPDK 的位置和取舍。网络栈路径会受协议、offload、路由、namespace、内核配置和驱动实现影响；示意图用于建立层次感，不代表每个数据包都经过完全相同的函数序列。</p>
 
         <h2 id="section-01">从socket()到网卡：数据包的完整旅程</h2>
 

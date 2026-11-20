@@ -1,0 +1,33 @@
+{
+  "chapter": "11",
+  "title": "同步与互斥",
+  "claims": [
+    {
+      "id": "sync-11-01",
+      "claim": "C++ 中两个线程对同一内存位置发生未被 happens-before 关系约束的冲突访问且至少一方非原子时，构成数据竞争并导致未定义行为。",
+      "kind": "language memory model",
+      "source_url": "https://eel.is/c++draft/intro.races",
+      "locator": "Data races",
+      "status": "verified",
+      "notes": "数据竞争与更广义的竞态条件不是同义词。"
+    },
+    {
+      "id": "sync-11-02",
+      "claim": "Linux 内核提供自旋锁、互斥锁、信号量与 RCU 等同步机制，适用上下文和等待语义不同。",
+      "kind": "kernel API",
+      "source_url": "https://docs.kernel.org/locking/locktypes.html",
+      "locator": "Lock types and their rules",
+      "status": "verified",
+      "notes": "具体使用需遵循内核版本对应文档和上下文约束。"
+    },
+    {
+      "id": "sync-11-03",
+      "claim": "lockdep 可跟踪锁依赖关系并帮助检测潜在死锁问题。",
+      "kind": "kernel debugging",
+      "source_url": "https://docs.kernel.org/locking/lockdep-design.html",
+      "locator": "Lock dependency validator",
+      "status": "verified",
+      "notes": "检测覆盖受运行路径与配置影响，不构成无死锁证明。"
+    }
+  ]
+}

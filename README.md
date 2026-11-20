@@ -2,9 +2,15 @@
 
 > 28 章从硬件基础、内核机制到 Linux 工具链与综合项目的中文学习资料。**这是独立教学项目，不是 Linux 内核官方文档。**
 
-**[阅读课程首页](index.html)** · **[从第 01 章开始](01.html)** · [学习路线](docs/guides/learning-path.md) · [内容规范](docs/guides/content-guide.md) · [08–14 章复核记录](docs/reviews/chapters-08-14.md) · [15–21 章复核记录](docs/reviews/chapters-15-21.md) · [22–28 章复核记录](docs/reviews/chapters-22-28.md) · [贡献指南](CONTRIBUTING.md)
+**[阅读课程首页](index.html)** · **[从第 01 章开始](01.html)** · [学习路线](docs/guides/learning-path.md) · [内容规范](docs/guides/content-guide.md) · [08–14 章复核记录](docs/reviews/chapters-08-14.md) · [15–21 章复核记录](docs/reviews/chapters-15-21.md) · [22–28 章复核记录](docs/reviews/chapters-22-28.md) · [实验规范](docs/guides/experiment-standard.md) · [浏览器测试](tests/site.spec.mjs) · [贡献指南](CONTRIBUTING.md)
 
 这套教程围绕三个问题组织每一章：**为什么需要这个机制 → 它如何工作 → 怎样观察或验证它**。网页采用静态 HTML，章节之间可直接前后跳转，保留原有 `01.html` 至 `28.html` 链接以便引用与分享。
+
+## 第二轮工程升级
+
+- [实验可复现规范](docs/guides/experiment-standard.md) 与 [实验报告模板](labs/EXPERIMENT_TEMPLATE.md)
+- [第二轮质量审计记录](docs/reviews/round-2-platform-upgrade.md)
+- GitHub Actions 同时运行静态结构检查与 Playwright 浏览器冒烟测试（360 / 390 / 1440 px）。
 
 ## 如何阅读
 

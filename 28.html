@@ -123,7 +123,7 @@ int on_sched_switch(struct trace_event_raw_sched_switch *ctx)
 
     __u64 *count = bpf_map_lookup_elem(&latency_hist, &slot);
     if (count)
-        (*count)++; /* PERCPU_ARRAY：每 CPU 独立计数 */
+        (*count)++; /* PERCPU_ARRAY：每 CPU 独立计数；用户态读取时需汇总各 CPU 值 */
 
     bpf_map_delete_elem(&enqueue_ts, &pid);
     return 0;

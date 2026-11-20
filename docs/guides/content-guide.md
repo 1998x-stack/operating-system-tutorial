@@ -27,3 +27,11 @@
 若改动 `courses.json` 的章节顺序或标题，应同步更新首页、README 和章节导航，避免多处目录不一致。
 
 当前改造仅对页面结构、导航与可阅读性建立基线；原文章中的历史叙述、内核 API 使用和示例代码仍需按章节进行后续事实与运行验证。
+
+
+## 第二轮工程验收
+
+- 首页入口与课程分组以 `index.html` 和 `courses.json` 为准；新增章节时同步更新两者。
+- 实验文档遵循 [实验可复现规范](experiment-standard.md)，并提供预期结果与清理步骤。
+- 本地运行 `python3 scripts/check_site.py`；浏览器冒烟测试运行 `npm install` 后执行 `npm run test:browser`，默认要求本地静态站点监听 `127.0.0.1:4173`。
+- GitHub Actions 的静态检查与 Playwright 检查是不同层级的门禁；通过冒烟测试不等于完成视觉回归或实验实测。

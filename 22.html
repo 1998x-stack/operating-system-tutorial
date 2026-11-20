@@ -50,11 +50,7 @@
 <li><a href="#section-04">OverlayFS与容器镜像</a></li>
 <li><a href="#section-05">从chroot到Docker的演进</a></li></ol></details></nav>
 <div class="article-body">
-<p>大家好，我是你们的讲师。现代软件开发中，几乎没有人不在用容器。你的CI/CD流水线在容器里构建，你的微服务在容器里运行，你的数据库也在容器里跑。但大多数人只把容器当成了"一种轻量级虚拟机"来使用——这个理解其实大错特错。</p>
-
-        <p>容器不是虚拟化。容器和虚拟机共享同一个内核，而每个虚拟机都有自己的独立内核。这个区别决定了容器的性能优势（接近原生）、启动速度（毫秒级 vs 分钟级），也决定了容器的安全边界（同一个内核，攻击面更大）。理解容器必须理解Linux内核的三个核心机制：Namespace（命名空间）、Cgroup（控制组）和OverlayFS（联合文件系统）。本章将逐一深入。</p>
-
-        <p>分享一个真实的调试故事。同事反馈说容器内运行的一个Web应用频繁报"Address already in use"，但用 <code>netstat -tulpn</code> 没看到端口被占用。排查发现是宿主机的另一个进程占了端口——虽然是容器的网络工作正常（因为用了bridge模式做了端口映射），但进程因为某种原因用host network模式启动了一次。这个问题的根源在于：容器网络隔离只是"看到"的网络设备不同，但宿主机层面的端口空间仍然是全局的。不理解Network Namespace的隔离边界，这种问题会非常费解。</p>
+<p>容器提供的是一组内核隔离与资源控制机制，而不是一台拥有独立内核的轻量虚拟机。Namespace 改变进程可见的系统资源视图，cgroup 对资源使用进行分组与限制，mount namespace 与 OverlayFS 则参与构建容器文件系统视图。它们共同构成容器运行时的基础，但并不自动等价于完整的安全边界。</p><p>本章逐一解释 UTS、PID、NET、MNT、USER 与 IPC namespace，再分析 cgroup v2 的层级控制和 OverlayFS 的 lower/upper/merged 目录。容器隔离效果取决于 capability、seccomp、LSM、用户命名空间映射、挂载选项、运行时配置和宿主机内核；“容器比虚拟机安全/更快”都不是脱离场景成立的结论。</p>
 
         <h2 id="section-01">容器不是轻量级虚拟机</h2>
 

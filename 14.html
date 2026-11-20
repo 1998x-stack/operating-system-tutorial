@@ -50,6 +50,7 @@
 <li><a href="#section-04">Btrfs与写时复制</a></li>
 <li><a href="#section-05">现代文件系统生态</a></li></ol></details></nav>
 <div class="article-body
+<div class="article-body">
 <p>调用 <code>open("/home/user/doc.txt")</code> 时，内核需要把路径解析成一个打开的文件对象；调用 <code>read()</code> 时，还要决定数据来自页缓存还是底层存储。路径名、文件元数据、打开实例和文件内容是不同层次的对象，理解它们的边界，才能看懂 VFS 与具体文件系统如何协作。</p><p>本章从 VFS 的统一操作接口出发，沿着 dentry、inode、file 与 page cache 追踪一次文件访问，再比较 ext4 的 extent/journal/delayed allocation 与 Btrfs 的写时复制设计。文件系统的崩溃一致性不等于应用数据已经持久化：应用通常还需要正确使用 <code>fsync()</code>、目录同步和适合自身语义的写入协议。</p>
 
         <h2 id="section-01">VFS：一切皆文件的基石</h2>

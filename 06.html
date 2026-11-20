@@ -98,16 +98,17 @@
 <h3>1. hello.c</h3>
 <pre><code>#include &lt;linux/init.h&gt;
 #include &lt;linux/module.h&gt;
+#include &lt;linux/printk.h&gt;
 
 static int __init hello_init(void)
 {
-        pr_info("os-tutorial: hello, kernel\\n");
+        pr_info("os-tutorial: hello, kernel\n");
         return 0;
 }
 
 static void __exit hello_exit(void)
 {
-        pr_info("os-tutorial: goodbye, kernel\\n");
+        pr_info("os-tutorial: goodbye, kernel\n");
 }
 
 module_init(hello_init);
@@ -121,14 +122,7 @@ MODULE_DESCRIPTION("A minimal external kernel module");</code></pre>
 <h3>2. Makefile 与 Kbuild</h3>
 <pre><code>obj-m += hello.o
 
-KDIR ?= /lib/modules/$(shell uname -r)/build
-PWD  := $(CURDIR)
-
-all:
-        $(MAKE) -C $(KDIR) M=$(PWD) modules
-
-clean:
-        $(MAKE) -C $(KDIR) M=$(PWD) clean</code></pre>
+# 其余构建规则见 labs/ch06-hello-module/Makefile</code></pre>
 <p><code>KDIR</code> 必须指向与目标内核版本匹配、且具备构建外部模块所需配置和生成文件的内核构建目录。发行版通常通过 <code>/lib/modules/$(uname -r)/build</code> 提供对应链接；若运行内核与安装的头文件包不匹配，构建或加载可能失败。</p>
 <h3>3. 编译、检查与加载</h3>
 <pre><code>make

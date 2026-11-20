@@ -1,5 +1,6 @@
 #include <linux/init.h>
 #include <linux/module.h>
+#include <linux/printk.h>
 
 static int __init hello_init(void)
 {

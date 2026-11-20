@@ -62,10 +62,10 @@ qemu-system-x86_64 -machine help</code></pre>
 <h3>2. 创建虚拟磁盘并从安装介质启动</h3>
 <pre><code>qemu-img create -f qcow2 os-lab.qcow2 20G
 
-qemu-system-x86_64 \\
-  -machine q35 -m 4G -smp 4 \\
-  -drive file=os-lab.qcow2,format=qcow2,if=virtio \\
-  -cdrom ./linux-installer.iso -boot order=d \\
+qemu-system-x86_64 \
+  -machine q35 -m 4G -smp 4 \
+  -drive file=os-lab.qcow2,format=qcow2,if=virtio \
+  -cdrom ./linux-installer.iso -boot order=d \
   -nic user,model=virtio-net-pci -display gtk</code></pre>
 <p>这条命令创建一个空磁盘，并从你自己准备的安装 ISO 启动安装程序。不要把空 qcow2 磁盘镜像误认为已经安装好的系统。若宿主机支持硬件加速，可以按平台增加对应的 <code>-accel</code> 参数；不支持时先去掉加速参数，使用可用的默认后端。</p>
 <h3>3. User-mode 网络的边界</h3>
@@ -77,12 +77,12 @@ qemu-system-x86_64 \\
 <p>使用自己构建的内核，确保 <code>vmlinux</code> 与启动镜像来自同一次构建，并启用适当的调试信息配置，例如 <code>CONFIG_DEBUG_INFO</code>。<code>vmlinux</code> 是带符号信息的 ELF 文件；<code>arch/x86/boot/bzImage</code> 是 x86 启动用的压缩镜像。二者用途不同，不能拿 bzImage 直接代替 GDB 符号文件。</p>
 <h3>2. 启动 QEMU 并连接</h3>
 <pre><code># 终端 1：rootfs.cpio.gz 内需要包含可执行的 /init
-qemu-system-x86_64 \\
-  -machine q35 -m 2G -smp 2 \\
-  -kernel ./arch/x86/boot/bzImage \\
-  -initrd ./rootfs.cpio.gz \\
-  -append "console=ttyS0 rdinit=/init nokaslr" \\
-  -display none -serial stdio -monitor none \\
+qemu-system-x86_64 \
+  -machine q35 -m 2G -smp 2 \
+  -kernel ./arch/x86/boot/bzImage \
+  -initrd ./rootfs.cpio.gz \
+  -append "console=ttyS0 rdinit=/init nokaslr" \
+  -display none -serial stdio -monitor none \
   -gdb tcp:127.0.0.1:1234 -S
 
 # 终端 2：使用同一次构建的 vmlinux
@@ -117,7 +117,7 @@ make qemu</code></pre>
 <h2 id="section-04">四、构建分析工具链</h2>
 <h3>1. perf：测量事件与热点</h3>
 <p><code>perf</code> 可以统计软件事件和处理器性能监控单元（PMU）事件，也能记录采样并生成调用栈。可用事件取决于处理器、内核和权限策略。Linux 的 <code>perf_event_paranoid</code> 与 <code>CAP_PERFMON</code> 会影响非特权用户能观察的范围；不建议为了实验而在生产机上无条件放宽系统级限制。</p>
-<pre><code>perf stat -e task-clock,context-switches,cpu-migrations,page-faults \\
+<pre><code>perf stat -e task-clock,context-switches,cpu-migrations,page-faults \
     -- ./your_program
 perf record -g -- ./your_program
 perf report</code></pre>
@@ -141,7 +141,7 @@ sudo cat "$TR/trace"</code></pre>
 <pre><code>sudo bpftrace -e '
 tracepoint:syscalls:sys_enter_openat
 {
-    printf("%s %s\\n", comm, str(args.filename));
+    printf("%s %s\n", comm, str(args.filename));
 }'</code></pre>
 <p>探针是否存在、参数字段是否匹配，需要用 <code>bpftrace -lv 'tracepoint:syscalls:sys_enter_openat'</code> 检查。bpftrace 的 <a href="https://github.com/bpftrace/bpftrace/blob/master/docs/language.md">语言文档</a>说明了 tracepoint 参数结构以及 tracepoint 与 kprobe 的差异。</p>
 <h3>4. trace-cmd：组织 ftrace 采集</h3>

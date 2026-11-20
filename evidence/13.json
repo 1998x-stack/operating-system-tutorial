@@ -1,0 +1,42 @@
+{
+  "chapter": "13",
+  "title": "物理内存管理",
+  "claims": [
+    {
+      "id": "mem-13-01",
+      "claim": "Linux Buddy allocator 按 order 管理连续页框，并受 zone、NUMA 与分配标志等约束。",
+      "kind": "kernel implementation",
+      "source_url": "https://docs.kernel.org/mm/page_alloc.html",
+      "locator": "Managing Physical Memory",
+      "status": "verified",
+      "notes": "基础页大小与 zone 布局依赖架构和配置。"
+    },
+    {
+      "id": "mem-13-02",
+      "claim": "SLUB 是 Linux 内核小对象分配器之一。",
+      "kind": "kernel implementation",
+      "source_url": "https://docs.kernel.org/mm/slub.html",
+      "locator": "The SLUB allocator",
+      "status": "verified",
+      "notes": "对象缓存与分配路径会随内核版本变化。"
+    },
+    {
+      "id": "mem-13-03",
+      "claim": "vm.swappiness 控制匿名页与文件页回收的相对倾向，而不是简单启停 swap 的开关。",
+      "kind": "kernel configuration",
+      "source_url": "https://docs.kernel.org/admin-guide/sysctl/vm.html",
+      "locator": "swappiness",
+      "status": "verified",
+      "notes": "实际回收行为还受内存压力、内核版本和工作负载影响。"
+    },
+    {
+      "id": "mem-13-04",
+      "claim": "Multi-Gen LRU 为页面回收提供代际化的工作集近似与选择机制。",
+      "kind": "kernel implementation",
+      "source_url": "https://docs.kernel.org/mm/multigen_lru.html",
+      "locator": "Overview",
+      "status": "verified",
+      "notes": "是否启用及默认行为依赖内核配置和发行版。"
+    }
+  ]
+}

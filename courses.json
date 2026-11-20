@@ -383,7 +383,7 @@
       "title": "现代OS前沿趋势",
       "topics": [
         "Rust for Linux",
-        "LDOS AI驱动OS",
+        "AI辅助系统研究",
         "seL4微内核复兴",
         "RISC-V+Rust生态"
       ],

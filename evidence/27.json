@@ -1,0 +1,33 @@
+{
+  "chapter": "27",
+  "title": "OS内核设计决策",
+  "claims": [
+    {
+      "id": "design-27-01",
+      "claim": "Microkernel and monolithic-kernel designs make different tradeoffs in isolation boundaries, communication and subsystem placement.",
+      "kind": "kernel behavior, API or project documentation",
+      "source_url": "https://www.cs.vu.nl/~ast/reliable-os/",
+      "locator": "Reliable Operating Systems",
+      "status": "derived",
+      "notes": "Performance and reliability depend on concrete implementations, not labels alone."
+    },
+    {
+      "id": "design-27-02",
+      "claim": "Linux maintains a stable userspace ABI while internal kernel interfaces may evolve between releases.",
+      "kind": "kernel behavior, API or project documentation",
+      "source_url": "https://docs.kernel.org/process/stable-api-nonsense.html",
+      "locator": "The Linux kernel driver interface",
+      "status": "verified",
+      "notes": "In-kernel APIs and userspace ABI are different compatibility contracts."
+    },
+    {
+      "id": "design-27-03",
+      "claim": "Linux kernel development emphasizes upstream review and community-maintained integration.",
+      "kind": "kernel behavior, API or project documentation",
+      "source_url": "https://docs.kernel.org/process/submitting-patches.html",
+      "locator": "Submitting patches",
+      "status": "verified",
+      "notes": "Project workflows and subsystem maintainer requirements vary."
+    }
+  ]
+}

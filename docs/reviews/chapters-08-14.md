@@ -25,3 +25,26 @@
 - 本轮没有在本地 Linux VM 中执行 fork/clone、调度、内存压力或文件系统实验；没有编译内核代码。
 - 本轮没有执行 Chromium/Playwright 的桌面/移动端截图、键盘交互和打印验收；不能据此声称浏览器 QA 通过。
 - GitHub Actions 是否通过，以本批最新提交触发的 workflow 结果为准；GitHub Pages 是否部署成功也需单独检查。
+
+## 第二轮版本敏感事实复核（2026-11）
+
+再次逐段检查后，发现既有复核记录未完全反映在正文中的残留问题，已直接修正：
+
+| 章节 | 本次追加修正 |
+| --- | --- |
+| 08 | 移除“Linux 5.x 后内核栈统一使用 vmalloc”的概括；说明 VMAP_STACK 依赖配置/架构；避免将 COW fork 复杂度简化成固定 O(页表大小)。 |
+| 09 | 修正 fork/clone 的 libc 包装层描述；删除 pthread/Goroutine 固定耗时和固定栈大小对比；补充 Go goroutine 初始栈策略及协程可被底层线程抢占的边界。 |
+| 10 | 将 sched_ext 说明为内核可扩展调度类与 BPF scheduler 协作，而非“用户态调度器”；移除伪造的 sched_ops 结构体；限定 PREEMPT_RT 6.12 合入不等于发行版默认启用，并删除无测试依据的延迟数字。 |
+| 11 | 移除手写 x86 LOCK CMPXCHG 自旋锁示例；补充 PREEMPT_RT 下 spinlock_t/raw_spinlock_t 语义差异；删除无来源的 RCU 使用数量；限定 lockdep 的运行路径覆盖范围。 |
+| 12 | 移除固定 TLB 周期表；将旧 do_page_fault 名称改为架构/版本相关入口；纠正 major fault 不等于 swap-in；删除无证据的 Redis 故事和大页固定性能收益；说明 mTHP 尺寸取决于系统。 |
+| 13 | 纠正 memory.low/high/max 语义；把 cgroup v2 写入值改为字节数；说明 controller 启用与委派前提；删除“每个容器自动拥有 memcg”的绝对化说法。 |
+| 14 | 将旧 readpage/read_ext4_readpage 路径更新为 read_folio/readahead 概念接口；纠正 Bcachefs 在 Linux 6.17/6.18 的维护状态变化；将 EROFS 容器集成限定到 containerd snapshotter/differ。 |
+
+本次追加证据写入各章 `evidence/08.json` 至 `evidence/14.json`。其中 sched_ext、PREEMPT_RT、mTHP、cgroup v2、VFS read_folio、Bcachefs 和 EROFS 的论断增加了当前上游文档/源码入口。
+
+### 本次验证边界
+
+- 已对照上游 Linux 文档、man-pages、Go runtime 源码和 containerd 文档修正版本敏感描述。
+- 这是一轮文档与接口事实核验，不代表所有示例都已在真实 Linux VM 上编译运行。
+- 没有执行 fork/clone 压测、sched_ext BPF 加载、PREEMPT_RT 延迟测试、内存压力实验或真实文件系统故障注入。
+- 需要执行这些实验时，必须固定内核版本、架构、配置和工具链，并记录实测环境与输出。

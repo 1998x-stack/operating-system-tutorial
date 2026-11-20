@@ -88,22 +88,7 @@ counter++;               counter++;
 
         <p>自旋锁的核心行为：如果锁被占用，当前执行上下文会忙等待，直到锁被释放。它不会主动睡眠，但这不等于任何 spinlock 都能在任何中断上下文中安全使用。必须按共享数据是否也会被硬中断/软中断访问选择合适的 irq/irqsave 变体；在 PREEMPT_RT 内核中，普通 <code>spinlock_t</code> 的语义会变化，真正需要硬中断原子语义的核心路径使用 <code>raw_spinlock_t</code>。具体规则以目标内核的 locking 文档为准。</p>
 
-        <pre><code>// Linux 内核中的自旋锁实现（x86-64）
-// 核心是 atomic 的 test-and-set 操作
-
-static __always_inline void spin_lock(spinlock_t *lock)
-{
-    // 使用 LOCK CMPXCHG 指令原子的尝试获取锁
-    // 如果锁的值从0变为1成功，则获取锁
-    // 否则 continuosly 尝试
-    asm volatile(
-        "1: LOCK CMPXCHG %1, %0\n\t"
-        "   JNZ 1b\n\t"
-        : "+m" (lock->raw_lock),
-          "+r" (1)
-        :: "memory"
-    );
-}</code></pre>
+        <div class="warning"><p><strong>实现边界：</strong>不要自行复制或编写内核自旋锁的 inline assembly。Linux 的锁实现会随架构、配置和 PREEMPT_RT 改变，并包含内存序、调试与队列锁等细节。内核代码应使用 <code>spin_lock()</code>、<code>spin_unlock()</code> 等接口，并遵守上下文规则。</p></div>
 
         <p>Linux内核还引入了更高效的 <code>qspinlock</code>（队列自旋锁），它维护一个等待队列，每个自旋的CPU在不同的cache line上旋转，避免了多核同时自旋同一地址导致的cache一致性风暴。</p>
 
@@ -115,9 +100,9 @@ static __always_inline void spin_lock(spinlock_t *lock)
             <tr><th>维度</th><th>自旋锁</th><th>互斥锁</th></tr>
             <tr><td>等待方式</td><td>忙等待（spin）</td><td>睡眠等待（schedule）</td></tr>
             <tr><td>CPU占用</td><td>高（自旋时CPU全速运转）</td><td>低（睡眠时CPU可干别的）</td></tr>
-            <tr><td>持有时间</td><td>极短（微秒级）</td><td>可长可短</td></tr>
+            <tr><td>持有时间</td><td>尽可能短；无通用微秒阈值</td><td>可长可短</td></tr>
             <tr><td>中断上下文</td><td>可用</td><td>不可用（会触发BUG）</td></tr>
-            <tr><td>切换开销</td><td>无</td><td>高（两次context switch）</td></tr>
+            <tr><td>切换开销</td><td>无</td><td>可能睡眠/唤醒；开销依实现和争用而变</td></tr>
             <tr><td>适用场景</td><td>临界区极短</td><td>临界区较长或可能阻塞</td></tr>
         </table>
 

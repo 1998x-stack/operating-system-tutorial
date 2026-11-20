@@ -37,6 +37,33 @@
       "locator": "perf wiki",
       "status": "verified",
       "notes": "Sampling can miss short-lived events and introduces measurement overhead."
+    },
+    {
+      "id": "project-28-05",
+      "claim": "xv6 COW fork 需要共享只读页、引用计数、写缺页复制，并修改 copyout() 处理内核写用户页；应运行 cowtest 与 usertests 验收。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://pdos.csail.mit.edu/6.1810/2025/labs/cow.html",
+      "locator": "The solution; implementation plan; tests",
+      "status": "verified",
+      "notes": "课程分支/年份决定源码布局与辅助函数。"
+    },
+    {
+      "id": "project-28-06",
+      "claim": "sched_wakeup 与 sched_switch tracepoint 的字段格式由内核 trace event 定义提供；BPF 程序应按目标内核的 vmlinux BTF/tracepoint context 编译，而不是把 ctx 当成任意 u64 数组。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://www.kernel.org/doc/html/latest/trace/events.html",
+      "locator": "Event formats",
+      "status": "verified",
+      "notes": "sched_switch raw context 包含 prev/next 任务字段；具体布局以目标 BTF/format 文件为准。"
+    },
+    {
+      "id": "project-28-07",
+      "claim": "bpftool prog load 只加载 BPF 程序，不会自动 attach tracepoint；需使用 libbpf attach API 或其他受支持的 link attach 机制。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://docs.kernel.org/bpf/libbpf/libbpf_overview.html",
+      "locator": "Program loading and attachment",
+      "status": "verified",
+      "notes": "应显式验证程序是否已附加并采集到事件。"
     }
   ]
 }

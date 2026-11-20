@@ -1,0 +1,42 @@
+{
+  "chapter": "18",
+  "title": "时间管理",
+  "claims": [
+    {
+      "id": "time-18-01",
+      "claim": "Linux timekeeping 区分 clocksource 与 clockevent 设备的职责。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://docs.kernel.org/timers/timekeeping.html",
+      "locator": "Clock sources and clock events",
+      "status": "verified",
+      "notes": "clocksource 用于计时，clockevent 用于触发定时事件。"
+    },
+    {
+      "id": "time-18-02",
+      "claim": "hrtimer 提供高精度定时器接口，其实现与时钟基准和内核配置相关。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://docs.kernel.org/timers/hrtimers.html",
+      "locator": "hrtimers",
+      "status": "verified",
+      "notes": "高精度不代表回调一定在指定纳秒点准时执行。"
+    },
+    {
+      "id": "time-18-03",
+      "claim": "CLOCK_MONOTONIC 用于测量单调递增时间，CLOCK_REALTIME 表示可校正的墙上时钟。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://man7.org/linux/man-pages/man2/clock_gettime.2.html",
+      "locator": "DESCRIPTION",
+      "status": "verified",
+      "notes": "需结合 suspend 与 *_RAW 时钟语义选择。"
+    },
+    {
+      "id": "time-18-04",
+      "claim": "TSC、HPET 等是平台相关的计时资源，最终 clocksource 选择由内核评估。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://docs.kernel.org/timers/timekeeping.html",
+      "locator": "Clock sources",
+      "status": "verified",
+      "notes": "不能将某种硬件计时器称为所有机器的默认或最优选择。"
+    }
+  ]
+}

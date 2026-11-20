@@ -37,6 +37,15 @@
       "locator": "Real-time Linux",
       "status": "verified",
       "notes": "实时性仍依赖平台、驱动和系统配置。"
+    },
+    {
+      "id": "irq-17-05",
+      "claim": "PREEMPT_RT 下多数中断线程化，但存在不能线程化的特殊 IRQ 类型/标志；不能说所有 IRQ 无例外强制线程化。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://docs.kernel.org/core-api/real-time/differences.html",
+      "locator": "Interrupt handling",
+      "status": "verified",
+      "notes": "结合 IRQF_NO_THREAD、per-CPU IRQ 等特殊情形。"
     }
   ]
 }

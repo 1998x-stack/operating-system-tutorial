@@ -120,15 +120,7 @@
 
         <h3>TLB miss的代价</h3>
 
-        <pre><code>TLB hit:   ~1-2 时钟周期 (直接得到物理地址)
-TLB miss:  ~100-200 时钟周期 (硬件遍历四级页表)
-内存访问:  ~100-300 时钟周期 (从内存读取数据)
-
-如果 TLB miss + 目标数据在物理内存中：
-  总延迟 ≈ 200 (四级页表遍历) + 200 (内存读取) ≈ 400 时钟周期
-
-如果 TLB miss + 数据不在物理内存中（page fault）：
-  总延迟 ≈ 数百万 时钟周期 (磁盘I/O)</code></pre>
+        <pre><code>TLB hit/miss 的延迟受微架构、页表层级、缓存命中、内存拓扑、虚拟化和并发争用影响。页表遍历可能由硬件完成，也可能由软件参与；不能把某组时钟周期当成 ISA 保证。应在目标 CPU 上使用硬件计数器或微基准测量。</code></pre>
 
         <p>一个典型的应用程序的工作集如果无法全部放入TLB，每次内存访问都可能触发TLB miss，性能下降可能达到数倍。这就是为什么大页优化能带来如此显著的性能提升——大页让同一个TLB条目覆盖更大的地址范围。</p>
 
@@ -155,7 +147,7 @@ TLB miss:  ~100-200 时钟周期 (硬件遍历四级页表)
 1. CPU触发 #PF (Page Fault) 异常
    → 自动压入错误码（Error Code）和触发异常的虚拟地址（CR2寄存器）
 
-2. do_page_fault() 内核入口
+2. 架构相关的缺页异常入口（例如当前 x86 内核中的 exc_page_fault 路径；函数名随版本变化）
    → 区分是用户态还是内核态触发的缺页
 
 3. handle_mm_fault()
@@ -172,10 +164,10 @@ TLB miss:  ~100-200 时钟周期 (硬件遍历四级页表)
 5. 返回用户态 → 重新执行触发缺页的那条指令
    → 这次页表项已经存在，成功访问</code></pre>
 
-        <p>整个流程中，从硬件触发到内核处理完毕返回，涉及数十个函数调用、多次内存分配、可能还有磁盘I/O。对于Major Page Fault，延迟的主导因素不是代码路径的执行时间，而是磁盘I/O的时间——这解释了为什么内存压力大时系统会变得极其缓慢。</p>
+        <p>缺页处理不一定分配新页或访问磁盘：可能是按需分配匿名页、文件页调入、COW 写保护处理、swap-in，或只是权限错误并向进程发送信号。major fault 表示处理缺页需要执行 I/O 的统计类别，并不只代表 swap 换入；具体延迟取决于后备存储、缓存状态和文件系统。</p>
 
         <div class="warning">
-            <p><strong>踩坑经验</strong>：在生产环境中，<code>major fault</code> 是性能杀手。如果系统频繁报告major fault（用 <code>ps -o majflt</code> 或在 <code>/proc/&lt;pid&gt;/status</code> 中查看），说明物理内存严重不足，系统在频繁地换入换出。这时加内存或优化内存使用才是正道，而不是去微调内核参数。我曾经见过一个Redis实例因为内存不足导致每秒钟触发数百次major fault，延迟从微秒级飙升到秒级。</p>
+            <p><strong>如何观察：</strong>进程级缺页计数可查看 <code>/proc/&lt;pid&gt;/stat</code> 中的 <code>majflt</code> 字段或使用 <code>getrusage()</code>；系统级计数可查看 <code>/proc/vmstat</code> 的 <code>pgmajfault</code>。major fault 可能来自文件映射或 swap 等需要 I/O 的路径，不能单凭计数断言“物理内存不足”，应结合 PSI、swap 使用、I/O 延迟和工作集判断。</p>
         </div>
 
         <h2 id="section-05">大页的威力</h2>
@@ -195,10 +187,10 @@ TLB miss:  ~100-200 时钟周期 (硬件遍历四级页表)
 
         <p>传统大页需要应用显式使用hugetlbfs（挂载一个特殊文件系统，用mmap映射），管理相对麻烦，但性能确定性最好。THP是内核自动完成的——当检测到连续物理页时，内核把一组4KB页合并成一个2MB大页。但THP的异步合并（khugepaged内核线程）可能引入延迟抖动，在实时性要求高的场景下有时需要关闭它。</p>
 
-        <p>Multi-size THP是Linux 6.x引入的新特性，它允许内核选择不同大小的大页（16K、32K、64K、128K、256K、512K、1M、2MB），针对不同内存分配模式选择最合适的大小。比如对于稀疏的小对象分配，用64K的大页就够了，不需要强行合并成2MB。</p>
+        <p>Multi-size THP（mTHP）允许内核在基础页大小与传统 PMD 大页之间使用多个更大的 folio/order；可用大小依赖架构、基础页大小、内核配置和具体映射类型，并非所有机器都支持固定的 16K 至 2MB 列表。应查看目标机 <code>/sys/kernel/mm/transparent_hugepage/</code> 下的 per-size 控制与内核文档。</p>
 
         <div class="tip">
-            <p><strong>调优建议</strong>：对于数据库类应用（如PostgreSQL、MySQL）和Java应用（JVM堆通常在GB级别），强烈建议使用大页。在PostgreSQL中设置 <code>huge_pages = on</code>，在JVM中设置 <code>-XX:+UseLargePages</code>，可以看到10-30%的性能提升。通过 <code>grep HugePages /proc/meminfo</code> 可以查看当前系统的大页使用情况。</p>
+            <p><strong>调优建议</strong>：大页是否有收益取决于工作集、TLB 压力、内存碎片、NUMA、虚拟化与应用行为。PostgreSQL 的 <code>huge_pages</code> 和 JVM 的 <code>-XX:+UseLargePages</code> 都需要平台与权限条件，不能承诺固定的 10–30% 提升；应建立基线、检查实际映射并进行对照测试。通过 <code>grep HugePages /proc/meminfo</code> 可以查看当前系统的大页使用情况。</p>
         </div>
 
         <p>虚拟内存是操作系统中最精妙的设计之一。它通过多级页表实现了进程间的地址空间隔离，通过TLB加速了地址翻译，通过缺页机制实现了按需分配和内存超用，通过大页优化了TLB覆盖范围。配合下一章要讲的物理内存管理，构成了操作系统内存管理的完整图景。</p>

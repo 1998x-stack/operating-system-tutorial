@@ -76,8 +76,8 @@ if (time_after_eq(jiffies, timeout)) {
 
         <table>
             <tr><th>HZ值</th><th>Tick周期</th><th>jiffies精度</th><th>适用场景</th><th>优点</th><th>缺点</th></tr>
-            <tr><td>100</td><td>10 ms</td><td>低</td><td>服务器</td><td>定时器中断开销最小</td><td>时间精度差，睡眠误差达10ms</td></tr>
-            <tr><td>250</td><td>4 ms</td><td>中</td><td>桌面</td><td>精度与开销的折中</td><td>中等</td></tr>
+            <tr><td>100</td><td>10 ms</td><td>tick 计数粒度为 10 ms</td><td>仅代表配置 tick 周期</td><td>周期 tick 开销相对较低</td><td>不能据此推断 hrtimer/clock_gettime 精度</td></tr>
+            <tr><td>250</td><td>4 ms</td><td>tick 计数粒度为 4 ms</td><td>仅代表配置 tick 周期</td><td>周期 tick 与调度行为依配置</td><td>不是所有定时器的精度上限</td></tr>
             <tr><td>1000</td><td>1 ms</td><td>高</td><td>实时/交互式</td><td>时间精度最高</td><td>每秒1000次中断，CPU开销大</td></tr>
         </table>
 

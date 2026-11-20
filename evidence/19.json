@@ -37,6 +37,33 @@
       "locator": "Poll Mode Driver",
       "status": "verified",
       "notes": "资源绑定、隔离与内存管理配置会影响系统其余部分。"
+    },
+    {
+      "id": "net-19-05",
+      "claim": "tcp_syncookies 是 SYN backlog 溢出时的后备机制，不应被用作合法高连接速率的容量调优替代品。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://docs.kernel.org/networking/ip-sysctl.html",
+      "locator": "tcp_syncookies",
+      "status": "verified",
+      "notes": "开启可能限制部分 TCP 扩展，需结合实际服务评估。"
+    },
+    {
+      "id": "net-19-06",
+      "claim": "tcp_max_syn_backlog 表示每个监听 socket 的未完成连接请求上限；还需同时观察 somaxconn 与 listen backlog。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://docs.kernel.org/networking/ip-sysctl.html",
+      "locator": "tcp_max_syn_backlog",
+      "status": "verified",
+      "notes": "参数语义与默认值随内核版本和系统内存配置变化。"
+    },
+    {
+      "id": "net-19-07",
+      "claim": "tcp_tw_reuse 当前取值包括 0/1/2，默认行为和时间戳/PAWS 安全约束应以目标内核 ip-sysctl 文档为准，不宜作为通用 TIME_WAIT 加速开关。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://docs.kernel.org/networking/ip-sysctl.html",
+      "locator": "tcp_tw_reuse; tcp_tw_reuse_delay",
+      "status": "verified",
+      "notes": "不建议无明确诊断依据修改。"
     }
   ]
 }

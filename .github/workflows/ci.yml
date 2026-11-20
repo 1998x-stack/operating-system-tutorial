@@ -1,4 +1,4 @@
-name: Site content checks
+name: Site quality checks
 on:
   push:
     branches: [main]
@@ -7,11 +7,36 @@ permissions:
   contents: read
 jobs:
   static-site:
+    name: Static HTML, navigation and evidence
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Check chapters, navigation and assets
+      - name: Check chapters, navigation, labs and evidence
         run: python3 scripts/check_site.py
+
+  browser:
+    name: Responsive browser QA
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Playwright
+        run: npm install --no-save --package-lock=false playwright
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Serve static site
+        run: |
+          python3 -m http.server 4173 > /tmp/os-tutorial-site.log 2>&1 &
+          echo $! > /tmp/os-tutorial-site.pid
+      - name: Test mobile, desktop and chapter pages
+        run: npm run test:browser
+        env:
+          SITE_BASE_URL: http://127.0.0.1:4173

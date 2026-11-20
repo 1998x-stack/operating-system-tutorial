@@ -60,7 +60,6 @@ def parse_page(path: Path) -> PageParser:
           f"{path.name}: duplicate ids: {', '.join(sorted(parser.duplicate_ids))}")
     check("javascript:void(0)" not in source, f"{path.name}: placeholder JavaScript link")
     check("page-toc" in source or path.name == "index.html", f"{path.name}: missing page section navigation")
-          f"{path.name}: missing page section navigation")
     return parser
 
 

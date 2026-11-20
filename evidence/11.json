@@ -1,0 +1,51 @@
+{
+  "chapter": "11",
+  "title": "同步与互斥",
+  "claims": [
+    {
+      "id": "sync-01",
+      "claim": "Linux 内核区分 sleeping locks、CPU-local locks 和 spinning locks；PREEMPT_RT 会改变 spinlock_t/rwlock_t 语义。",
+      "kind": "kernel locking",
+      "source_url": "https://docs.kernel.org/locking/locktypes.html",
+      "locator": "Lock categories and PREEMPT_RT rules",
+      "status": "verified",
+      "notes": "raw_spinlock_t 仍保持自旋语义。"
+    },
+    {
+      "id": "sync-02",
+      "claim": "Linux semaphore 是 counting semaphore，缺少 owner 语义，因而无法像 owner-aware RT mutex 一样提供优先级继承。",
+      "kind": "kernel synchronization",
+      "source_url": "https://docs.kernel.org/locking/locktypes.html",
+      "locator": "semaphore and PREEMPT_RT section",
+      "status": "verified",
+      "notes": "新代码应评估 mutex 与 completion 等更明确的原语。"
+    },
+    {
+      "id": "sync-03",
+      "claim": "RCU 将对象指针移除与对象回收分离；synchronize_rcu/call_rcu 等待先前读侧临界区结束后再回收。",
+      "kind": "synchronization algorithm",
+      "source_url": "https://docs.kernel.org/RCU/whatisRCU.html",
+      "locator": "RCU overview; synchronize_rcu(); call_rcu()",
+      "status": "verified",
+      "notes": "RCU readers 仍需遵循 rcu_read_lock 与 rcu_dereference 等 API 约定。"
+    },
+    {
+      "id": "sync-04",
+      "claim": "lockdep 根据运行时观察到的锁依赖关系检测潜在循环依赖，而不是对所有未执行路径作形式化证明。",
+      "kind": "debugging tool",
+      "source_url": "https://docs.kernel.org/locking/lockdep-design.html",
+      "locator": "Runtime locking correctness validator",
+      "status": "verified",
+      "notes": "检测覆盖受配置和测试路径影响。"
+    },
+    {
+      "id": "sync-05",
+      "claim": "C++ 数据竞争在语言内存模型下会导致未定义行为；数据竞争与更广义的竞态条件不是同一概念。",
+      "kind": "language memory model",
+      "source_url": "https://eel.is/c++draft/intro.races",
+      "locator": "Data races",
+      "status": "verified",
+      "notes": "该 claim 特指 C++ 抽象机，其他语言需查各自内存模型。"
+    }
+  ]
+}

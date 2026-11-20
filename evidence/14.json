@@ -1,0 +1,60 @@
+{
+  "chapter": "14",
+  "title": "文件系统",
+  "claims": [
+    {
+      "id": "fs-01",
+      "claim": "VFS 使用 dentry、inode、file 与 address_space 等对象统一描述路径、元数据、打开文件和页缓存。",
+      "kind": "filesystem architecture",
+      "source_url": "https://docs.kernel.org/filesystems/vfs.html",
+      "locator": "The Dentry Object; The Inode Object; The File Object; Address Space Object",
+      "status": "verified",
+      "notes": "特殊文件、socket 与 pipe 的实现路径各有差异。"
+    },
+    {
+      "id": "fs-02",
+      "claim": "Linux pathname lookup 结合 dcache、RCU-walk/ref-walk 与具体文件系统 lookup/revalidation 机制。",
+      "kind": "VFS path lookup",
+      "source_url": "https://docs.kernel.org/filesystems/path-lookup.html",
+      "locator": "Path lookup and REF-walk",
+      "status": "verified",
+      "notes": "路径解析不等于每个组件都读磁盘。"
+    },
+    {
+      "id": "fs-03",
+      "claim": "现代 VFS address_space_operations 使用 read_folio/readahead 等 folio 接口，而不是旧式 readpage 作为通用描述。",
+      "kind": "kernel API",
+      "source_url": "https://docs.kernel.org/filesystems/vfs.html",
+      "locator": "struct address_space_operations",
+      "status": "verified",
+      "notes": "具体回调随内核版本演进。"
+    },
+    {
+      "id": "fs-04",
+      "claim": "ext4 data=ordered/writeback/journal 模式对数据与元数据日志/写入顺序提供不同保证；write() 成功不等于持久化。",
+      "kind": "filesystem durability",
+      "source_url": "https://docs.kernel.org/admin-guide/ext4.html",
+      "locator": "Data Mode and delalloc mount options",
+      "status": "verified",
+      "notes": "当前官方文档标注 data=journal 为弃用并计划 2028 年移除。"
+    },
+    {
+      "id": "fs-05",
+      "claim": "Btrfs 支持 COW、子卷快照、数据/元数据校验和与 scrub；自动修复需要可用冗余副本。",
+      "kind": "filesystem features",
+      "source_url": "https://docs.kernel.org/filesystems/btrfs.html",
+      "locator": "Features and scrub documentation",
+      "status": "verified",
+      "notes": "checksum 检测错误本身不提供缺失副本。"
+    },
+    {
+      "id": "fs-06",
+      "claim": "Linux 主线 MAINTAINERS 清单当前将 Bcachefs 标记为 Externally maintained。",
+      "kind": "upstream maintenance status",
+      "source_url": "https://docs.kernel.org/6.19/process/maintainers.html",
+      "locator": "BCACHEFS maintainer entry",
+      "status": "verified",
+      "notes": "发行版可能单独提供外部模块或回移植版本。"
+    }
+  ]
+}

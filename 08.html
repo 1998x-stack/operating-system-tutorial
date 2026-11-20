@@ -56,7 +56,8 @@
 
         <p>先提出一个可验证的问题：父进程 fork() 后，子进程修改一个私有变量，为什么父进程通常仍看到原值？理解这个现象，需要同时观察进程标识、地址空间映射、页表权限和 wait() 回收路径。</p>
 
-        <h2 id="section-01">进程到底是什么</h2>
+        <figure class="mechanism-figure"><img src="assets/diagrams/process-lifecycle.svg" width="900" height="280" alt="进程创建、fork 写时复制、exec 替换程序映像以及 exit 和 wait 回收的生命周期图"><figcaption>fork 为私有可写映射建立 COW 关系；exec 替换当前进程映像，exit 与 wait 完成退出和回收</figcaption></figure>
+<h2 id="section-01">进程到底是什么</h2>
 
         <p>一个最经典的定义——进程是"运行中的程序"。程序是一堆躺在磁盘上的二进制指令和数据，是静态的；进程是这些指令被加载到内存、CPU开始逐条执行后的那个动态实体。同一个程序（比如你的浏览器）可以同时启动多个进程，每个进程有自己的内存空间、文件描述符、堆栈和执行上下文。</p>
 
@@ -237,8 +238,13 @@ int execve(const char *pathname, char *const argv[],
 
         <p>下一章，我们沿着"执行粒度更小"的方向继续深挖——从进程到线程，再到协程。你会发现，当同步机制越来越重、切换开销越来越成为瓶颈时，操作系统提供了更轻量的并发原语来应对。我们下一章见。</p>
 </div>
-<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>指出 fork 后地址空间、文件描述符与 PID 的差异。</p><details><summary>查看思考提示</summary><p>区分相同虚拟内容、共享内核对象与真正相同的进程身份。</p></details></section>
-<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>用 fork() 创建子进程后，分别让父子进程写入同一私有映射页。哪些内容共享，哪些内容会触发 COW？</p><details><summary>查看思考提示</summary><p>区分 task_struct、线程组、mm_struct、页表项权限和 wait() 回收状态。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>进程与执行映像：</strong>
+<a href="https://man7.org/linux/man-pages/man2/fork.2.html">fork(2)</a>
+<a href="https://man7.org/linux/man-pages/man2/execve.2.html">execve(2)</a>
+<a href="https://man7.org/linux/man-pages/man2/waitpid.2.html">wait(2)</a>
+<a href="https://github.com/torvalds/linux/blob/master/include/linux/sched.h">Linux task_struct 定义</a>
+<p><a href="evidence/08.json">本章论断与来源证据清单</a> · <a href="labs/ch08-process/README.md">配套实验：fork、COW 与 exec</a></p></aside>
 <nav class="footer-nav" aria-label="章节前后导航"><a href="07.html">← 上一章 · OS实验环境搭建</a><a href="index.html">返回课程目录</a><a href="09.html">下一章 · 线程与协程 →</a></nav>
 </article></main>
 </div>

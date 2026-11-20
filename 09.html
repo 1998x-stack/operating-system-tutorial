@@ -55,7 +55,8 @@
 
         <p>先比较两个设计：每个连接创建一个 OS 线程，还是让少量 OS 线程运行大量用户态协程？答案不能只看“切换更轻”，还要考虑阻塞调用、栈内存、调度公平性、调试和故障隔离。</p>
 
-        <h2 id="section-01">线程：CPU调度的最小单位</h2>
+        <figure class="mechanism-figure"><img src="assets/diagrams/thread-models.svg" width="900" height="280" alt="多对一、一对一和多对多线程映射，以及用户态协程运行在 OS 线程之上的关系图"><figcaption>内核线程模型描述用户线程与 OS 可调度任务的映射；协程是运行时管理的执行单元，仍由底层 OS 线程承载</figcaption></figure>
+<h2 id="section-01">线程：CPU调度的最小单位</h2>
 
         <p>教科书上的经典定义：进程是资源分配的基本单位，线程是CPU调度的基本单位。这意味着什么？</p>
 
@@ -195,8 +196,13 @@ class fetch_data__coroutine:
 
         <p>下一章，我们把视角从"谁来执行"转向"谁决定谁先执行"——CPU调度。当一个系统里有几十个可运行的线程时，操作系统如何决定下一次该运行哪一个？公平、高效、低延迟，这三者怎么平衡？Linux的调度器从O(n)到O(1)到CFS再到EEVDF，每一次变革都带来了什么？下一章见。</p>
 </div>
-<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>比较多线程与协程在一次阻塞操作中的行为。</p><details><summary>查看思考提示</summary><p>先明确阻塞调用是否阻塞了整个执行线程。</p></details></section>
-<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>比较 pthread、Go goroutine 与 Python coroutine 在阻塞系统调用、CPU 密集工作和多核执行时的差异。</p><details><summary>查看思考提示</summary><p>先区分内核可调度任务与用户态任务，再分析运行时是否需要额外 OS 线程。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>线程与协程：</strong>
+<a href="https://man7.org/linux/man-pages/man7/pthreads.7.html">pthreads(7)</a>
+<a href="https://man7.org/linux/man-pages/man2/clone.2.html">clone(2)</a>
+<a href="https://go.dev/src/runtime/stack.go">Go runtime stack</a>
+<a href="https://docs.python.org/3/library/asyncio-task.html">Python asyncio tasks</a>
+<p><a href="evidence/09.json">本章论断与来源证据清单</a> · <a href="labs/ch09-threads/README.md">配套实验：pthread 与互斥锁</a></p></aside>
 <nav class="footer-nav" aria-label="章节前后导航"><a href="08.html">← 上一章 · 进程管理</a><a href="index.html">返回课程目录</a><a href="10.html">下一章 · CPU调度 →</a></nav>
 </article></main>
 </div>

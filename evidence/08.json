@@ -1,0 +1,51 @@
+{
+  "chapter": "08",
+  "title": "进程管理",
+  "claims": [
+    {
+      "id": "proc-01",
+      "claim": "Linux 中每个可调度 task（包括线程）由 task_struct 描述；结构体字段和布局属于内核内部实现，不能视为稳定 ABI。",
+      "kind": "kernel implementation",
+      "source_url": "https://github.com/torvalds/linux/blob/master/include/linux/sched.h",
+      "locator": "struct task_struct",
+      "status": "verified",
+      "notes": "字段随内核版本、架构和配置变化。"
+    },
+    {
+      "id": "proc-02",
+      "claim": "Linux fork() 通过 COW 语义延迟复制私有页，子进程创建仍需处理任务元数据和页表。",
+      "kind": "system call behavior",
+      "source_url": "https://man7.org/linux/man-pages/man2/fork.2.html",
+      "locator": "NOTES: copy-on-write pages",
+      "status": "verified",
+      "notes": "不能把 COW 简化为零成本或对所有映射一律只读。"
+    },
+    {
+      "id": "proc-03",
+      "claim": "execve() 替换调用进程的程序映像，成功时不返回，进程 PID 通常保持不变。",
+      "kind": "system call behavior",
+      "source_url": "https://man7.org/linux/man-pages/man2/execve.2.html",
+      "locator": "DESCRIPTION and NOTES",
+      "status": "verified",
+      "notes": "动态链接器、脚本解释器和凭据变化等还有专门规则。"
+    },
+    {
+      "id": "proc-04",
+      "claim": "退出任务可保留退出状态供父进程 wait/waitpid 获取；未回收的子进程可能处于 zombie 状态。",
+      "kind": "process lifecycle",
+      "source_url": "https://man7.org/linux/man-pages/man2/waitpid.2.html",
+      "locator": "DESCRIPTION: wait state changes",
+      "status": "verified",
+      "notes": "僵尸任务保留少量内核信息，不等于仍在执行。"
+    },
+    {
+      "id": "proc-05",
+      "claim": "TASK_UNINTERRUPTIBLE 是不可由普通信号打断的睡眠状态，D 状态不能单凭状态字母诊断为磁盘故障。",
+      "kind": "kernel state semantics",
+      "source_url": "https://github.com/torvalds/linux/blob/master/include/linux/sched.h",
+      "locator": "TASK_UNINTERRUPTIBLE and task state definitions",
+      "status": "derived",
+      "notes": "具体等待原因需要检查 wchan、内核栈和设备/文件系统状态。"
+    }
+  ]
+}

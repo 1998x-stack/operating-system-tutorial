@@ -56,7 +56,8 @@
 
         <p>调度器不只是“谁先运行”。它还要处理 CPU 亲和性、负载均衡、唤醒延迟、优先级、能耗和实时约束。理解调度算法时，先分清调度类、调度实体与每 CPU 运行队列，再讨论具体策略。</p>
 
-        <h2 id="section-01">调度器简史</h2>
+        <figure class="mechanism-figure"><img src="assets/diagrams/scheduler-eevdf.svg" width="900" height="280" alt="EEVDF 先按 lag 判断任务是否 eligible，再按 virtual deadline 选择下一任务的示意图"><figcaption>EEVDF 先判断任务是否获得公平份额，再比较虚拟截止时间；这是公平调度类内部的选择逻辑示意</figcaption></figure>
+<h2 id="section-01">调度器简史</h2>
 
         <p>Linux调度器的演进史，就是一部"在更大规模的硬件上保持公平和效率"的斗争史。让我们快速回顾几个里程碑：</p>
 
@@ -212,8 +213,14 @@ static struct sched_entity *__pick_first_entity(struct cfs_rq *cfs_rq)
 
         <p>下一章，我们把目光从"谁来跑"转向"怎么协同跑"——当多个进程或多个线程同时访问共享数据时，如何确保数据的一致性？自旋锁、互斥锁、信号量、RCU——这些同步原语各有什么特长和场景？死锁的四个条件是什么，lockdep又是如何在内核中自动检测潜在死锁的？下一章见。</p>
 </div>
-<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>解释可运行、运行中与等待 I/O 的区别。</p><details><summary>查看思考提示</summary><p>只有可运行任务才参与当前的 CPU 竞争。</p></details></section>
-<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>一个短时间片任务与一个长时间片任务同时可运行时，EEVDF 如何用 lag 和 virtual deadline 做选择？sched_ext 又运行在哪里？</p><details><summary>查看思考提示</summary><p>分别解释公平份额、eligible 判定、虚拟截止时间，以及 BPF 程序和用户态加载器的边界。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>调度策略与实时内核：</strong>
+<a href="https://docs.kernel.org/scheduler/sched-eevdf.html">EEVDF</a>
+<a href="https://docs.kernel.org/scheduler/sched-ext.html">sched_ext</a>
+<a href="https://docs.kernel.org/scheduler/sched-deadline.html">SCHED_DEADLINE</a>
+<a href="https://docs.kernel.org/scheduler/sched-preemption.html">内核抢占模型</a>
+<a href="https://man7.org/linux/man-pages/man7/sched.7.html">sched(7)</a>
+<p><a href="evidence/10.json">本章论断与来源证据清单</a> · <a href="labs/ch10-scheduler/README.md">配套实验：观察调度策略</a></p></aside>
 <nav class="footer-nav" aria-label="章节前后导航"><a href="09.html">← 上一章 · 线程与协程</a><a href="index.html">返回课程目录</a><a href="11.html">下一章 · 同步与互斥 →</a></nav>
 </article></main>
 </div>

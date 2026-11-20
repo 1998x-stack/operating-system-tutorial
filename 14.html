@@ -56,7 +56,8 @@
 
         <p>从一个可靠的文件操作链路开始：open() 解析路径并获得文件对象，write() 可能先修改页缓存，fsync() 请求同步文件数据与必要元数据。只有把缓存、日志、块层和设备写缓存区分开，才能准确讨论“保存成功”。</p>
 
-        <h2 id="section-01">VFS：一切皆文件的基石</h2>
+        <figure class="mechanism-figure"><img src="assets/diagrams/vfs-writeback.svg" width="900" height="280" alt="open 路径经过 dentry 和 inode 到 struct file，write 修改页缓存，writeback 和 fsync 将数据同步到底层存储"><figcaption>VFS 统一对象接口，但具体文件系统实现不同；write 返回、日志提交与 fsync 持久性是不同阶段</figcaption></figure>
+<h2 id="section-01">VFS：一切皆文件的基石</h2>
 
         <p>VFS 为普通文件、目录、符号链接和特殊文件等提供统一的文件系统对象模型；文件描述符接口也能承载 socket、pipe 等对象，但这不意味着内核中的所有对象都是文件。<code>open()</code>、<code>read()</code>、<code>write()</code> 等系统调用经由 VFS 与具体文件系统或特殊对象实现交互。</p>
 
@@ -221,8 +222,15 @@ btrfs filesystem df /mnt/data</code></pre>
 
         <p>下一章，我们进入I/O模型的世界——从阻塞I/O到非阻塞I/O、从select/poll到epoll、从传统的BIO块层到革命性的io_uring。你会发现，I/O性能的终极瓶颈往往不在磁盘本身，而在于数据从磁盘到达应用程序的路径上。下一章见。</p>
 </div>
-<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>说明一次 open() 可能涉及 dentry、inode 与文件描述符的哪些关系。</p><details><summary>查看思考提示</summary><p>文件名与 inode 不是同一个对象。</p></details></section>
-<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>一个应用 write() 成功后立即断电，数据是否一定持久化？fsync、日志模式和 rename 后的目录同步分别解决什么问题？</p><details><summary>查看思考提示</summary><p>区分页缓存写回、文件系统元数据日志、文件数据同步和目录项持久性。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>VFS 与文件系统：</strong>
+<a href="https://docs.kernel.org/filesystems/vfs.html">Linux VFS</a>
+<a href="https://docs.kernel.org/filesystems/path-lookup.html">Pathname lookup</a>
+<a href="https://docs.kernel.org/admin-guide/ext4.html">ext4 documentation</a>
+<a href="https://docs.kernel.org/filesystems/btrfs.html">Btrfs documentation</a>
+<a href="https://man7.org/linux/man-pages/man2/fsync.2.html">fsync(2)</a>
+<a href="https://docs.kernel.org/6.19/process/maintainers.html">Kernel maintainers list</a>
+<p><a href="evidence/14.json">本章论断与来源证据清单</a> · <a href="labs/ch14-filesystem/README.md">配套实验：write、fsync 与 rename</a></p></aside>
 <nav class="footer-nav" aria-label="章节前后导航"><a href="13.html">← 上一章 · 物理内存管理</a><a href="index.html">返回课程目录</a><a href="15.html">下一章 · I/O模型与io_uring →</a></nav>
 </article></main>
 </div>

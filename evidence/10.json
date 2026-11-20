@@ -1,0 +1,51 @@
+{
+  "chapter": "10",
+  "title": "CPU 调度",
+  "claims": [
+    {
+      "id": "sched-01",
+      "claim": "Linux 6.6 开始向 EEVDF 过渡；EEVDF 使用 lag 判定 eligible 任务，并选择 virtual deadline 最早者。",
+      "kind": "scheduler algorithm",
+      "source_url": "https://docs.kernel.org/scheduler/sched-eevdf.html",
+      "locator": "EEVDF overview and selection policy",
+      "status": "verified",
+      "notes": "具体算法与调度实现会持续演进。"
+    },
+    {
+      "id": "sched-02",
+      "claim": "sched_ext 是由 BPF 程序定义策略的内核调度类，BPF scheduler API 不提供跨版本稳定 ABI 保证。",
+      "kind": "kernel subsystem",
+      "source_url": "https://docs.kernel.org/scheduler/sched-ext.html",
+      "locator": "Description; Switching to and from sched_ext; ABI Instability",
+      "status": "verified",
+      "notes": "用户态加载器不等于调度决策都在用户态执行。"
+    },
+    {
+      "id": "sched-03",
+      "claim": "SCHED_DEADLINE 结合 GEDF 与 CBS 思路，使用 runtime/deadline/period 参数和准入控制。",
+      "kind": "real-time scheduler",
+      "source_url": "https://docs.kernel.org/scheduler/sched-deadline.html",
+      "locator": "Overview and bandwidth management",
+      "status": "verified",
+      "notes": "不等于对任意过载、硬件故障都提供无条件硬实时保证。"
+    },
+    {
+      "id": "sched-04",
+      "claim": "Linux SCHED_FIFO/SCHED_RR 用户接口的实时优先级范围为 1–99；nice 范围为 -20 至 19。",
+      "kind": "scheduler ABI",
+      "source_url": "https://man7.org/linux/man-pages/man7/sched.7.html",
+      "locator": "Scheduling policies and priority range",
+      "status": "verified",
+      "notes": "调度类优先级顺序还包括 SCHED_DEADLINE、stop 和 idle 类。"
+    },
+    {
+      "id": "sched-05",
+      "claim": "PREEMPT_RT 通过中断线程化、锁语义调整等方式提高内核可抢占性；实际延迟必须在目标平台测量。",
+      "kind": "kernel preemption",
+      "source_url": "https://docs.kernel.org/scheduler/sched-preemption.html",
+      "locator": "Preemption models",
+      "status": "derived",
+      "notes": "配置、架构、驱动与 IRQ 负载都会影响结果。"
+    }
+  ]
+}

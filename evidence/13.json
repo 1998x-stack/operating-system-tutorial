@@ -1,0 +1,51 @@
+{
+  "chapter": "13",
+  "title": "物理内存管理",
+  "claims": [
+    {
+      "id": "mem-01",
+      "claim": "Buddy allocator 的 order N 表示 2^N 个连续基础页；基础页大小由架构与配置决定。",
+      "kind": "page allocator",
+      "source_url": "https://docs.kernel.org/mm/physical_memory.html",
+      "locator": "free_area and buddy allocator",
+      "status": "verified",
+      "notes": "zone 与 per-CPU pageset 也参与实际分配路径。"
+    },
+    {
+      "id": "mem-02",
+      "claim": "Linux SLUB sheaves 改动于 2026 年进入 Linux 7.0 开发线，不应笼统称为 Linux 6.x 通用功能。",
+      "kind": "kernel implementation history",
+      "source_url": "https://github.com/torvalds/linux/commit/815c8e35511d0b9a214e9f644983fe477af9d5cb",
+      "locator": "Merge branch slab/for-7.0/sheaves",
+      "status": "verified",
+      "notes": "具体发行版是否包含取决于其内核基线与回移植。"
+    },
+    {
+      "id": "mem-03",
+      "claim": "MGLRU 是可配置的替代 LRU 回收实现，通过 generation/tier 等信息估计页面访问新近性。",
+      "kind": "reclaim algorithm",
+      "source_url": "https://docs.kernel.org/admin-guide/mm/multigen_lru.html",
+      "locator": "Design overview and runtime options",
+      "status": "verified",
+      "notes": "启用状态依内核配置，性能收益依工作负载。"
+    },
+    {
+      "id": "mem-04",
+      "claim": "cgroup v2 memory.low 是 best-effort protection，memory.high 用于回收压力/节流，memory.max 是硬限制。",
+      "kind": "resource control",
+      "source_url": "https://docs.kernel.org/admin-guide/cgroup-v2.html",
+      "locator": "Memory interface files",
+      "status": "verified",
+      "notes": "祖先边界与 overcommit 会影响有效保护。"
+    },
+    {
+      "id": "mem-05",
+      "claim": "kswapd 后台回收与 direct reclaim 是不同的回收触发路径；direct reclaim 可能增加当前任务分配延迟。",
+      "kind": "memory reclaim",
+      "source_url": "https://docs.kernel.org/mm/physical_memory.html",
+      "locator": "Watermarks and reclaim paths",
+      "status": "derived",
+      "notes": "实际触发依 zone/node/alloc flags 与内核版本。"
+    }
+  ]
+}

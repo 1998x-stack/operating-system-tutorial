@@ -1,0 +1,51 @@
+{
+  "chapter": "09",
+  "title": "线程与协程",
+  "claims": [
+    {
+      "id": "thread-01",
+      "claim": "Linux NPTL 是 1:1 pthread 实现，一个 POSIX 线程对应一个内核调度实体。",
+      "kind": "runtime implementation",
+      "source_url": "https://man7.org/linux/man-pages/man7/pthreads.7.html",
+      "locator": "Linux implementations of POSIX threads; NPTL",
+      "status": "verified",
+      "notes": "这描述 Linux/glibc NPTL，不代表所有平台 POSIX 线程实现。"
+    },
+    {
+      "id": "thread-02",
+      "claim": "clone() flags 决定父子任务是否共享地址空间、文件描述符表、文件系统上下文和信号处理表。",
+      "kind": "system call ABI",
+      "source_url": "https://man7.org/linux/man-pages/man2/clone.2.html",
+      "locator": "The flags mask; CLONE_VM/CLONE_FILES/CLONE_SIGHAND/CLONE_THREAD",
+      "status": "verified",
+      "notes": "pthread_create 的具体 flags 属于 libc 实现细节。"
+    },
+    {
+      "id": "thread-03",
+      "claim": "Go goroutine 使用运行时管理的用户栈，栈可按需增长/收缩，初始大小不是稳定的语言 ABI 常量。",
+      "kind": "runtime implementation",
+      "source_url": "https://go.dev/src/runtime/stack.go",
+      "locator": "startingStackSize and stack growth",
+      "status": "verified",
+      "notes": "具体初始值会随 runtime 版本与 GC 反馈变化。"
+    },
+    {
+      "id": "thread-04",
+      "claim": "Python coroutine 在 awaitable 未完成时可挂起，由 event loop 推进和恢复；底层 I/O 仍依赖 OS 通知与系统调用。",
+      "kind": "language runtime",
+      "source_url": "https://docs.python.org/3/library/asyncio-task.html",
+      "locator": "Coroutines, Tasks and event loop",
+      "status": "verified",
+      "notes": "不要把 coroutine scheduling 等同于 I/O 完全不经过内核。"
+    },
+    {
+      "id": "thread-05",
+      "claim": "线程共享地址空间可以避免同一 mm 的地址空间根切换，但上下文切换仍有调度与缓存局部性成本。",
+      "kind": "architecture explanation",
+      "source_url": "https://man7.org/linux/man-pages/man7/pthreads.7.html",
+      "locator": "Thread attributes and process-shared address space",
+      "status": "derived",
+      "notes": "TLB 行为依赖 PCID/ASID、架构与内核实现。"
+    }
+  ]
+}

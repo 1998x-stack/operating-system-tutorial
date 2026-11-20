@@ -56,7 +56,8 @@
 
         <p>分享一个让我终身难忘的线上事故。有一次我们上线了一个新的缓存服务，上线后偶尔出现某个用户看到其他用户数据的诡异Bug。因为是概率性出现，开发环境完全复现不了。花了近两周时间，最终用gdb attach到进程、加打印日志层层排查，找到了罪魁祸首——一个全局的HashMap在并发读写时没有加锁，put和get同时发生时，内部的链表结构被破坏，导致get返回了错误的数据。更可怕的是，这个Bug在低并发时几乎从不出现，每次请求量超过某个阈值才开始暴露。"并发Bug就像鬼——你不知道它什么时候来，但它真的存在。"</p>
 
-        <h2 id="section-01">并发问题的根源</h2>
+        <figure class="mechanism-figure"><img src="assets/diagrams/synchronization.svg" width="900" height="280" alt="互斥锁、自旋锁、信号量和 RCU 的使用边界，以及 RCU 更新后的宽限期回收流程"><figcaption>不同同步原语解决不同约束；RCU 将指针移除与对象回收分离，等待先前读者退出宽限期</figcaption></figure>
+<h2 id="section-01">并发问题的根源</h2>
 
         <p>三个关键概念，是理解并发问题的基石：</p>
 
@@ -257,8 +258,13 @@ which lock already depends on the new lock.
 
         <p>下一章，我们把视角从"CPU和并发"转向"内存的奥秘"——虚拟内存。为什么每个程序都以为自己在使用整个地址空间？从虚拟地址到物理地址的翻译过程是怎样的？TLB miss和page fault的开销到底有多大？大页为什么能显著提升性能？让我们一探究竟。</p>
 </div>
-<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>解释自旋锁为什么不适合任意长时间的等待。</p><details><summary>查看思考提示</summary><p>关注持锁期间能否睡眠，以及等待时是否占用 CPU。</p></details></section>
-<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>两个线程以相反顺序获取 A、B 两把锁时，如何形成循环等待？lockdep 能观察到什么，不能证明什么？</p><details><summary>查看思考提示</summary><p>画出锁依赖有向图，并区分运行时观察到的依赖关系与未执行代码路径。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>锁、RCU 与死锁检测：</strong>
+<a href="https://docs.kernel.org/locking/locktypes.html">Linux lock types</a>
+<a href="https://docs.kernel.org/locking/lockdep-design.html">lockdep design</a>
+<a href="https://docs.kernel.org/RCU/whatisRCU.html">What is RCU?</a>
+<a href="https://docs.kernel.org/locking/mutex-design.html">mutex design</a>
+<p><a href="evidence/11.json">本章论断与来源证据清单</a> · <a href="labs/ch11-sync/README.md">配套实验：pthread 竞态与锁</a></p></aside>
 <nav class="footer-nav" aria-label="章节前后导航"><a href="10.html">← 上一章 · CPU调度</a><a href="index.html">返回课程目录</a><a href="12.html">下一章 · 虚拟内存 →</a></nav>
 </article></main>
 </div>

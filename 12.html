@@ -56,7 +56,8 @@
 
         <p>用一个更小的实验建立直觉：对匿名映射先写入一页，再 fork()，让子进程修改该页。观察到父子进程的逻辑值彼此独立后，再用页错误计数和内核文档理解写时复制，而不要把某次机器的延迟当成通用常数。</p>
 
-        <h2 id="section-01">为什么需要虚拟内存</h2>
+        <figure class="mechanism-figure"><img src="assets/diagrams/virtual-memory-path.svg" width="900" height="280" alt="虚拟地址经 TLB 命中或页表遍历映射到物理地址，缺失或权限错误时进入 page fault 处理"><figcaption>TLB miss 可能仅触发页表遍历；page fault 是映射缺失或权限条件触发的异常，两者不能混为一谈</figcaption></figure>
+<h2 id="section-01">为什么需要虚拟内存</h2>
 
         <p>虚拟内存不是一个可有可无的"优化"，而是现代计算机系统的基石。它的核心价值体现在三个方面：</p>
 
@@ -203,8 +204,13 @@ TLB miss + 缺失映射/权限错误:
 
         <p>下一章，我们深入到物理内存层面——Buddy System如何分配物理页、Slab分配器如何管理内核对象、页面回收和swap的算法、以及MGLRU（多代LRU）如何让内存回收效率大幅提升。</p>
 </div>
-<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>画出一次 TLB 未命中后可能发生的两条路径。</p><details><summary>查看思考提示</summary><p>区分页表中有有效映射和没有有效映射两种情况。</p></details></section>
-<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>一次 TLB miss 何时只触发页表遍历，何时会进一步触发 page fault？</p><details><summary>查看思考提示</summary><p>分别考虑有效页表映射、缺失映射、写保护 COW、文件映射和 swap-in。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>页表、缺页与大页：</strong>
+<a href="https://docs.kernel.org/mm/page_tables.html">Linux page tables</a>
+<a href="https://docs.kernel.org/x86/x86_64/5level-paging.html">x86-64 5-level paging</a>
+<a href="https://docs.kernel.org/admin-guide/mm/transhuge.html">Transparent Hugepage Support</a>
+<a href="https://man7.org/linux/man-pages/man2/getrusage.2.html">getrusage(2)</a>
+<p><a href="evidence/12.json">本章论断与来源证据清单</a> · <a href="labs/ch12-vm/README.md">配套实验：匿名映射与 COW</a></p></aside>
 <nav class="footer-nav" aria-label="章节前后导航"><a href="11.html">← 上一章 · 同步与互斥</a><a href="index.html">返回课程目录</a><a href="13.html">下一章 · 物理内存管理 →</a></nav>
 </article></main>
 </div>

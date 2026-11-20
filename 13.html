@@ -56,7 +56,8 @@
 
         <p>物理内存管理可以通过只读观测开始：查看 /proc/buddyinfo、/proc/vmstat、/proc/slabinfo 和 PSI。它们分别提供不同层次的线索，但单个计数器不能独立证明“内存泄漏”或“回收算法失效”。</p>
 
-        <h2 id="section-01">Buddy System伙伴分配器</h2>
+        <figure class="mechanism-figure"><img src="assets/diagrams/physical-memory.svg" width="900" height="280" alt="Buddy allocator 管理 order 页块，SLUB 管理内核对象，回收路径通过 kswapd、direct reclaim 与 MGLRU 调整内存"><figcaption>物理页分配、对象缓存与页面回收属于不同层次；memory cgroup 还会为工作负载施加独立的内存保护和限制</figcaption></figure>
+<h2 id="section-01">Buddy System伙伴分配器</h2>
 
         <p>内核按基础页（base page）管理物理页帧，基础页大小由架构与配置决定，常见系统是 4 KiB，但不能视为所有架构的常数。Buddy allocator 用 order 表示连续块大小：order N 对应 <code>2^N × PAGE_SIZE</code> 字节；更大的硬件页映射与伙伴分配 order 不是同一个概念。</p>
 
@@ -276,8 +277,14 @@ cat /sys/fs/cgroup/memory.pressure 2&gt;/dev/null || true
 
         <p>下一章，我们从"内存"转向"存储"——文件系统。当你执行 <code>cat file.txt</code> 时，从文件名到磁盘扇区之间经历了哪些层次？VFS的抽象、inode和dentry的缓存、ext4和Btrfs的不同设计哲学——下一章见。</p>
 </div>
-<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>比较申请一页内存与申请一个小内核对象的需求。</p><details><summary>查看思考提示</summary><p>从分配粒度、对象生命周期与碎片成本切入。</p></details></section>
-<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>当一个高阶连续页分配失败时，buddy allocator、kswapd、direct reclaim 和 MGLRU 分别承担什么角色？</p><details><summary>查看思考提示</summary><p>从 order、zone、水位、可回收 folio 与 cgroup 约束几个维度分析。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>页分配、对象缓存与回收：</strong>
+<a href="https://docs.kernel.org/mm/physical_memory.html">Physical Memory</a>
+<a href="https://docs.kernel.org/core-api/memory-allocation.html">Memory Allocation Guide</a>
+<a href="https://docs.kernel.org/admin-guide/mm/multigen_lru.html">Multi-Gen LRU</a>
+<a href="https://docs.kernel.org/admin-guide/cgroup-v2.html">Control Group v2</a>
+<a href="https://github.com/torvalds/linux/commit/815c8e35511d0b9a214e9f644983fe477af9d5cb">SLUB sheaves merge commit</a>
+<p><a href="evidence/13.json">本章论断与来源证据清单</a> · <a href="labs/ch13-memory/README.md">配套实验：内存压力只读观测</a></p></aside>
 <nav class="footer-nav" aria-label="章节前后导航"><a href="12.html">← 上一章 · 虚拟内存</a><a href="index.html">返回课程目录</a><a href="14.html">下一章 · 文件系统 →</a></nav>
 </article></main>
 </div>

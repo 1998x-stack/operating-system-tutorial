@@ -1,58 +1,62 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第10章 CPU调度</title>
-    <link rel="stylesheet" href="theme.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="调度器根据策略在可运行任务间选择执行者，公平性和时延并非同一目标。">
+  <title>第 10 章 · CPU调度 | 操作系统中文实践教程</title>
+  <link rel="stylesheet" href="assets/css/site.css">
 </head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>🖥️ 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 什么是操作系统</a></li>
-            <li><a href="02.html">第2章 硬件架构基础</a></li>
-            <li><a href="03.html">第3章 OS内核架构</a></li>
-            <li><a href="04.html">第4章 用户态与内核态</a></li>
-            <li><a href="05.html">第5章 引导与初始化</a></li>
-            <li><a href="06.html">第6章 OS内核源码初探</a></li>
-            <li><a href="07.html">第7章 OS实验环境搭建</a></li>
-            <li><a href="08.html">第8章 进程管理</a></li>
-            <li><a href="09.html">第9章 线程与协程</a></li>
-            <li><a href="10.html" class="active">第10章 CPU调度</a></li>
-            <li><a href="11.html">第11章 同步与互斥</a></li>
-            <li><a href="12.html">第12章 虚拟内存</a></li>
-            <li><a href="13.html">第13章 物理内存管理</a></li>
-            <li><a href="14.html">第14章 文件系统</a></li>
-            <li><a href="15.html">第15章 I/O模型与io_uring</a></li>
-            <li><a href="16.html">第16章 设备驱动</a></li>
-            <li><a href="17.html">第17章 中断与异常处理</a></li>
-            <li><a href="18.html">第18章 时间管理</a></li>
-            <li><a href="19.html">第19章 网络协议栈</a></li>
-            <li><a href="20.html">第20章 eBPF可观测性</a></li>
-            <li><a href="21.html">第21章 虚拟化技术</a></li>
-            <li><a href="22.html">第22章 容器与命名空间</a></li>
-            <li><a href="23.html">第23章 内核调试技术</a></li>
-            <li><a href="24.html">第24章 性能分析与调优</a></li>
-            <li><a href="25.html">第25章 动手写一个小OS</a></li>
-            <li><a href="26.html">第26章 现代OS前沿趋势</a></li>
-            <li><a href="27.html">第27章 OS内核设计决策</a></li>
-            <li><a href="28.html">第28章 综合项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
-
-        <h2>第10章 CPU调度</h2>
-
-        <p>大家好，我是你们的讲师。设想一个场景：你的服务器上有128个可运行的线程，但CPU只有16个核。谁先上CPU？谁在后面排队？每个线程该运行多久？怎样确保没有线程被"饿死"？这些问题的答案就是CPU调度——操作系统的核心引擎。</p>
+<body class="chapter-page">
+<a class="skip-link" href="#content">跳转至正文</a>
+<div class="site-shell">
+<header class="site-masthead"><a href="index.html">操作系统 · 中文实践教程</a><span class="section-mark">CHAPTER 10 / 28</span></header>
+<div class="reading-layout">
+<nav class="sidebar" aria-label="课程章节"><details class="chapter-drawer" open><summary>全部 28 章</summary><ol><li><a href="01.html">01 · 什么是操作系统</a></li>
+<li><a href="02.html">02 · 硬件架构基础</a></li>
+<li><a href="03.html">03 · OS内核架构</a></li>
+<li><a href="04.html">04 · 用户态与内核态</a></li>
+<li><a href="05.html">05 · 引导与初始化</a></li>
+<li><a href="06.html">06 · OS内核源码初探</a></li>
+<li><a href="07.html">07 · OS实验环境搭建</a></li>
+<li><a href="08.html">08 · 进程管理</a></li>
+<li><a href="09.html">09 · 线程与协程</a></li>
+<li><a href="10.html" aria-current="page">10 · CPU调度</a></li>
+<li><a href="11.html">11 · 同步与互斥</a></li>
+<li><a href="12.html">12 · 虚拟内存</a></li>
+<li><a href="13.html">13 · 物理内存管理</a></li>
+<li><a href="14.html">14 · 文件系统</a></li>
+<li><a href="15.html">15 · I/O模型与io_uring</a></li>
+<li><a href="16.html">16 · 设备驱动</a></li>
+<li><a href="17.html">17 · 中断与异常处理</a></li>
+<li><a href="18.html">18 · 时间管理</a></li>
+<li><a href="19.html">19 · 网络协议栈</a></li>
+<li><a href="20.html">20 · eBPF可观测性</a></li>
+<li><a href="21.html">21 · 虚拟化技术</a></li>
+<li><a href="22.html">22 · 容器与命名空间</a></li>
+<li><a href="23.html">23 · 内核调试技术</a></li>
+<li><a href="24.html">24 · 性能分析与调优</a></li>
+<li><a href="25.html">25 · 动手写一个小OS</a></li>
+<li><a href="26.html">26 · 现代OS前沿趋势</a></li>
+<li><a href="27.html">27 · OS内核设计决策</a></li>
+<li><a href="28.html">28 · 综合项目</a></li></ol></details></nav>
+<main id="content" class="content-column"><article class="chapter-article" aria-labelledby="chapter-title">
+<header class="article-header"><p class="kicker">OPERATING SYSTEMS · CHAPTER 10</p><h1 id="chapter-title">第 10 章 · CPU调度</h1><p class="article-dek">多个任务都想运行时，谁先获得 CPU？</p></header>
+<section class="learning-map" aria-labelledby="learning-map-title"><h2 id="learning-map-title">先建立问题地图</h2><p>调度器根据策略在可运行任务间选择执行者，公平性和时延并非同一目标。</p><div class="concept-steps" role="list"><div role="listitem"><strong>起点</strong><span>O(n)→CFS→EEVDF</span></div><div role="listitem"><strong>机制</strong><span>vruntime红黑树</span></div><div role="listitem"><strong>拓展</strong><span>sched_ext用户态调度 / PREEMPT_RT实时</span></div></div><p class="map-note">这是帮助建立概念依赖的阅读地图，不表示内核内部的实际执行时序。</p></section>
+<figure class="mechanism-figure"><img src="assets/diagrams/scheduler.svg" width="800" height="205" alt="调度器在可运行任务之间作出选择"><figcaption>任务等待、可运行和运行是不同状态；图中不预设某一 Linux 版本的具体调度算法。</figcaption></figure>
+<nav class="page-toc" aria-label="本章小节"><details open><summary>本章目录 · 5 个部分</summary><ol><li><a href="#section-01">调度器简史</a></li>
+<li><a href="#section-02">CFS完全公平调度器</a></li>
+<li><a href="#section-03">EEVDF：Linux 6.6后的新王者</a></li>
+<li><a href="#section-04">sched_ext与用户态调度</a></li>
+<li><a href="#section-05">实时调度与PREEMPT_RT</a></li></ol></details></nav>
+<div class="article-body">
+<p>大家好，我是你们的讲师。设想一个场景：你的服务器上有128个可运行的线程，但CPU只有16个核。谁先上CPU？谁在后面排队？每个线程该运行多久？怎样确保没有线程被"饿死"？这些问题的答案就是CPU调度——操作系统的核心引擎。</p>
 
         <p>如果说进程管理回答的是"有哪些执行实体"，那CPU调度回答的就是"下一个谁来执行"。调度器的设计直接影响系统的响应速度、吞吐量和公平性——你可以把它理解为操作系统的心脏。心脏怎么跳？跳快了会不会乱？跳慢了会不会死？这章我们全面拆解。</p>
 
         <p>聊聊我个人的调度器"启蒙时刻"。多年以前我帮客户诊断一台数据库服务器的间歇性卡顿。iostat看磁盘很正常，free看内存也充足，但业务就是每隔几秒会抖一下。用perf看了半天，发现罪魁祸首居然是"NUMA balancing"——内核的自动NUMA均衡线程每隔一段时间会扫描所有进程的地址空间，导致CPU cache被大范围冲刷。关掉 <code>numa_balancing</code> 后，抖动立刻消失。这件事让我认识到：调度器不只是"谁先运行"那么简单——它会扫描、会迁移、会平衡，这些后台活动本身就是开销。</p>
 
-        <h2>调度器简史</h2>
+        <h2 id="section-01">调度器简史</h2>
 
         <p>Linux调度器的演进史，就是一部"在更大规模的硬件上保持公平和效率"的斗争史。让我们快速回顾几个里程碑：</p>
 
@@ -80,7 +84,7 @@
             <p><strong>历史教训</strong>：每一次调度器变革都是因为前一代调度器在某种新场景下暴露了根本性缺陷——O(n)在大核数下太慢，O(1)不公平，CFS在混合负载中延迟控制不够好。这告诉我们：没有"终极"调度器，只有"当前场景下够好"的调度器。</p>
         </div>
 
-        <h2>CFS完全公平调度器</h2>
+        <h2 id="section-02">CFS完全公平调度器</h2>
 
         <p>CFS虽然已经被EEVDF取代，但理解CFS是理解EEVDF的基础。实际上EEVDF也沿用了很多CFS的核心机制。</p>
 
@@ -124,7 +128,7 @@ static struct sched_entity *__pick_first_entity(struct cfs_rq *cfs_rq)
             <p><strong>直观理解</strong>：可以把CFS想象成一个"最穷的人优先得到救济"系统。每个进程的vruntime就是它的"贫困度"。vruntime最小的进程就是最穷的，应该优先获得CPU。权重（优先级）在这里的作用是：权重更大的进程，"花钱速度"更慢——同样的CPU时间，在它们账上记的vruntime更少。所以它们能"穷"得更久，得到更多CPU时间。</p>
         </div>
 
-        <h2>EEVDF：Linux 6.6后的新王者</h2>
+        <h2 id="section-03">EEVDF：Linux 6.6后的新王者</h2>
 
         <p>CFS的公平性模型有一个隐含假设：所有进程都是"同等延迟敏感"的。但在现实中，有的进程需要快速响应（如Web服务器处理请求），有的进程可以慢慢跑（如后台日志压缩）。CFS对此一视同仁——导致交互式进程的延迟变得不可预测。</p>
 
@@ -143,7 +147,7 @@ static struct sched_entity *__pick_first_entity(struct cfs_rq *cfs_rq)
 
         <p>EEVDF被合入Linux 6.6主线，作为新的默认调度器。这是CFS服役17年后的首次更替。内核邮件列表上的讨论长达数年，测试基准覆盖了从数据库到Web服务器、从HPC到桌面交互的全场景。最终EEVDF在保持CFS公平性的同时，在延迟和吞吐量方面都展现出优势。</p>
 
-        <h2>sched_ext与用户态调度</h2>
+        <h2 id="section-04">sched_ext与用户态调度</h2>
 
         <p>如果说EEVDF是内核调度的自我革新，那sched_ext（从Linux 6.12开始合入）代表的则是一个更激进的范式转变——用eBPF让用户态写调度器。</p>
 
@@ -186,7 +190,7 @@ s32 my_pick_next_task(struct task_struct *prev)
             <p><strong>风险提示</strong>：sched_ext虽然强大，但用户态调度器写不好，后果很严重——可能导致系统响应迟钝甚至完全卡死。Meta内部用了sched_ext优化数据中心调度，但那是建立在大量测试和灰度验证基础上的。新手别在核心生产服务器上直接试验。</p>
         </div>
 
-        <h2>实时调度与PREEMPT_RT</h2>
+        <h2 id="section-05">实时调度与PREEMPT_RT</h2>
 
         <p>Linux从一开始就是一个分时操作系统——它不保证任务在指定时间内完成。但对于工业控制、机器人、自动驾驶等场景，"准时"是刚性需求。这就是实时调度的用武之地。</p>
 
@@ -223,14 +227,13 @@ s32 my_pick_next_task(struct task_struct *prev)
         <p>CPU调度器是操作系统的心脏——它决定了谁跑、跑多久、什么时候换人。从O(n)的蛮力遍历到CFS的vruntime公平模型，再到EEVDF的延迟感知，再到sched_ext的用户态可编程调度，每一步都是对更大规模、更多样化负载的适配。实时调度领域的PREEMPT_RT合入主线，更是Linux走向工业控制领域的里程碑事件。</p>
 
         <p>下一章，我们把目光从"谁来跑"转向"怎么协同跑"——当多个进程或多个线程同时访问共享数据时，如何确保数据的一致性？自旋锁、互斥锁、信号量、RCU——这些同步原语各有什么特长和场景？死锁的四个条件是什么，lockdep又是如何在内核中自动检测潜在死锁的？下一章见。</p>
-
-        <div class="footer-nav">
-            <a href="09.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="11.html">下一章 →</a>
-        </div>
-    </div>
 </div>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>解释可运行、运行中与等待 I/O 的区别。</p><details><summary>查看思考提示</summary><p>只有可运行任务才参与当前的 CPU 竞争。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<nav class="footer-nav" aria-label="章节前后导航"><a href="09.html">← 上一章 · 线程与协程</a><a href="index.html">返回课程目录</a><a href="11.html">下一章 · 同步与互斥 →</a></nav>
+</article></main>
+</div>
+<footer class="site-footer">操作系统中文实践教程 · <a href="docs/guides/learning-path.md">学习路线</a> · <a href="docs/guides/content-guide.md">内容规范</a></footer>
 </div>
 </body>
 </html>

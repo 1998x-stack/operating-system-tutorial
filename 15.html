@@ -1,58 +1,63 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第15章 I/O模型与io_uring</title>
-    <link rel="stylesheet" href="theme.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="阻塞、就绪通知和异步提交完成模型针对不同的控制流与负载特征。">
+  <title>第 15 章 · I/O模型与io_uring | 操作系统中文实践教程</title>
+  <link rel="stylesheet" href="assets/css/site.css">
 </head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>🖥️ 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 什么是操作系统</a></li>
-            <li><a href="02.html">第2章 硬件架构基础</a></li>
-            <li><a href="03.html">第3章 OS内核架构</a></li>
-            <li><a href="04.html">第4章 用户态与内核态</a></li>
-            <li><a href="05.html">第5章 引导与初始化</a></li>
-            <li><a href="06.html">第6章 OS内核源码初探</a></li>
-            <li><a href="07.html">第7章 OS实验环境搭建</a></li>
-            <li><a href="08.html">第8章 进程管理</a></li>
-            <li><a href="09.html">第9章 线程与协程</a></li>
-            <li><a href="10.html">第10章 CPU调度</a></li>
-            <li><a href="11.html">第11章 同步与互斥</a></li>
-            <li><a href="12.html">第12章 虚拟内存</a></li>
-            <li><a href="13.html">第13章 物理内存管理</a></li>
-            <li><a href="14.html">第14章 文件系统</a></li>
-            <li><a href="15.html" class="active">第15章 I/O模型与io_uring</a></li>
-            <li><a href="16.html">第16章 设备驱动</a></li>
-            <li><a href="17.html">第17章 中断与异常处理</a></li>
-            <li><a href="18.html">第18章 时间管理</a></li>
-            <li><a href="19.html">第19章 网络协议栈</a></li>
-            <li><a href="20.html">第20章 eBPF可观测性</a></li>
-            <li><a href="21.html">第21章 虚拟化技术</a></li>
-            <li><a href="22.html">第22章 容器与命名空间</a></li>
-            <li><a href="23.html">第23章 内核调试技术</a></li>
-            <li><a href="24.html">第24章 性能分析与调优</a></li>
-            <li><a href="25.html">第25章 动手写一个小OS</a></li>
-            <li><a href="26.html">第26章 现代OS前沿趋势</a></li>
-            <li><a href="27.html">第27章 OS内核设计决策</a></li>
-            <li><a href="28.html">第28章 综合项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
+<body class="chapter-page">
+<a class="skip-link" href="#content">跳转至正文</a>
+<div class="site-shell">
+<header class="site-masthead"><a href="index.html">操作系统 · 中文实践教程</a><span class="section-mark">CHAPTER 15 / 28</span></header>
+<div class="reading-layout">
+<nav class="sidebar" aria-label="课程章节"><details class="chapter-drawer" open><summary>全部 28 章</summary><ol><li><a href="01.html">01 · 什么是操作系统</a></li>
+<li><a href="02.html">02 · 硬件架构基础</a></li>
+<li><a href="03.html">03 · OS内核架构</a></li>
+<li><a href="04.html">04 · 用户态与内核态</a></li>
+<li><a href="05.html">05 · 引导与初始化</a></li>
+<li><a href="06.html">06 · OS内核源码初探</a></li>
+<li><a href="07.html">07 · OS实验环境搭建</a></li>
+<li><a href="08.html">08 · 进程管理</a></li>
+<li><a href="09.html">09 · 线程与协程</a></li>
+<li><a href="10.html">10 · CPU调度</a></li>
+<li><a href="11.html">11 · 同步与互斥</a></li>
+<li><a href="12.html">12 · 虚拟内存</a></li>
+<li><a href="13.html">13 · 物理内存管理</a></li>
+<li><a href="14.html">14 · 文件系统</a></li>
+<li><a href="15.html" aria-current="page">15 · I/O模型与io_uring</a></li>
+<li><a href="16.html">16 · 设备驱动</a></li>
+<li><a href="17.html">17 · 中断与异常处理</a></li>
+<li><a href="18.html">18 · 时间管理</a></li>
+<li><a href="19.html">19 · 网络协议栈</a></li>
+<li><a href="20.html">20 · eBPF可观测性</a></li>
+<li><a href="21.html">21 · 虚拟化技术</a></li>
+<li><a href="22.html">22 · 容器与命名空间</a></li>
+<li><a href="23.html">23 · 内核调试技术</a></li>
+<li><a href="24.html">24 · 性能分析与调优</a></li>
+<li><a href="25.html">25 · 动手写一个小OS</a></li>
+<li><a href="26.html">26 · 现代OS前沿趋势</a></li>
+<li><a href="27.html">27 · OS内核设计决策</a></li>
+<li><a href="28.html">28 · 综合项目</a></li></ol></details></nav>
+<main id="content" class="content-column"><article class="chapter-article" aria-labelledby="chapter-title">
+<header class="article-header"><p class="kicker">OPERATING SYSTEMS · CHAPTER 15</p><h1 id="chapter-title">第 15 章 · I/O模型与io_uring</h1><p class="article-dek">同一份 I/O 工作为何会有多种等待与通知方式？</p></header>
+<section class="learning-map" aria-labelledby="learning-map-title"><h2 id="learning-map-title">先建立问题地图</h2><p>阻塞、就绪通知和异步提交完成模型针对不同的控制流与负载特征。</p><div class="concept-steps" role="list"><div role="listitem"><strong>起点</strong><span>五种I/O模型</span></div><div role="listitem"><strong>机制</strong><span>epoll事件驱动</span></div><div role="listitem"><strong>拓展</strong><span>io_uring环形队列 / 零拷贝技术矩阵</span></div></div><p class="map-note">这是帮助建立概念依赖的阅读地图，不表示内核内部的实际执行时序。</p></section>
 
-        <h2>第15章 I/O模型与io_uring</h2>
-
-        <p>大家好，我是你们的讲师。在操作系统十四年的进化史中，I/O一直是最大的性能瓶颈。CPU从几十MHz飙到几GHz，内存从几MB涨到几百GB，但磁盘和网络的速度增长相对缓慢。更要命的是，CPU做一次I/O操作需要从用户态陷入内核态、经过驱动栈、等待硬件完成——这一趟来回的开销极大。所以操作系统设计者们的目标始终如一：如何让程序在等待I/O的时候不浪费CPU？如何把I/O的吞吐量做到极致？</p>
+<nav class="page-toc" aria-label="本章小节"><details open><summary>本章目录 · 6 个部分</summary><ol><li><a href="#section-01">一、五种I/O模型全景图</a></li>
+<li><a href="#section-02">二、epoll与C10K问题</a></li>
+<li><a href="#section-03">三、io_uring：新时代的异步I/O</a></li>
+<li><a href="#section-04">四、io_uring高级特性演进</a></li>
+<li><a href="#section-05">五、零拷贝技术矩阵</a></li>
+<li><a href="#section-06">六、结语与下一章预告</a></li></ol></details></nav>
+<div class="article-body">
+<p>大家好，我是你们的讲师。在操作系统十四年的进化史中，I/O一直是最大的性能瓶颈。CPU从几十MHz飙到几GHz，内存从几MB涨到几百GB，但磁盘和网络的速度增长相对缓慢。更要命的是，CPU做一次I/O操作需要从用户态陷入内核态、经过驱动栈、等待硬件完成——这一趟来回的开销极大。所以操作系统设计者们的目标始终如一：如何让程序在等待I/O的时候不浪费CPU？如何把I/O的吞吐量做到极致？</p>
 
         <p>本章是"工程实践"部分的开篇。前面14章我们构建了OS的理论骨架——进程、内存、文件系统——现在我们要深入硬件交互的前线，系统学习操作系统与外部世界的对话方式。I/O模型是每一个后端开发、系统程序员必须烂熟于心的基本功，而io_uring作为Linux内核近年来最具革命性的I/O创新，正在彻底改变高性能应用的设计方式。</p>
 
         <p>讲一个真实的故事。我在2018年维护一个日活千万级别的消息推送服务时，遇到过一个诡异的性能问题：服务端基于epoll的reactor模型，白天一切正常，但每天晚上8点到11点间延迟会飙升到秒级。排查了应用代码、数据库、网络链路一无所获，最后通过perf top发现内核中 <code>tcp_collapse</code> 和 <code>tcp_prune_queue</code> 占据了大量CPU。原因是晚间高峰期TCP接收缓冲区内存不足，内核在大量地回收和折叠内存碎片——传统的epoll + read循环在内存压力下产生了大量不必要的内存拷贝和系统调用。如果当时有io_uring，通过Fixed Buffers和缓冲区共享可以完全避免这个问题。</p>
 
-        <h2>一、五种I/O模型全景图</h2>
+        <h2 id="section-01">一、五种I/O模型全景图</h2>
 
         <p>在讨论具体技术之前，我们先建立一个统一的框架。一次典型的I/O操作分为两个阶段：第一阶段是准备数据（等待数据到达网卡或磁盘读出数据），第二阶段是拷贝数据（将数据从内核缓冲区拷贝到用户缓冲区）。不同I/O模型在这两个阶段的行为不同，这是理解一切I/O技术的起点。</p>
 
@@ -84,7 +89,7 @@
         <h3>异步I/O：终局方案</h3>
         <p>应用发起一次I/O请求后立即返回，内核完全接管后续工作。当整个I/O完成后（包括数据已经拷贝到用户缓冲区），内核通知应用。应用不需要在任何时刻等待——这才是真正的异步。io_uring是当前Linux上最完善的异步I/O实现。</p>
 
-        <h2>二、epoll与C10K问题</h2>
+        <h2 id="section-02">二、epoll与C10K问题</h2>
 
         <p>在io_uring出现之前，epoll是Linux上最成功的I/O事件通知机制。它解决了select/poll的根本性缺陷，让C10K（同时处理1万个连接）成为标配，甚至推动C10M（1000万连接）的探索。</p>
 
@@ -122,7 +127,7 @@ while (1) {
         <h3>水平触发 vs 边缘触发</h3>
         <p>水平触发（LT）是默认模式：只要fd还有数据没读完，每次epoll_wait都会通知你。简单、不容易出错，但可能多次通知同一个fd。边缘触发（ET）是状态变化触发：只有fd从"无数据"变为"有数据"时才通知一次，你必须一次读完所有数据。ET效率更高，但编程难度大幅增加。Netty、Redis等高性能项目都使用ET模式，因为它们对I/O的精细控制有足够自信。</p>
 
-        <h2>三、io_uring：新时代的异步I/O</h2>
+        <h2 id="section-03">三、io_uring：新时代的异步I/O</h2>
 
         <p>2019年，Jens Axboe（Linux块层核心维护者）将io_uring合并入Linux 5.1内核。这不仅是Linux I/O栈的一次革命，更是操作系统I/O模型的一次范式跃迁。io_uring从根本上解决了传统I/O的两大痛点：系统调用开销和数据拷贝开销。</p>
 
@@ -167,7 +172,7 @@ io_uring_cqe_seen(&ring, &cqe);</code></pre>
             <tr><td>适用场景</td><td>通用场景</td><td>高并发网络/存储</td><td>极致性能场景</td></tr>
         </table>
 
-        <h2>四、io_uring高级特性演进</h2>
+        <h2 id="section-04">四、io_uring高级特性演进</h2>
 
         <p>io_uring从Linux 5.1开始，几乎每个内核版本都有新特性加入。让我们看看截至Linux 6.19时代的一些重要演进：</p>
 
@@ -187,7 +192,7 @@ io_uring_cqe_seen(&ring, &cqe);</code></pre>
         <h3>dmabuf读写（Linux 6.12-6.19）</h3>
         <p>dmabuf（DMA Buffer）是Linux内核中用于在设备之间共享DMA缓冲区的机制。io_uring在6.12到6.19版本中逐步支持了dmabuf的读写操作。这使得GPU和NIC之间可以直接交换数据，而不需要经过CPU。对AI训练场景来说，这意味着GPU可以直接读取NVMe盘上的训练数据，或者直接从网卡接收远程GPU数据——完全不需要CPU参与数据搬运。这就是GPUDirect Storage和GPUDirect RDMA的io_uring集成版本。</p>
 
-        <h2>五、零拷贝技术矩阵</h2>
+        <h2 id="section-05">五、零拷贝技术矩阵</h2>
 
         <p>说了一整章的"零拷贝"，但零拷贝实际上是一个大家族，每种技术解决的层面不同。我们来一个系统比较：</p>
 
@@ -206,21 +211,20 @@ io_uring_cqe_seen(&ring, &cqe);</code></pre>
             <p><strong>工程启示</strong>：零拷贝不是银弹。每种零拷贝技术都有适用边界——sendfile不能用于需要修改数据的场景，MSG_ZEROCOPY在发送小包时性能反而更差（因为需要额外的完成通知机制），io_uring zcrx需要应用层配合做buffer生命周期管理。选择零拷贝技术的判断依据是：数据流中是否有不必要的内存副本？如果有，能否在不引入更大开销的前提下消除它？</p>
         </div>
 
-        <h2>六、结语与下一章预告</h2>
+        <h2 id="section-06">六、结语与下一章预告</h2>
 
         <p>本章我们走过了操作系统I/O模型的完整演进路径——从阻塞I/O到非阻塞，从epoll的事件驱动到io_uring的革命性创新。你看到了工程师们如何一步步解决C10K问题，如何通过共享内存环形队列消除系统调用，又如何通过零拷贝技术消除数据移动的开销。I/O模型不仅仅是OS特性，它深刻影响着你写的每一行网络代码、每一个数据库查询、每一次文件读写。</p>
 
         <p>值得一提的是，io_uring的演进远未结束——它正在从纯粹的I/O框架演变为通用的异步系统调用接口。未来我们甚至可能用 <code>io_uring</code> 来执行 <code>openat</code>、<code>mkdir</code> 甚至 <code>clone</code> 系统调用。可以说io_uring正在模糊"I/O"和"系统调用"的边界。</p>
 
         <p>下一章，我们将从I/O系统的"使用者"视角切换到"实现者"视角，深入理解设备驱动的工作原理。应用程序的I/O请求如何穿越层层内核代码，最终到达硬件设备？设备驱动又是如何通过中断和DMA与硬件交互的？下一章见分晓。</p>
-
-        <div class="footer-nav">
-            <a href="14.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="16.html">下一章 →</a>
-        </div>
-    </div>
 </div>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>比较 select/epoll 和 io_uring 告诉应用“可以做什么”的方式。</p><details><summary>查看思考提示</summary><p>区分就绪通知与完成通知。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<nav class="footer-nav" aria-label="章节前后导航"><a href="14.html">← 上一章 · 文件系统</a><a href="index.html">返回课程目录</a><a href="16.html">下一章 · 设备驱动 →</a></nav>
+</article></main>
+</div>
+<footer class="site-footer">操作系统中文实践教程 · <a href="docs/guides/learning-path.md">学习路线</a> · <a href="docs/guides/content-guide.md">内容规范</a></footer>
 </div>
 </body>
 </html>

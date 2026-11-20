@@ -1,52 +1,56 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第6章 OS内核源码初探</title>
-    <link rel="stylesheet" href="theme.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="源码目录、配置与构建规则提供从一个系统功能定位到实现文件的线索。">
+  <title>第 6 章 · OS内核源码初探 | 操作系统中文实践教程</title>
+  <link rel="stylesheet" href="assets/css/site.css">
 </head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>🖥️ 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 什么是操作系统</a></li>
-            <li><a href="02.html">第2章 硬件架构基础</a></li>
-            <li><a href="03.html">第3章 OS内核架构</a></li>
-            <li><a href="04.html">第4章 用户态与内核态</a></li>
-            <li><a href="05.html">第5章 引导与初始化</a></li>
-            <li><a href="06.html" class="active">第6章 OS内核源码初探</a></li>
-            <li><a href="07.html">第7章 OS实验环境搭建</a></li>
-            <li><a href="08.html">第8章 进程管理</a></li>
-            <li><a href="09.html">第9章 线程与协程</a></li>
-            <li><a href="10.html">第10章 CPU调度</a></li>
-            <li><a href="11.html">第11章 同步与互斥</a></li>
-            <li><a href="12.html">第12章 虚拟内存</a></li>
-            <li><a href="13.html">第13章 物理内存管理</a></li>
-            <li><a href="14.html">第14章 文件系统</a></li>
-            <li><a href="15.html">第15章 I/O模型与io_uring</a></li>
-            <li><a href="16.html">第16章 设备驱动</a></li>
-            <li><a href="17.html">第17章 中断与异常处理</a></li>
-            <li><a href="18.html">第18章 时间管理</a></li>
-            <li><a href="19.html">第19章 网络协议栈</a></li>
-            <li><a href="20.html">第20章 eBPF可观测性</a></li>
-            <li><a href="21.html">第21章 虚拟化技术</a></li>
-            <li><a href="22.html">第22章 容器与命名空间</a></li>
-            <li><a href="23.html">第23章 内核调试技术</a></li>
-            <li><a href="24.html">第24章 性能分析与调优</a></li>
-            <li><a href="25.html">第25章 动手写一个小OS</a></li>
-            <li><a href="26.html">第26章 现代OS前沿趋势</a></li>
-            <li><a href="27.html">第27章 OS内核设计决策</a></li>
-            <li><a href="28.html">第28章 综合项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
+<body class="chapter-page">
+<a class="skip-link" href="#content">跳转至正文</a>
+<div class="site-shell">
+<header class="site-masthead"><a href="index.html">操作系统 · 中文实践教程</a><span class="section-mark">CHAPTER 06 / 28</span></header>
+<div class="reading-layout">
+<nav class="sidebar" aria-label="课程章节"><details class="chapter-drawer" open><summary>全部 28 章</summary><ol><li><a href="01.html">01 · 什么是操作系统</a></li>
+<li><a href="02.html">02 · 硬件架构基础</a></li>
+<li><a href="03.html">03 · OS内核架构</a></li>
+<li><a href="04.html">04 · 用户态与内核态</a></li>
+<li><a href="05.html">05 · 引导与初始化</a></li>
+<li><a href="06.html" aria-current="page">06 · OS内核源码初探</a></li>
+<li><a href="07.html">07 · OS实验环境搭建</a></li>
+<li><a href="08.html">08 · 进程管理</a></li>
+<li><a href="09.html">09 · 线程与协程</a></li>
+<li><a href="10.html">10 · CPU调度</a></li>
+<li><a href="11.html">11 · 同步与互斥</a></li>
+<li><a href="12.html">12 · 虚拟内存</a></li>
+<li><a href="13.html">13 · 物理内存管理</a></li>
+<li><a href="14.html">14 · 文件系统</a></li>
+<li><a href="15.html">15 · I/O模型与io_uring</a></li>
+<li><a href="16.html">16 · 设备驱动</a></li>
+<li><a href="17.html">17 · 中断与异常处理</a></li>
+<li><a href="18.html">18 · 时间管理</a></li>
+<li><a href="19.html">19 · 网络协议栈</a></li>
+<li><a href="20.html">20 · eBPF可观测性</a></li>
+<li><a href="21.html">21 · 虚拟化技术</a></li>
+<li><a href="22.html">22 · 容器与命名空间</a></li>
+<li><a href="23.html">23 · 内核调试技术</a></li>
+<li><a href="24.html">24 · 性能分析与调优</a></li>
+<li><a href="25.html">25 · 动手写一个小OS</a></li>
+<li><a href="26.html">26 · 现代OS前沿趋势</a></li>
+<li><a href="27.html">27 · OS内核设计决策</a></li>
+<li><a href="28.html">28 · 综合项目</a></li></ol></details></nav>
+<main id="content" class="content-column"><article class="chapter-article" aria-labelledby="chapter-title">
+<header class="article-header"><p class="kicker">OPERATING SYSTEMS · CHAPTER 06</p><h1 id="chapter-title">第 6 章 · OS内核源码初探</h1><p class="article-dek">怎样在庞大的 Linux 源码树中定位一个功能？</p></header>
+<section class="learning-map" aria-labelledby="learning-map-title"><h2 id="learning-map-title">先建立问题地图</h2><p>源码目录、配置与构建规则提供从一个系统功能定位到实现文件的线索。</p><div class="concept-steps" role="list"><div role="listitem"><strong>起点</strong><span>Linux内核源码目录树</span></div><div role="listitem"><strong>机制</strong><span>编码风格</span></div><div role="listitem"><strong>拓展</strong><span>内核模块 / Kconfig/Kbuild</span></div></div><p class="map-note">这是帮助建立概念依赖的阅读地图，不表示内核内部的实际执行时序。</p></section>
 
-        <h2>第6章 OS内核源码初探</h2>
-
-        <p>大家好，我是你们的讲师。前面几章我们从硬件架构一路讲到了内核启动，现在是时候打开内核的"黑盒子"，真正看看它的源代码长什么样了。</p>
+<nav class="page-toc" aria-label="本章小节"><details open><summary>本章目录 · 5 个部分</summary><ol><li><a href="#section-01">一、Linux内核源码目录树</a></li>
+<li><a href="#section-02">二、内核编码风格</a></li>
+<li><a href="#section-03">三、第一个内核模块</a></li>
+<li><a href="#section-04">四、Kconfig/Kbuild编译体系</a></li>
+<li><a href="#section-05">五、结语与下一章预告</a></li></ol></details></nav>
+<div class="article-body">
+<p>大家好，我是你们的讲师。前面几章我们从硬件架构一路讲到了内核启动，现在是时候打开内核的"黑盒子"，真正看看它的源代码长什么样了。</p>
 
         <p>Linux内核是目前人类历史上规模最大的开源软件项目之一。从1991年Linus Torvalds发布的那个只有不到1万行代码的初版，到今天v6.x版本的超过3000万行代码，几千名内核维护者遍布全球。面对这么庞大的代码库，新手最常见的反应是：从哪看起？</p>
 
@@ -54,7 +58,7 @@
 
         <p>分享我第一次接触内核源码的故事。大学时我下载了Linux 2.6.18的内核源码，解压后看到一屏又一屏的目录和文件，完全懵了。我心血来潮想修改某个调度参数，查找了半天不知道对应的代码在哪里。后来一个学长告诉我，你先在 <code>kernel/sched/</code> 目录下找，所有调度相关的代码大部分都在那——果然，<code>sched_fair.c</code>、<code>sched_rt.c</code> 就在那里。那一刻我明白了一个道理：一个3000万行代码的项目，如果不是精心设计的目录结构，人类的脑子根本无法管理。Linux内核源码的目录组织本身就是一份架构设计文档。</p>
 
-        <h2>一、Linux内核源码目录树</h2>
+        <h2 id="section-01">一、Linux内核源码目录树</h2>
 
         <p>下载一份内核源码（<code>git clone https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git</code>），你会看到顶层目录大致如下。每个目录都有一个明确的职责边界。</p>
 
@@ -95,7 +99,7 @@
             <p><strong>阅读路线</strong>：初学者建议按照 <code>init/main.c</code> → <code>kernel/</code> → <code>mm/</code> → <code>fs/</code> → <code>drivers/</code> 的顺序阅读。从 <code>start_kernel()</code> 函数开始，一路跟踪内核的初始化流程，这是理解整个内核的最佳"第一站"。</p>
         </div>
 
-        <h2>二、内核编码风格</h2>
+        <h2 id="section-02">二、内核编码风格</h2>
 
         <p>Linux内核有极其严格的编码风格规范，所有提交到内核的代码都必须通过 <code>scripts/checkpatch.pl</code> 脚本的检查。Linus Torvalds本人对代码风格极其挑剔——他不止一次在邮件列表中因为缩进问题而拒绝补丁。这不是Linus刻薄，而是3000万行代码的项目必须有一致的编码风格才能被维护。</p>
 
@@ -152,7 +156,7 @@ out_free:
             <p><strong>深度理解</strong>：8字符缩进不是为了让代码美观，而是为了"硬性避免深层嵌套"。如果缩进超过三层，你的行很快就超过100字符了——这就自然推动你将深层嵌套提取成辅助函数。这是一种代码质量管理手段，不是审美偏好。</p>
         </div>
 
-        <h2>三、第一个内核模块</h2>
+        <h2 id="section-03">三、第一个内核模块</h2>
 
         <p>理论学习到此为止——让我们写点真正能跑的东西。我们写一个最简单的内核模块，加载到运行中的Linux内核里，"向内核世界打个招呼"。</p>
 
@@ -222,7 +226,7 @@ $ dmesg | tail
             <p><strong>调试技巧</strong>：当系统因为内核模块崩溃时，重启后在 <code>/var/log/kern.log</code> 或 <code>journalctl -k</code> 中查看Oops信息。Oops日志包含了CPU寄存器状态、调用栈和错误码——这是调试内核模块报错的最重要线索。如果模块有调试符号（编译时加 <code>-g</code>），可以用 <code>gdb vmlinux /proc/kcore</code> 来分析coredump。</p>
         </div>
 
-        <h2>四、Kconfig/Kbuild编译体系</h2>
+        <h2 id="section-04">四、Kconfig/Kbuild编译体系</h2>
 
         <p>Linux内核的配置和编译系统是一套看似复杂但实则优雅的体系。理解它之后，你可以精准地自定义内核——只编译你需要的功能和驱动，减少内核体积和攻击面。</p>
 
@@ -263,19 +267,18 @@ config VT
             <p><strong>实战意义</strong>：理解Kconfig/Kbuild后，你可以为自己的内核模块添加Kconfig选项，使其成为标准内核配置的一部分。做嵌入式系统时，通过 <code>make menuconfig</code> 裁剪内核，去掉不需要的驱动和功能，可以把内核镜像从几十MB压缩到几MB甚至几百KB。这是专业嵌入式工程师的必备技能。</p>
         </div>
 
-        <h2>五、结语与下一章预告</h2>
+        <h2 id="section-05">五、结语与下一章预告</h2>
 
         <p>本章我们从"逛街看地图"的视角认识了Linux内核源码的结构，从8字符TAB缩进的编码风格感受到了内核社区的纪律性，动手写了一个Hello World内核模块并成功加载到内核中运行，最后理解了Kconfig/Kbuild这套编译配置体系的运作原理。你现在已经具备了在内核源码中"找路"的基本能力。</p>
 
         <p>不过纸上得来终觉浅——下一章我们真正动手搭建一个完整的OS实验环境：用QEMU模拟一台计算机，用GDB远程调试内核，亲自运行xv6教学内核，并安装perf、bpftrace等分析工具。这一章将让你把前面学到的所有理论知识"跑起来"。</p>
-
-        <div class="footer-nav">
-            <a href="05.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="07.html">下一章 →</a>
-        </div>
-    </div>
 </div>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>为一个字符设备模块列出源码、Kconfig 与 Makefile 的作用。</p><details><summary>查看思考提示</summary><p>先回答哪些代码需要编译，再找到编译选择如何被表达。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<nav class="footer-nav" aria-label="章节前后导航"><a href="05.html">← 上一章 · 引导与初始化</a><a href="index.html">返回课程目录</a><a href="07.html">下一章 · OS实验环境搭建 →</a></nav>
+</article></main>
+</div>
+<footer class="site-footer">操作系统中文实践教程 · <a href="docs/guides/learning-path.md">学习路线</a> · <a href="docs/guides/content-guide.md">内容规范</a></footer>
 </div>
 </body>
 </html>

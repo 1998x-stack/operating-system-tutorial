@@ -1,58 +1,62 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第22章 容器与命名空间</title>
-    <link rel="stylesheet" href="theme.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Namespace 改变进程可见的系统资源视图，cgroup 管理资源，容器共享宿主机内核。">
+  <title>第 22 章 · 容器与命名空间 | 操作系统中文实践教程</title>
+  <link rel="stylesheet" href="assets/css/site.css">
 </head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>🖥️ 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 什么是操作系统</a></li>
-            <li><a href="02.html">第2章 硬件架构基础</a></li>
-            <li><a href="03.html">第3章 OS内核架构</a></li>
-            <li><a href="04.html">第4章 用户态与内核态</a></li>
-            <li><a href="05.html">第5章 引导与初始化</a></li>
-            <li><a href="06.html">第6章 OS内核源码初探</a></li>
-            <li><a href="07.html">第7章 OS实验环境搭建</a></li>
-            <li><a href="08.html">第8章 进程管理</a></li>
-            <li><a href="09.html">第9章 线程与协程</a></li>
-            <li><a href="10.html">第10章 CPU调度</a></li>
-            <li><a href="11.html">第11章 同步与互斥</a></li>
-            <li><a href="12.html">第12章 虚拟内存</a></li>
-            <li><a href="13.html">第13章 物理内存管理</a></li>
-            <li><a href="14.html">第14章 文件系统</a></li>
-            <li><a href="15.html">第15章 I/O模型与io_uring</a></li>
-            <li><a href="16.html">第16章 设备驱动</a></li>
-            <li><a href="17.html">第17章 中断与异常处理</a></li>
-            <li><a href="18.html">第18章 时间管理</a></li>
-            <li><a href="19.html">第19章 网络协议栈</a></li>
-            <li><a href="20.html">第20章 eBPF可观测性</a></li>
-            <li><a href="21.html">第21章 虚拟化技术</a></li>
-            <li><a href="22.html" class="active">第22章 容器与命名空间</a></li>
-            <li><a href="23.html">第23章 内核调试技术</a></li>
-            <li><a href="24.html">第24章 性能分析与调优</a></li>
-            <li><a href="25.html">第25章 动手写一个小OS</a></li>
-            <li><a href="26.html">第26章 现代OS前沿趋势</a></li>
-            <li><a href="27.html">第27章 OS内核设计决策</a></li>
-            <li><a href="28.html">第28章 综合项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
-
-        <h2>第22章 容器与命名空间</h2>
-
-        <p>大家好，我是你们的讲师。现代软件开发中，几乎没有人不在用容器。你的CI/CD流水线在容器里构建，你的微服务在容器里运行，你的数据库也在容器里跑。但大多数人只把容器当成了"一种轻量级虚拟机"来使用——这个理解其实大错特错。</p>
+<body class="chapter-page">
+<a class="skip-link" href="#content">跳转至正文</a>
+<div class="site-shell">
+<header class="site-masthead"><a href="index.html">操作系统 · 中文实践教程</a><span class="section-mark">CHAPTER 22 / 28</span></header>
+<div class="reading-layout">
+<nav class="sidebar" aria-label="课程章节"><details class="chapter-drawer" open><summary>全部 28 章</summary><ol><li><a href="01.html">01 · 什么是操作系统</a></li>
+<li><a href="02.html">02 · 硬件架构基础</a></li>
+<li><a href="03.html">03 · OS内核架构</a></li>
+<li><a href="04.html">04 · 用户态与内核态</a></li>
+<li><a href="05.html">05 · 引导与初始化</a></li>
+<li><a href="06.html">06 · OS内核源码初探</a></li>
+<li><a href="07.html">07 · OS实验环境搭建</a></li>
+<li><a href="08.html">08 · 进程管理</a></li>
+<li><a href="09.html">09 · 线程与协程</a></li>
+<li><a href="10.html">10 · CPU调度</a></li>
+<li><a href="11.html">11 · 同步与互斥</a></li>
+<li><a href="12.html">12 · 虚拟内存</a></li>
+<li><a href="13.html">13 · 物理内存管理</a></li>
+<li><a href="14.html">14 · 文件系统</a></li>
+<li><a href="15.html">15 · I/O模型与io_uring</a></li>
+<li><a href="16.html">16 · 设备驱动</a></li>
+<li><a href="17.html">17 · 中断与异常处理</a></li>
+<li><a href="18.html">18 · 时间管理</a></li>
+<li><a href="19.html">19 · 网络协议栈</a></li>
+<li><a href="20.html">20 · eBPF可观测性</a></li>
+<li><a href="21.html">21 · 虚拟化技术</a></li>
+<li><a href="22.html" aria-current="page">22 · 容器与命名空间</a></li>
+<li><a href="23.html">23 · 内核调试技术</a></li>
+<li><a href="24.html">24 · 性能分析与调优</a></li>
+<li><a href="25.html">25 · 动手写一个小OS</a></li>
+<li><a href="26.html">26 · 现代OS前沿趋势</a></li>
+<li><a href="27.html">27 · OS内核设计决策</a></li>
+<li><a href="28.html">28 · 综合项目</a></li></ol></details></nav>
+<main id="content" class="content-column"><article class="chapter-article" aria-labelledby="chapter-title">
+<header class="article-header"><p class="kicker">OPERATING SYSTEMS · CHAPTER 22</p><h1 id="chapter-title">第 22 章 · 容器与命名空间</h1><p class="article-dek">容器隔离了什么，又共享了什么？</p></header>
+<section class="learning-map" aria-labelledby="learning-map-title"><h2 id="learning-map-title">先建立问题地图</h2><p>Namespace 改变进程可见的系统资源视图，cgroup 管理资源，容器共享宿主机内核。</p><div class="concept-steps" role="list"><div role="listitem"><strong>起点</strong><span>六种Namespace</span></div><div role="listitem"><strong>机制</strong><span>cgroup v2层级</span></div><div role="listitem"><strong>拓展</strong><span>OverlayFS分层 / 从chroot到Docker</span></div></div><p class="map-note">这是帮助建立概念依赖的阅读地图，不表示内核内部的实际执行时序。</p></section>
+<figure class="mechanism-figure"><img src="assets/diagrams/container-layers.svg" width="800" height="302" alt="容器的隔离视图与共享内核"><figcaption>Namespace、cgroup 和共享内核解决不同问题；图中展示的是抽象层次而非容器启动的时序。</figcaption></figure>
+<nav class="page-toc" aria-label="本章小节"><details open><summary>本章目录 · 5 个部分</summary><ol><li><a href="#section-01">容器不是轻量级虚拟机</a></li>
+<li><a href="#section-02">六种Namespace深度解析</a></li>
+<li><a href="#section-03">cgroup v2层级结构</a></li>
+<li><a href="#section-04">OverlayFS与容器镜像</a></li>
+<li><a href="#section-05">从chroot到Docker的演进</a></li></ol></details></nav>
+<div class="article-body">
+<p>大家好，我是你们的讲师。现代软件开发中，几乎没有人不在用容器。你的CI/CD流水线在容器里构建，你的微服务在容器里运行，你的数据库也在容器里跑。但大多数人只把容器当成了"一种轻量级虚拟机"来使用——这个理解其实大错特错。</p>
 
         <p>容器不是虚拟化。容器和虚拟机共享同一个内核，而每个虚拟机都有自己的独立内核。这个区别决定了容器的性能优势（接近原生）、启动速度（毫秒级 vs 分钟级），也决定了容器的安全边界（同一个内核，攻击面更大）。理解容器必须理解Linux内核的三个核心机制：Namespace（命名空间）、Cgroup（控制组）和OverlayFS（联合文件系统）。本章将逐一深入。</p>
 
         <p>分享一个真实的调试故事。同事反馈说容器内运行的一个Web应用频繁报"Address already in use"，但用 <code>netstat -tulpn</code> 没看到端口被占用。排查发现是宿主机的另一个进程占了端口——虽然是容器的网络工作正常（因为用了bridge模式做了端口映射），但进程因为某种原因用host network模式启动了一次。这个问题的根源在于：容器网络隔离只是"看到"的网络设备不同，但宿主机层面的端口空间仍然是全局的。不理解Network Namespace的隔离边界，这种问题会非常费解。</p>
 
-        <h2>容器不是轻量级虚拟机</h2>
+        <h2 id="section-01">容器不是轻量级虚拟机</h2>
 
         <p>很多初学者的第一个误区就是"容器就是轻量级虚拟机"。这两个东西的架构有本质区别：</p>
 
@@ -72,7 +76,7 @@
             <p><strong>核心区别一句话总结</strong>：虚拟机是硬件层的多副本，每个副本有自己的内核；容器是内核层的多视图，所有容器共享同一个内核但各有各的"滤镜"看世界。所以容器逃逸的本质就是打破了这个滤镜——突破Namespace隔离，访问到了宿主机或其他容器的资源。</p>
         </div>
 
-        <h2>六种Namespace深度解析</h2>
+        <h2 id="section-02">六种Namespace深度解析</h2>
 
         <p>Namespace（命名空间）是Linux内核提供的一种资源隔离机制。它将全局系统资源包装在一层抽象中，让进程只能看到自己的那份"副本"。Linux目前支持8种Namespace，其中有6种是最核心、最常用的。</p>
 
@@ -126,7 +130,7 @@ lrwxrwxrwx 1 root root 0 Jun 30 09:00 uts   -> 'uts:[4026531838]'</code></pre>
             <p><strong>动手实践</strong>：在你的Linux机器上执行 <code>ls -la /proc/$$/ns/</code>，你会看到当前进程的8个Namespace inode编号。然后 <code>sudo docker run -d nginx</code> 启动一个容器，获取其PID后比较 <code>/proc/$PID/ns/</code> 下的编号。你会发现所有Namespace编号都不同——说明容器看到的系统和你的终端看到的"不是同一个系统"。</p>
         </div>
 
-        <h2>cgroup v2层级结构</h2>
+        <h2 id="section-03">cgroup v2层级结构</h2>
 
         <p>Namespace让进程"看到"一个隔离的世界，但如果你不限制资源，一个容器可以把宿主机的CPU和内存全部吃光。Cgroup（Control Group）就是干这个的——它对进程组进行资源限制、优先级控制和统计。</p>
 
@@ -168,7 +172,7 @@ $ cat /sys/fs/cgroup/system.slice/docker-xxx.scope/cpu.max
 $ cat /sys/fs/cgroup/system.slice/docker-xxx.scope/memory.max
 536870912      # 512MB内存硬限制</code></pre>
 
-        <h2>OverlayFS与容器镜像</h2>
+        <h2 id="section-04">OverlayFS与容器镜像</h2>
 
         <p>容器的文件系统隔离是通过UnionFS实现的，OverlayFS是Linux内核内置的UnionFS实现（从内核3.18开始合入）。Docker的镜像分层（Layer）和容器写时复制（Copy-on-Write）都是基于OverlayFS。</p>
 
@@ -205,7 +209,7 @@ b7c6fe2e49f5   2 weeks ago   STOPSIGNAL SIGQUIT           0B
 <missing>      2 weeks ago   ADD nginx.list ...           64B
 <missing>      2 weeks ago   FROM ubuntu:22.04           77MB</code></pre>
 
-        <h2>从chroot到Docker的演进</h2>
+        <h2 id="section-05">从chroot到Docker的演进</h2>
 
         <p>容器技术不是2013年凭空出现的。它的根基深植于Unix/Linux四十多年的发展历程。理解这条时间线，你就能明白为什么容器长成了今天这样。</p>
 
@@ -259,14 +263,13 @@ $ sudo unshare --fork --pid --mount --uts --mount-proc /bin/bash
         <p>容器技术是现代云原生计算的基石。通过本章的学习，你应该建立了一个清晰的认知框架：Namespace提供隔离（"看到什么"），Cgroup提供限制（"能用多少"），OverlayFS提供文件系统视图（"文件从哪来"）。三者的组合就是容器的本质——一个被精心隔离和限制的进程。理解了这一点，无论后端的技术栈如何演进（Docker、containerd、Podman、Kata Containers），你都能抓住不变的底层原理。</p>
 
         <p>下一章我们将从"运行容器"转向"调试内核"。当你的内核行为异常时——死锁、内存泄漏、内核崩溃——你该如何入手诊断？我们将探索kdump、crash工具、ftrace、以及各种内核调试技术。这些技能是区分"会用Linux"和"懂Linux"的关键分水岭。</p>
-
-        <div class="footer-nav">
-            <a href="21.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="23.html">下一章 →</a>
-        </div>
-    </div>
 </div>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>用容器 A/B 对比 PID 视图、CPU 配额与内核版本。</p><details><summary>查看思考提示</summary><p>隔离视图不等于独立内核。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<nav class="footer-nav" aria-label="章节前后导航"><a href="21.html">← 上一章 · 虚拟化技术</a><a href="index.html">返回课程目录</a><a href="23.html">下一章 · 内核调试技术 →</a></nav>
+</article></main>
+</div>
+<footer class="site-footer">操作系统中文实践教程 · <a href="docs/guides/learning-path.md">学习路线</a> · <a href="docs/guides/content-guide.md">内容规范</a></footer>
 </div>
 </body>
 </html>

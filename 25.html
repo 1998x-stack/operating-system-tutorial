@@ -1,58 +1,62 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第25章 动手写一个小OS</title>
-    <link rel="stylesheet" href="theme.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="引导、内存保护、中断与特权级转换是从裸机运行走向受控执行的关键步骤。">
+  <title>第 25 章 · 动手写一个小OS | 操作系统中文实践教程</title>
+  <link rel="stylesheet" href="assets/css/site.css">
 </head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>🖥️ 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 什么是操作系统</a></li>
-            <li><a href="02.html">第2章 硬件架构基础</a></li>
-            <li><a href="03.html">第3章 OS内核架构</a></li>
-            <li><a href="04.html">第4章 用户态与内核态</a></li>
-            <li><a href="05.html">第5章 引导与初始化</a></li>
-            <li><a href="06.html">第6章 OS内核源码初探</a></li>
-            <li><a href="07.html">第7章 OS实验环境搭建</a></li>
-            <li><a href="08.html">第8章 进程管理</a></li>
-            <li><a href="09.html">第9章 线程与协程</a></li>
-            <li><a href="10.html">第10章 CPU调度</a></li>
-            <li><a href="11.html">第11章 同步与互斥</a></li>
-            <li><a href="12.html">第12章 虚拟内存</a></li>
-            <li><a href="13.html">第13章 物理内存管理</a></li>
-            <li><a href="14.html">第14章 文件系统</a></li>
-            <li><a href="15.html">第15章 I/O模型与io_uring</a></li>
-            <li><a href="16.html">第16章 设备驱动</a></li>
-            <li><a href="17.html">第17章 中断与异常处理</a></li>
-            <li><a href="18.html">第18章 时间管理</a></li>
-            <li><a href="19.html">第19章 网络协议栈</a></li>
-            <li><a href="20.html">第20章 eBPF可观测性</a></li>
-            <li><a href="21.html">第21章 虚拟化技术</a></li>
-            <li><a href="22.html">第22章 容器与命名空间</a></li>
-            <li><a href="23.html">第23章 内核调试技术</a></li>
-            <li><a href="24.html">第24章 性能分析与调优</a></li>
-            <li><a href="25.html" class="active">第25章 动手写一个小OS</a></li>
-            <li><a href="26.html">第26章 现代OS前沿趋势</a></li>
-            <li><a href="27.html">第27章 OS内核设计决策</a></li>
-            <li><a href="28.html">第28章 综合项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
+<body class="chapter-page">
+<a class="skip-link" href="#content">跳转至正文</a>
+<div class="site-shell">
+<header class="site-masthead"><a href="index.html">操作系统 · 中文实践教程</a><span class="section-mark">CHAPTER 25 / 28</span></header>
+<div class="reading-layout">
+<nav class="sidebar" aria-label="课程章节"><details class="chapter-drawer" open><summary>全部 28 章</summary><ol><li><a href="01.html">01 · 什么是操作系统</a></li>
+<li><a href="02.html">02 · 硬件架构基础</a></li>
+<li><a href="03.html">03 · OS内核架构</a></li>
+<li><a href="04.html">04 · 用户态与内核态</a></li>
+<li><a href="05.html">05 · 引导与初始化</a></li>
+<li><a href="06.html">06 · OS内核源码初探</a></li>
+<li><a href="07.html">07 · OS实验环境搭建</a></li>
+<li><a href="08.html">08 · 进程管理</a></li>
+<li><a href="09.html">09 · 线程与协程</a></li>
+<li><a href="10.html">10 · CPU调度</a></li>
+<li><a href="11.html">11 · 同步与互斥</a></li>
+<li><a href="12.html">12 · 虚拟内存</a></li>
+<li><a href="13.html">13 · 物理内存管理</a></li>
+<li><a href="14.html">14 · 文件系统</a></li>
+<li><a href="15.html">15 · I/O模型与io_uring</a></li>
+<li><a href="16.html">16 · 设备驱动</a></li>
+<li><a href="17.html">17 · 中断与异常处理</a></li>
+<li><a href="18.html">18 · 时间管理</a></li>
+<li><a href="19.html">19 · 网络协议栈</a></li>
+<li><a href="20.html">20 · eBPF可观测性</a></li>
+<li><a href="21.html">21 · 虚拟化技术</a></li>
+<li><a href="22.html">22 · 容器与命名空间</a></li>
+<li><a href="23.html">23 · 内核调试技术</a></li>
+<li><a href="24.html">24 · 性能分析与调优</a></li>
+<li><a href="25.html" aria-current="page">25 · 动手写一个小OS</a></li>
+<li><a href="26.html">26 · 现代OS前沿趋势</a></li>
+<li><a href="27.html">27 · OS内核设计决策</a></li>
+<li><a href="28.html">28 · 综合项目</a></li></ol></details></nav>
+<main id="content" class="content-column"><article class="chapter-article" aria-labelledby="chapter-title">
+<header class="article-header"><p class="kicker">OPERATING SYSTEMS · CHAPTER 25</p><h1 id="chapter-title">第 25 章 · 动手写一个小OS</h1><p class="article-dek">一个最小操作系统如何从启动走到用户程序？</p></header>
+<section class="learning-map" aria-labelledby="learning-map-title"><h2 id="learning-map-title">先建立问题地图</h2><p>引导、内存保护、中断与特权级转换是从裸机运行走向受控执行的关键步骤。</p><div class="concept-steps" role="list"><div role="listitem"><strong>起点</strong><span>实模式Bootloader</span></div><div role="listitem"><strong>机制</strong><span>GDT/IDT设置</span></div><div role="listitem"><strong>拓展</strong><span>物理页分配器 / Ring 0→Ring 3切换</span></div></div><p class="map-note">这是帮助建立概念依赖的阅读地图，不表示内核内部的实际执行时序。</p></section>
 
-        <h2>第25章 动手写一个小OS</h2>
-
-        <p>大家好，我是你们的讲师。前面24章讲了OS的各种理论和机制——进程、内存、文件系统、中断、调度——你学了一堆概念，但可能总觉得隔了一层纱。什么是"GDT"？什么又是"保护模式"？操作系统到底是怎么从按下电源键一路启动到显示桌面的？这些问题的终极答案只有一个——自己动手写一个。</p>
+<nav class="page-toc" aria-label="本章小节"><details open><summary>本章目录 · 5 个部分</summary><ol><li><a href="#section-01">一、用QEMU从零启动</a></li>
+<li><a href="#section-02">二、进入保护模式</a></li>
+<li><a href="#section-03">三、实现物理内存分配器</a></li>
+<li><a href="#section-04">四、设置中断</a></li>
+<li><a href="#section-05">五、跳到用户态</a></li></ol></details></nav>
+<div class="article-body">
+<p>大家好，我是你们的讲师。前面24章讲了OS的各种理论和机制——进程、内存、文件系统、中断、调度——你学了一堆概念，但可能总觉得隔了一层纱。什么是"GDT"？什么又是"保护模式"？操作系统到底是怎么从按下电源键一路启动到显示桌面的？这些问题的终极答案只有一个——自己动手写一个。</p>
 
         <p>这一章我们不依赖任何现成的内核，从零开始用汇编和C语言写一个微型操作系统。它不大——只有几百行代码——但它会完整经历真实OS的启动流程：BIOS引导、进入保护模式、实现内存分配器、设置中断、最后从Ring 0切换到Ring 3执行用户进程。当你亲眼看到自己写的OS在QEMU中打印出"Hello World"的那一刻，前面学的所有理论都会串联成一条线。</p>
 
         <p>说句掏心窝的话，我学操作系统最有收获的一段时间，不是上课也不是看书，而是大三那年在X86模拟器上写了一个迷你内核。从实模式到保护模式踩了无数坑——GDT写错一个字节整个系统不断重启、IDT的中断门设置成任务门导致键盘中断不响应、切换到用户态时栈没切干净导致#GP异常——每解决一个问题，对OS的理解就深一层。如果你也想真正"懂"操作系统，没有比动手写一个更好的方式了。</p>
 
-        <h2>一、用QEMU从零启动</h2>
+        <h2 id="section-01">一、用QEMU从零启动</h2>
 
         <p>计算机按下电源键后，CPU首先运行BIOS（Basic Input/Output System）。BIOS执行硬件自检后，寻找可启动设备——如果找到了我们的虚拟磁盘，它会将磁盘的第一个扇区（512字节，称为引导扇区或Boot Sector）加载到内存地址 <code>0x7C00</code>，然后跳转过去执行。你的OS的第一个脚印就从这里开始。</p>
 
@@ -108,7 +112,7 @@ $ qemu-system-x86_64 -drive format=raw,file=disk.img -m 256M
             <p><strong>踩坑提醒</strong>：引导扇区必须恰好512字节，最后两个字节必须是 <code>0x55 0xAA</code>（小端序，所以代码中写 <code>dw 0xaa55</code>）。如果最后两个字节不对，BIOS会认为这个磁盘不可启动。另一个常见坑是 <code>ORG 0x7C00</code> 和段寄存器必须匹配——很多新手在实模式下的地址计算上栽跟头。</p>
         </div>
 
-        <h2>二、进入保护模式</h2>
+        <h2 id="section-02">二、进入保护模式</h2>
 
         <p>实模式有很多限制：只能访问1MB内存、没有内存保护、只能使用16位寄存器和寻址。现代OS必须运行在32位或64位的保护模式（Protected Mode）或长模式（Long Mode）下。从实模式进入保护模式的步骤是固定的三步曲：设置GDT → 开启A20地址线 → 设置CR0保护模式位。</p>
 
@@ -204,7 +208,7 @@ protected_mode:
             <p><strong>关键认知</strong>：保护模式的切换是不可逆的——一旦设置了CR0的PE位，你无法在不重启的情况下回到实模式。GDT中的每个bit都有精确的硬件语义：access byte的每个位决定段的访问权限，granularity位决定limit的单位是字节还是4KB。一个bit写错，CPU就会产生#GP异常。我当年调试GDT时，就是因为代码段描述符的 <code>db 11001111b</code> 写成了 <code>11001110b</code>（没设置32位位标志），CPU把32位代码当16位解码，结果每条指令都少读了两个字节，蹦出来的字符完全不可理喻。</p>
         </div>
 
-        <h2>三、实现物理内存分配器</h2>
+        <h2 id="section-03">三、实现物理内存分配器</h2>
 
         <p>进入保护模式后，我们需要知道系统有多少物理内存可用，然后实现一个简单的分配器来管理它。早期的内核通过BIOS的 <code>int 0x15, E820h</code> 功能调用获取物理内存布局。</p>
 
@@ -282,7 +286,7 @@ void page_free(void *addr) {
             <p><strong>设计理念</strong>：位图分配器虽然简单，搜索效率是O(n)，但它的优点是实现直观且内存开销极低——管理4GB内存只需要128KB的位图（4GB/4KB/8）。更高级的分配器（如buddy system或slab分配器）会在位图的基础上优化碎片和分配速度。对于我们自己写的小OS，位图分配器够用就好。</p>
         </div>
 
-        <h2>四、设置中断</h2>
+        <h2 id="section-04">四、设置中断</h2>
 
         <p>没有中断的操作系统就像没有耳朵的人——无法感知外部世界的任何事件。键盘敲击、定时器滴答、磁盘完成I/O——这些都需要中断来通知CPU。在保护模式下，中断由IDT（Interrupt Descriptor Table）管理。</p>
 
@@ -356,7 +360,7 @@ void keyboard_handler(void) {
             <p><strong>常见错误</strong>：中断处理函数执行时间必须尽可能短，因为CPU在中断处理期间会阻塞其他中断。如果需要做复杂处理，应该只做最必要的操作（如把扫描码存入缓冲区），然后触发软中断让下半部分（bottom half）去处理。另一个容易忽略的点：PIC（可编程中断控制器）需要在中断处理结束时发送EOI，否则不会接收后续中断——这会导致键盘只响应一次就彻底"哑"了。</p>
         </div>
 
-        <h2>五、跳到用户态</h2>
+        <h2 id="section-05">五、跳到用户态</h2>
 
         <p>最后也是最激动人心的一步——从Ring 0（内核态）切换到Ring 3（用户态）。这标志着你的小OS具备了真正的多权限级保护能力。用户态的代码不能直接执行特权指令、不能访问内核内存，所有硬件操作必须通过系统调用。</p>
 
@@ -449,14 +453,13 @@ void syscall_handler(struct regs_t *r) {
         <p>如果你想继续扩展它，接下来可以做的事情包括：实现一个简易的FAT文件系统读取器、添加多任务调度器让多个用户进程轮流运行、或者扩展系统调用接口。每一件都是对前面章节所学知识的实践落地。</p>
 
         <p>下一章我们将从"动手写"的视角重新拉回宏观，看看现代操作系统的前沿趋势——从eBPF到安全架构、从Rust for Linux到Unikernel和Zircon微内核，今天的OS设计正在发生哪些深刻的变革。</p>
-
-        <div class="footer-nav">
-            <a href="24.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="26.html">下一章 →</a>
-        </div>
-    </div>
 </div>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>为自制 OS 的一次 Ring 0 到 Ring 3 转换列出前置条件。</p><details><summary>查看思考提示</summary><p>先画出 GDT/IDT、页表和用户栈各自在哪一步需要。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://www.qemu.org/docs/master/">QEMU 文档</a><a href="https://pdos.csail.mit.edu/6.1810/">xv6 教学资源</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<nav class="footer-nav" aria-label="章节前后导航"><a href="24.html">← 上一章 · 性能分析与调优</a><a href="index.html">返回课程目录</a><a href="26.html">下一章 · 现代OS前沿趋势 →</a></nav>
+</article></main>
+</div>
+<footer class="site-footer">操作系统中文实践教程 · <a href="docs/guides/learning-path.md">学习路线</a> · <a href="docs/guides/content-guide.md">内容规范</a></footer>
 </div>
 </body>
 </html>

@@ -1,52 +1,56 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第1章 什么是操作系统</title>
-    <link rel="stylesheet" href="theme.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="操作系统在硬件之上建立抽象，协调资源使用，并为不同程序提供隔离边界。">
+  <title>第 1 章 · 什么是操作系统 | 操作系统中文实践教程</title>
+  <link rel="stylesheet" href="assets/css/site.css">
 </head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>🖥️ 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html" class="active">第1章 什么是操作系统</a></li>
-            <li><a href="02.html">第2章 硬件架构基础</a></li>
-            <li><a href="03.html">第3章 OS内核架构</a></li>
-            <li><a href="04.html">第4章 用户态与内核态</a></li>
-            <li><a href="05.html">第5章 引导与初始化</a></li>
-            <li><a href="06.html">第6章 OS内核源码初探</a></li>
-            <li><a href="07.html">第7章 OS实验环境搭建</a></li>
-            <li><a href="08.html">第8章 进程管理</a></li>
-            <li><a href="09.html">第9章 线程与协程</a></li>
-            <li><a href="10.html">第10章 CPU调度</a></li>
-            <li><a href="11.html">第11章 同步与互斥</a></li>
-            <li><a href="12.html">第12章 虚拟内存</a></li>
-            <li><a href="13.html">第13章 物理内存管理</a></li>
-            <li><a href="14.html">第14章 文件系统</a></li>
-            <li><a href="15.html">第15章 I/O模型与io_uring</a></li>
-            <li><a href="16.html">第16章 设备驱动</a></li>
-            <li><a href="17.html">第17章 中断与异常处理</a></li>
-            <li><a href="18.html">第18章 时间管理</a></li>
-            <li><a href="19.html">第19章 网络协议栈</a></li>
-            <li><a href="20.html">第20章 eBPF可观测性</a></li>
-            <li><a href="21.html">第21章 虚拟化技术</a></li>
-            <li><a href="22.html">第22章 容器与命名空间</a></li>
-            <li><a href="23.html">第23章 内核调试技术</a></li>
-            <li><a href="24.html">第24章 性能分析与调优</a></li>
-            <li><a href="25.html">第25章 动手写一个小OS</a></li>
-            <li><a href="26.html">第26章 现代OS前沿趋势</a></li>
-            <li><a href="27.html">第27章 OS内核设计决策</a></li>
-            <li><a href="28.html">第28章 综合项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
+<body class="chapter-page">
+<a class="skip-link" href="#content">跳转至正文</a>
+<div class="site-shell">
+<header class="site-masthead"><a href="index.html">操作系统 · 中文实践教程</a><span class="section-mark">CHAPTER 01 / 28</span></header>
+<div class="reading-layout">
+<nav class="sidebar" aria-label="课程章节"><details class="chapter-drawer" open><summary>全部 28 章</summary><ol><li><a href="01.html" aria-current="page">01 · 什么是操作系统</a></li>
+<li><a href="02.html">02 · 硬件架构基础</a></li>
+<li><a href="03.html">03 · OS内核架构</a></li>
+<li><a href="04.html">04 · 用户态与内核态</a></li>
+<li><a href="05.html">05 · 引导与初始化</a></li>
+<li><a href="06.html">06 · OS内核源码初探</a></li>
+<li><a href="07.html">07 · OS实验环境搭建</a></li>
+<li><a href="08.html">08 · 进程管理</a></li>
+<li><a href="09.html">09 · 线程与协程</a></li>
+<li><a href="10.html">10 · CPU调度</a></li>
+<li><a href="11.html">11 · 同步与互斥</a></li>
+<li><a href="12.html">12 · 虚拟内存</a></li>
+<li><a href="13.html">13 · 物理内存管理</a></li>
+<li><a href="14.html">14 · 文件系统</a></li>
+<li><a href="15.html">15 · I/O模型与io_uring</a></li>
+<li><a href="16.html">16 · 设备驱动</a></li>
+<li><a href="17.html">17 · 中断与异常处理</a></li>
+<li><a href="18.html">18 · 时间管理</a></li>
+<li><a href="19.html">19 · 网络协议栈</a></li>
+<li><a href="20.html">20 · eBPF可观测性</a></li>
+<li><a href="21.html">21 · 虚拟化技术</a></li>
+<li><a href="22.html">22 · 容器与命名空间</a></li>
+<li><a href="23.html">23 · 内核调试技术</a></li>
+<li><a href="24.html">24 · 性能分析与调优</a></li>
+<li><a href="25.html">25 · 动手写一个小OS</a></li>
+<li><a href="26.html">26 · 现代OS前沿趋势</a></li>
+<li><a href="27.html">27 · OS内核设计决策</a></li>
+<li><a href="28.html">28 · 综合项目</a></li></ol></details></nav>
+<main id="content" class="content-column"><article class="chapter-article" aria-labelledby="chapter-title">
+<header class="article-header"><p class="kicker">OPERATING SYSTEMS · CHAPTER 01</p><h1 id="chapter-title">第 1 章 · 什么是操作系统</h1><p class="article-dek">为什么应用不直接管理 CPU、内存与设备？</p></header>
+<section class="learning-map" aria-labelledby="learning-map-title"><h2 id="learning-map-title">先建立问题地图</h2><p>操作系统在硬件之上建立抽象，协调资源使用，并为不同程序提供隔离边界。</p><div class="concept-steps" role="list"><div role="listitem"><strong>起点</strong><span>操作系统定义</span></div><div role="listitem"><strong>机制</strong><span>发展历史</span></div><div role="listitem"><strong>拓展</strong><span>OS分类与设计哲学</span></div></div><p class="map-note">这是帮助建立概念依赖的阅读地图，不表示内核内部的实际执行时序。</p></section>
 
-        <h2>第1章 什么是操作系统</h2>
-
-        <p>大家好，我是你们的讲师。在日常生活中，我们打开电脑、点开浏览器、敲击键盘，一切似乎理所当然。但当你在终端里敲下 <code>ls</code> 命令的一瞬间，背后到底发生了什么？是谁管理着CPU该执行哪条指令？是谁在内存和磁盘之间搬运数据？是谁确保你同时打开的50个浏览器标签页不会互相打架？答案全指向同一个名字——操作系统（Operating System，简称OS）。</p>
+<nav class="page-toc" aria-label="本章小节"><details open><summary>本章目录 · 5 个部分</summary><ol><li><a href="#section-01">一、从ENIAC到现代OS：一部硬件催生软件的进化史</a></li>
+<li><a href="#section-02">二、操作系统的四大角色</a></li>
+<li><a href="#section-03">三、操作系统类型全景图</a></li>
+<li><a href="#section-04">四、主流操作系统一览</a></li>
+<li><a href="#section-05">五、结语与下一章预告</a></li></ol></details></nav>
+<div class="article-body">
+<p>大家好，我是你们的讲师。在日常生活中，我们打开电脑、点开浏览器、敲击键盘，一切似乎理所当然。但当你在终端里敲下 <code>ls</code> 命令的一瞬间，背后到底发生了什么？是谁管理着CPU该执行哪条指令？是谁在内存和磁盘之间搬运数据？是谁确保你同时打开的50个浏览器标签页不会互相打架？答案全指向同一个名字——操作系统（Operating System，简称OS）。</p>
 
         <p>操作系统是现代计算机系统中最重要的基础软件。没有OS，你的笔记本电脑就是一堆废铁——CPU不知道该执行什么，内存里一片空白，按了键盘也没人能收到。OS就是连接硬件和软件的桥梁，是计算机的"大管家"。学透操作系统，你就掌握了计算机科学的"内力"——无论以后做上层应用开发、搞分布式系统、还是深入嵌入式和AI芯片，OS知识都是你的底层功底。</p>
 
@@ -56,7 +60,7 @@
             <p><strong>核心洞见</strong>：操作系统就是我们常说的"中间层"。它把丑陋、复杂、千差万别的硬件细节封装起来，向上提供一个简洁、统一的接口给应用程序。没有OS，每个程序员都要直接操作硬件寄存器——那将是灾难。</p>
         </div>
 
-        <h2>一、从ENIAC到现代OS：一部硬件催生软件的进化史</h2>
+        <h2 id="section-01">一、从ENIAC到现代OS：一部硬件催生软件的进化史</h2>
 
         <p>操作系统的进化，本质上是硬件发展的倒逼结果。硬件性能上去了，人类的使用需求复杂了，OS就跟着演进。理解这条时间线，能帮你建立宏观的历史视角，明白为什么OS长成了今天这副模样。</p>
 
@@ -85,7 +89,7 @@
             <p><strong>学习方法</strong>：这张表格背后的逻辑线是"硬件越强、需求越多、OS越复杂"。你不需要死记硬背年代和名字，你需要抓住的是——每个时代的OS设计都是为了解决上一个时代遗留的核心矛盾。</p>
         </div>
 
-        <h2>二、操作系统的四大角色</h2>
+        <h2 id="section-02">二、操作系统的四大角色</h2>
 
         <p>我们试着用一个更形象的比喻来理解操作系统到底在干什么。如果说计算机是一栋大楼，操作系统就是这栋楼的物业管理系统。它同时扮演四个不可或缺的角色：</p>
 
@@ -105,7 +109,7 @@
             <p><strong>记忆框架</strong>：四大角色——管家（资源）、保安（安全）、翻译官（抽象）、调度员（调度）。以后你每学到一个OS概念，就问自己两个问题："这个机制属于哪个角色？"和"没有这个机制会怎样？"这样你的知识体系就会越来越牢固。</p>
         </div>
 
-        <h2>三、操作系统类型全景图</h2>
+        <h2 id="section-03">三、操作系统类型全景图</h2>
 
         <p>不同的应用场景催生了不同类型的OS设计。很多初学者以为OS就只有Windows和Linux，实际上OS的形态远比你想像的丰富。下面这张表帮你快速建立全局视野：</p>
 
@@ -139,7 +143,7 @@
             <p><strong>常见误区</strong>：很多人以为实时OS就是"跑得快"。不对，实时OS追求的是"确定性"——我能保证这个任务在10毫秒内完成，而不是说它能在1毫秒内完成。宁可稳定可预测，也不要忽快忽慢。这个区别在你后面学习调度算法时会非常关键。</p>
         </div>
 
-        <h2>四、主流操作系统一览</h2>
+        <h2 id="section-04">四、主流操作系统一览</h2>
 
         <p>了解了OS的四大角色和类型之后，我们来快速认识一下当前最主流的操作系统。每一款OS的设计哲学都不同，理解它们的差异对后续深入学习大有裨益。</p>
 
@@ -176,21 +180,20 @@ $ ps aux | wc -l
             <p><strong>动手实践</strong>：如果你手头有一台Linux机器，现在就可以打开终端，亲手执行上面的命令，感受一下操作系统在你面前"裸奔"的样子。<code>/proc</code> 和 <code>/sys</code> 文件系统就是OS内核暴露给用户空间的信息窗口——后面我们在学习内存管理和设备驱动时会反复用到它们。</p>
         </div>
 
-        <h2>五、结语与下一章预告</h2>
+        <h2 id="section-05">五、结语与下一章预告</h2>
 
         <p>通过本章的学习，我们搭建了操作系统的宏观认知框架：从ENIAC到现代OS的60年演进历程、操作系统的四大角色（管家、保安、翻译官、调度员）、五种OS类型的核心差异，以及当前主流OS的设计哲学。</p>
 
         <p>你现在应该已经明白：操作系统不是某一个"东西"，而是一套精密的机制集合——它管理资源、保障安全、抽象硬件、调度任务。这些机制环环相扣，构成了整个计算机系统的基石。</p>
 
         <p>下一章，我们将深入计算机的硬件层面，从CPU的指令执行周期、内存层级、中断控制器到总线架构，看看这些底层硬件是如何为操作系统的运行"搭台唱戏"的。理解了硬件，你就拿到了理解OS的一把金钥匙。</p>
-
-        <div class="footer-nav">
-            <a href="javascript:void(0)">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="02.html">下一章 →</a>
-        </div>
-    </div>
 </div>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>用打开文件的例子，分别指出资源管理、硬件抽象和安全隔离。</p><details><summary>查看思考提示</summary><p>把进程、系统调用和文件接口放在同一张图上。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<nav class="footer-nav" aria-label="章节前后导航"><span class="unavailable" aria-disabled="true">← 已是第一章</span><a href="index.html">返回课程目录</a><a href="02.html">下一章 · 硬件架构基础 →</a></nav>
+</article></main>
+</div>
+<footer class="site-footer">操作系统中文实践教程 · <a href="docs/guides/learning-path.md">学习路线</a> · <a href="docs/guides/content-guide.md">内容规范</a></footer>
 </div>
 </body>
 </html>

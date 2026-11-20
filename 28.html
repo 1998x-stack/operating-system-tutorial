@@ -1,52 +1,56 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第28章 综合项目</title>
-    <link rel="stylesheet" href="theme.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="用可观察的目标、最小实现和验证记录，把机制知识连接到工程实践。">
+  <title>第 28 章 · 综合项目 | 操作系统中文实践教程</title>
+  <link rel="stylesheet" href="assets/css/site.css">
 </head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>🖥️ 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 什么是操作系统</a></li>
-            <li><a href="02.html">第2章 硬件架构基础</a></li>
-            <li><a href="03.html">第3章 OS内核架构</a></li>
-            <li><a href="04.html">第4章 用户态与内核态</a></li>
-            <li><a href="05.html">第5章 引导与初始化</a></li>
-            <li><a href="06.html">第6章 OS内核源码初探</a></li>
-            <li><a href="07.html">第7章 OS实验环境搭建</a></li>
-            <li><a href="08.html">第8章 进程管理</a></li>
-            <li><a href="09.html">第9章 线程与协程</a></li>
-            <li><a href="10.html">第10章 CPU调度</a></li>
-            <li><a href="11.html">第11章 同步与互斥</a></li>
-            <li><a href="12.html">第12章 虚拟内存</a></li>
-            <li><a href="13.html">第13章 物理内存管理</a></li>
-            <li><a href="14.html">第14章 文件系统</a></li>
-            <li><a href="15.html">第15章 I/O模型与io_uring</a></li>
-            <li><a href="16.html">第16章 设备驱动</a></li>
-            <li><a href="17.html">第17章 中断与异常处理</a></li>
-            <li><a href="18.html">第18章 时间管理</a></li>
-            <li><a href="19.html">第19章 网络协议栈</a></li>
-            <li><a href="20.html">第20章 eBPF可观测性</a></li>
-            <li><a href="21.html">第21章 虚拟化技术</a></li>
-            <li><a href="22.html">第22章 容器与命名空间</a></li>
-            <li><a href="23.html">第23章 内核调试技术</a></li>
-            <li><a href="24.html">第24章 性能分析与调优</a></li>
-            <li><a href="25.html">第25章 动手写一个小OS</a></li>
-            <li><a href="26.html">第26章 现代OS前沿趋势</a></li>
-            <li><a href="27.html">第27章 OS内核设计决策</a></li>
-            <li><a href="28.html" class="active">第28章 综合项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
+<body class="chapter-page">
+<a class="skip-link" href="#content">跳转至正文</a>
+<div class="site-shell">
+<header class="site-masthead"><a href="index.html">操作系统 · 中文实践教程</a><span class="section-mark">CHAPTER 28 / 28</span></header>
+<div class="reading-layout">
+<nav class="sidebar" aria-label="课程章节"><details class="chapter-drawer" open><summary>全部 28 章</summary><ol><li><a href="01.html">01 · 什么是操作系统</a></li>
+<li><a href="02.html">02 · 硬件架构基础</a></li>
+<li><a href="03.html">03 · OS内核架构</a></li>
+<li><a href="04.html">04 · 用户态与内核态</a></li>
+<li><a href="05.html">05 · 引导与初始化</a></li>
+<li><a href="06.html">06 · OS内核源码初探</a></li>
+<li><a href="07.html">07 · OS实验环境搭建</a></li>
+<li><a href="08.html">08 · 进程管理</a></li>
+<li><a href="09.html">09 · 线程与协程</a></li>
+<li><a href="10.html">10 · CPU调度</a></li>
+<li><a href="11.html">11 · 同步与互斥</a></li>
+<li><a href="12.html">12 · 虚拟内存</a></li>
+<li><a href="13.html">13 · 物理内存管理</a></li>
+<li><a href="14.html">14 · 文件系统</a></li>
+<li><a href="15.html">15 · I/O模型与io_uring</a></li>
+<li><a href="16.html">16 · 设备驱动</a></li>
+<li><a href="17.html">17 · 中断与异常处理</a></li>
+<li><a href="18.html">18 · 时间管理</a></li>
+<li><a href="19.html">19 · 网络协议栈</a></li>
+<li><a href="20.html">20 · eBPF可观测性</a></li>
+<li><a href="21.html">21 · 虚拟化技术</a></li>
+<li><a href="22.html">22 · 容器与命名空间</a></li>
+<li><a href="23.html">23 · 内核调试技术</a></li>
+<li><a href="24.html">24 · 性能分析与调优</a></li>
+<li><a href="25.html">25 · 动手写一个小OS</a></li>
+<li><a href="26.html">26 · 现代OS前沿趋势</a></li>
+<li><a href="27.html">27 · OS内核设计决策</a></li>
+<li><a href="28.html" aria-current="page">28 · 综合项目</a></li></ol></details></nav>
+<main id="content" class="content-column"><article class="chapter-article" aria-labelledby="chapter-title">
+<header class="article-header"><p class="kicker">OPERATING SYSTEMS · CHAPTER 28</p><h1 id="chapter-title">第 28 章 · 综合项目</h1><p class="article-dek">怎样把零散的操作系统知识变成可复现的项目？</p></header>
+<section class="learning-map" aria-labelledby="learning-map-title"><h2 id="learning-map-title">先建立问题地图</h2><p>用可观察的目标、最小实现和验证记录，把机制知识连接到工程实践。</p><div class="concept-steps" role="list"><div role="listitem"><strong>起点</strong><span>eBPF分析调度延迟</span></div><div role="listitem"><strong>机制</strong><span>字符设备驱动</span></div><div role="listitem"><strong>拓展</strong><span>xv6添加COW fork / 内核火焰图</span></div></div><p class="map-note">这是帮助建立概念依赖的阅读地图，不表示内核内部的实际执行时序。</p></section>
 
-        <h2>第28章 综合项目</h2>
-
-        <p>大家好，我是你们的讲师。欢迎来到操作系统课程的最后一章。如果说前面27章是"学"，那么这一章就是"练"——而且是真刀真枪地练。我在教学过程中发现，很多同学学完OS之后，理论知识非常扎实——能跟你聊清楚CFS调度原理、虚拟内存的分页机制、ext4的日志设计——但一打开终端就不知道该干什么。</p>
+<nav class="page-toc" aria-label="本章小节"><details open><summary>本章目录 · 5 个部分</summary><ol><li><a href="#section-01">一、项目一：用eBPF分析调度延迟</a></li>
+<li><a href="#section-02">二、项目二：写一个带文件操作的字符设备驱动</a></li>
+<li><a href="#section-03">三、项目三：为xv6添加写时拷贝fork</a></li>
+<li><a href="#section-04">四、项目四：生成内核调用火焰图</a></li>
+<li><a href="#section-05">五、课程总结与进阶路线</a></li></ol></details></nav>
+<div class="article-body">
+<p>大家好，我是你们的讲师。欢迎来到操作系统课程的最后一章。如果说前面27章是"学"，那么这一章就是"练"——而且是真刀真枪地练。我在教学过程中发现，很多同学学完OS之后，理论知识非常扎实——能跟你聊清楚CFS调度原理、虚拟内存的分页机制、ext4的日志设计——但一打开终端就不知道该干什么。</p>
 
         <p>这一章的目的就是解决这个问题。我设计了四个覆盖不同方面的综合项目，分别对应eBPF可观测性、设备驱动开发、OS内核机制实现和性能分析。每个项目都有清晰的步骤说明、核心代码框架和验证方法。你不是在"学"这些技术——你是在实际做它们。</p>
 
@@ -54,7 +58,7 @@
 
         <p>四个项目之间没有依赖关系，你可以按任意顺序完成。但建议至少完成两个再宣告结业。</p>
 
-        <h2>一、项目一：用eBPF分析调度延迟</h2>
+        <h2 id="section-01">一、项目一：用eBPF分析调度延迟</h2>
 
         <p>调度延迟（Scheduling Latency）是指一个进程从变成"可运行"状态到真正在CPU上开始执行之间的等待时间。这是衡量OS调度器性能的核心指标。我们将在第20章eBPF知识的基础上，编写一个真正的eBPF程序来追踪runqlat。</p>
 
@@ -152,7 +156,7 @@ $ sudo bpftrace -e '
             <p><strong>验证方法</strong>：在运行上述bpftrace命令的另一个终端中，执行一个CPU密集型任务（如 <code>stress --cpu 4 --timeout 30</code>），观察直方图的变化。预期结果：大部分调度延迟应该在几微秒到几十微秒之间。如果出现大量超过1ms的延迟，说明系统存在调度延迟问题——可能是CPU核数不足、cgroup限制或内核抢占配置不当。</p>
         </div>
 
-        <h2>二、项目二：写一个带文件操作的字符设备驱动</h2>
+        <h2 id="section-02">二、项目二：写一个带文件操作的字符设备驱动</h2>
 
         <p>在第16章（设备驱动）中我们学习了字符设备驱动的基本框架。现在我们要实现一个功能完整的驱动——一个简单的"内存设备"，支持open/release/read/write/lseek，支持多进程并发，并在<code>/sysfs</code>下暴露设备属性。</p>
 
@@ -337,7 +341,7 @@ static DEVICE_ATTR_RW(buffer_size);</code></pre>
             <p><strong>常见踩坑</strong>：在驱动开发中，最容易被忽略的问题是多进程并发。如果你没有用互斥锁保护共享数据，两个进程同时write可能会导致内存损坏。我在开发时曾因为忘记加锁，导致一个进程写入的数据被另一个进程的写入覆盖——排查了两天才发现是锁的问题。记住：内核编程中"先加锁，再操作"应该写在你手边的墙上。</p>
         </div>
 
-        <h2>三、项目三：为xv6添加写时拷贝fork</h2>
+        <h2 id="section-03">三、项目三：为xv6添加写时拷贝fork</h2>
 
         <p>第25章我们实现了一个小OS，其中包含了基础的<code>fork()</code>实现。但那个<code>fork()</code>是"立即复制"（eager copy）——父进程的整个地址空间在被fork时就会完整拷贝一份。这在大多数实际场景中非常低效，因为子进程通常马上就会调用<code>exec()</code>，之前拷贝的页面全部浪费了。</p>
 
@@ -438,7 +442,7 @@ void decref(void *pa) {
             <p><strong>检验标准</strong>：完成COW实现后，运行一个测试程序——父进程分配一个大数组（如4MB），然后fork()，子进程读取数组内容但不修改，接着子进程exec()一个新程序。在eager copy版本中，这个过程会拷贝4MB的物理页面；在COW版本中，实际拷贝量为0（如果子进程只读且最终调用了exec）。只有在子进程真正修改页面时，才会触发实际的页面复制。这就是COW的核心效率来源。</p>
         </div>
 
-        <h2>四、项目四：生成内核调用火焰图</h2>
+        <h2 id="section-04">四、项目四：生成内核调用火焰图</h2>
 
         <p>性能分析是OS工程师的必修课。火焰图（Flame Graph）由Brendan Gregg发明，是目前最直观的性能分析可视化工具。我们将在第24章perf知识的基础上，生成一份完整的内核调用火焰图并撰写分析报告。</p>
 
@@ -502,7 +506,7 @@ $ firefox kernel_flame.svg</code></pre>
             <p><strong>进阶挑战</strong>：生成火焰图后，试试用<code>perf diff</code>比较优化前和优化后的火焰图差异。例如，在一次内核配置调整前后各采集30秒数据，用<code>perf diff baseline.data perf.data</code>查看哪些函数的CPU占用发生了变化。这种"前后对比"的分析方法是性能调优的标准流程。</p>
         </div>
 
-        <h2>五、课程总结与进阶路线</h2>
+        <h2 id="section-05">五、课程总结与进阶路线</h2>
 
         <p>走到这里，我们已经一起完成了28章的旅程。让我带你快速回顾一下我们都学到了什么：</p>
 
@@ -523,14 +527,13 @@ $ firefox kernel_flame.svg</code></pre>
         <div class="highlight">
             <p><strong>最后的寄语</strong>：操作系统的学习从来不是一条轻松的路。但我可以向你保证——你在学习OS过程中建立起来的系统思维、底层意识、以及在"心智模型"层面对计算机的理解，将让你在所有软件开发领域中脱颖而出。无论你未来的方向是云原生、AI系统、嵌入式开发还是数据库内核，OS知识都将成为你最大的技术护城河。谢谢大家，祝你在操作系统这条路上越走越远。</p>
         </div>
-
-        <div class="footer-nav">
-            <a href="27.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="javascript:void(0)">下一章 →</a>
-        </div>
-    </div>
 </div>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>选两个综合项目，分别写出输入、预期输出和验证方式。</p><details><summary>查看思考提示</summary><p>实验报告要区分代码草图、成功运行与性能结果。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://www.qemu.org/docs/master/">QEMU 文档</a><a href="https://pdos.csail.mit.edu/6.1810/">xv6 教学资源</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<nav class="footer-nav" aria-label="章节前后导航"><a href="27.html">← 上一章 · OS内核设计决策</a><a href="index.html">返回课程目录</a><span class="unavailable" aria-disabled="true">已完成 28 章</span></nav>
+</article></main>
+</div>
+<footer class="site-footer">操作系统中文实践教程 · <a href="docs/guides/learning-path.md">学习路线</a> · <a href="docs/guides/content-guide.md">内容规范</a></footer>
 </div>
 </body>
 </html>

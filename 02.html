@@ -1,52 +1,56 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第2章 硬件架构基础</title>
-    <link rel="stylesheet" href="theme.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="指令集、存储层级与中断机制共同决定程序可见的执行成本和响应路径。">
+  <title>第 2 章 · 硬件架构基础 | 操作系统中文实践教程</title>
+  <link rel="stylesheet" href="assets/css/site.css">
 </head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>🖥️ 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 什么是操作系统</a></li>
-            <li><a href="02.html" class="active">第2章 硬件架构基础</a></li>
-            <li><a href="03.html">第3章 OS内核架构</a></li>
-            <li><a href="04.html">第4章 用户态与内核态</a></li>
-            <li><a href="05.html">第5章 引导与初始化</a></li>
-            <li><a href="06.html">第6章 OS内核源码初探</a></li>
-            <li><a href="07.html">第7章 OS实验环境搭建</a></li>
-            <li><a href="08.html">第8章 进程管理</a></li>
-            <li><a href="09.html">第9章 线程与协程</a></li>
-            <li><a href="10.html">第10章 CPU调度</a></li>
-            <li><a href="11.html">第11章 同步与互斥</a></li>
-            <li><a href="12.html">第12章 虚拟内存</a></li>
-            <li><a href="13.html">第13章 物理内存管理</a></li>
-            <li><a href="14.html">第14章 文件系统</a></li>
-            <li><a href="15.html">第15章 I/O模型与io_uring</a></li>
-            <li><a href="16.html">第16章 设备驱动</a></li>
-            <li><a href="17.html">第17章 中断与异常处理</a></li>
-            <li><a href="18.html">第18章 时间管理</a></li>
-            <li><a href="19.html">第19章 网络协议栈</a></li>
-            <li><a href="20.html">第20章 eBPF可观测性</a></li>
-            <li><a href="21.html">第21章 虚拟化技术</a></li>
-            <li><a href="22.html">第22章 容器与命名空间</a></li>
-            <li><a href="23.html">第23章 内核调试技术</a></li>
-            <li><a href="24.html">第24章 性能分析与调优</a></li>
-            <li><a href="25.html">第25章 动手写一个小OS</a></li>
-            <li><a href="26.html">第26章 现代OS前沿趋势</a></li>
-            <li><a href="27.html">第27章 OS内核设计决策</a></li>
-            <li><a href="28.html">第28章 综合项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
+<body class="chapter-page">
+<a class="skip-link" href="#content">跳转至正文</a>
+<div class="site-shell">
+<header class="site-masthead"><a href="index.html">操作系统 · 中文实践教程</a><span class="section-mark">CHAPTER 02 / 28</span></header>
+<div class="reading-layout">
+<nav class="sidebar" aria-label="课程章节"><details class="chapter-drawer" open><summary>全部 28 章</summary><ol><li><a href="01.html">01 · 什么是操作系统</a></li>
+<li><a href="02.html" aria-current="page">02 · 硬件架构基础</a></li>
+<li><a href="03.html">03 · OS内核架构</a></li>
+<li><a href="04.html">04 · 用户态与内核态</a></li>
+<li><a href="05.html">05 · 引导与初始化</a></li>
+<li><a href="06.html">06 · OS内核源码初探</a></li>
+<li><a href="07.html">07 · OS实验环境搭建</a></li>
+<li><a href="08.html">08 · 进程管理</a></li>
+<li><a href="09.html">09 · 线程与协程</a></li>
+<li><a href="10.html">10 · CPU调度</a></li>
+<li><a href="11.html">11 · 同步与互斥</a></li>
+<li><a href="12.html">12 · 虚拟内存</a></li>
+<li><a href="13.html">13 · 物理内存管理</a></li>
+<li><a href="14.html">14 · 文件系统</a></li>
+<li><a href="15.html">15 · I/O模型与io_uring</a></li>
+<li><a href="16.html">16 · 设备驱动</a></li>
+<li><a href="17.html">17 · 中断与异常处理</a></li>
+<li><a href="18.html">18 · 时间管理</a></li>
+<li><a href="19.html">19 · 网络协议栈</a></li>
+<li><a href="20.html">20 · eBPF可观测性</a></li>
+<li><a href="21.html">21 · 虚拟化技术</a></li>
+<li><a href="22.html">22 · 容器与命名空间</a></li>
+<li><a href="23.html">23 · 内核调试技术</a></li>
+<li><a href="24.html">24 · 性能分析与调优</a></li>
+<li><a href="25.html">25 · 动手写一个小OS</a></li>
+<li><a href="26.html">26 · 现代OS前沿趋势</a></li>
+<li><a href="27.html">27 · OS内核设计决策</a></li>
+<li><a href="28.html">28 · 综合项目</a></li></ol></details></nav>
+<main id="content" class="content-column"><article class="chapter-article" aria-labelledby="chapter-title">
+<header class="article-header"><p class="kicker">OPERATING SYSTEMS · CHAPTER 02</p><h1 id="chapter-title">第 2 章 · 硬件架构基础</h1><p class="article-dek">CPU、内存与外设为何不能只用一种速度模型来理解？</p></header>
+<section class="learning-map" aria-labelledby="learning-map-title"><h2 id="learning-map-title">先建立问题地图</h2><p>指令集、存储层级与中断机制共同决定程序可见的执行成本和响应路径。</p><div class="concept-steps" role="list"><div role="listitem"><strong>起点</strong><span>冯·诺依曼架构</span></div><div role="listitem"><strong>机制</strong><span>x86/ARM/RISC-V</span></div><div role="listitem"><strong>拓展</strong><span>存储金字塔 / 中断与异常</span></div></div><p class="map-note">这是帮助建立概念依赖的阅读地图，不表示内核内部的实际执行时序。</p></section>
 
-        <h2>第2章 硬件架构基础</h2>
-
-        <p>大家好，我是你们的讲师。上一章我们从宏观视角认识了操作系统——它扮演着管家、保安、翻译官和调度员的角色。但有一个问题我们必须回答：操作系统到底在什么样的"土壤"上生长？答案是——计算机硬件架构。</p>
+<nav class="page-toc" aria-label="本章小节"><details open><summary>本章目录 · 5 个部分</summary><ol><li><a href="#section-01">一、冯·诺依曼架构与哈佛架构</a></li>
+<li><a href="#section-02">二、x86/ARM/RISC-V三大指令集对比</a></li>
+<li><a href="#section-03">三、存储金字塔</a></li>
+<li><a href="#section-04">四、中断与异常</a></li>
+<li><a href="#section-05">五、结语与下一章预告</a></li></ol></details></nav>
+<div class="article-body">
+<p>大家好，我是你们的讲师。上一章我们从宏观视角认识了操作系统——它扮演着管家、保安、翻译官和调度员的角色。但有一个问题我们必须回答：操作系统到底在什么样的"土壤"上生长？答案是——计算机硬件架构。</p>
 
         <p>很多人学操作系统时觉得"飘"，一提到进程调度、内存管理就抽象得不行。原因很简单：你对脚下这块硬件的地基不够了解。操作系统不是悬浮在空中的软件逻辑，它每一条指令都在真实的CPU上执行，每一个内存地址都对应着物理介质上的存储单元。不理解硬件，你学的OS就是空中楼阁。</p>
 
@@ -54,7 +58,7 @@
 
         <p>先讲一个让我印象深刻的踩坑经历。刚工作时我接手一个嵌入式项目，需要在某个ARM Cortex-M3芯片上跑一个轻量级RTOS。硬件组的同事告诉我内存够用——芯片有256KB的SRAM。我心想256KB跑个RTOS绰绰有余啊，埋头就写代码。结果程序一跑起来就死机，调试了一整天，最后发现是"哈佛架构"的坑：这个ARM芯片虽然内存地址统一，但指令总线和数据总线是物理分开的。我的代码里混杂了大量自修改代码和inline常数表，导致指令Cache和Data Cache频繁冲突，系统直接卡死。那次以后我深刻明白：不了解硬件架构细节，写出来的OS代码随时可能"暴雷"。</p>
 
-        <h2>一、冯·诺依曼架构与哈佛架构</h2>
+        <h2 id="section-01">一、冯·诺依曼架构与哈佛架构</h2>
 
         <p>计算机体系结构有两个最经典的鼻祖方案——冯·诺依曼架构（Von Neumann Architecture）和哈佛架构（Harvard Architecture）。它们的核心区别在于指令和数据是否共享同一条物理通路。</p>
 
@@ -77,7 +81,7 @@
             <p><strong>现代融合</strong>：今天大多数高性能CPU其实是"改良型哈佛"——内部有独立L1 I-Cache和D-Cache，但统一的虚拟地址空间让软件感觉不到隔离。这是硬件细节被OS抽象化的一个绝佳例子。</p>
         </div>
 
-        <h2>二、x86/ARM/RISC-V三大指令集对比</h2>
+        <h2 id="section-02">二、x86/ARM/RISC-V三大指令集对比</h2>
 
         <p>指令集架构（ISA）是CPU和软件之间的"合同"。你写的每行高级代码最终都会变成一条条指令——而ISA定义了这些指令的格式、功能和行为。目前最主流的三大ISA是x86、ARM和RISC-V，它们的背后是CISC与RISC两种设计哲学的世纪之争。</p>
 
@@ -103,7 +107,7 @@
             <p><strong>关键洞察</strong>：CISC vs RISC的争论在今天已经不像30年前那样水火不容。现代x86处理器内部实际上会把CISC指令"翻译"成微操作（micro-ops），然后在内部用RISC风格的多发射流水线执行。ARM的ARMv8/v9架构在保持RISC核心的同时，也增加了越来越丰富的指令扩展。最终是"功耗、性能、面积"三者的工程权衡。</p>
         </div>
 
-        <h2>三、存储金字塔</h2>
+        <h2 id="section-03">三、存储金字塔</h2>
 
         <p>如果说CPU是计算机的"大脑"，那么存储系统就是它的"记忆"。但计算机的记忆有一个残酷的现实：越快就越贵，越便宜就越慢。存储金字塔就是对这个现实的精确描述。操作系统之所以存在的一个核心原因就是——它必须在这个金字塔的不同层级之间高效地搬运数据，让"大脑"永远不会因为等"记忆"而发愣。</p>
 
@@ -130,7 +134,7 @@ HDD                  1–10 TB           ~10 ms (10⁷ ns)      ~150 MB/s</code>
         <h3>3. 局部性原理</h3>
         <p>Cache能有效工作的前提是程序的"局部性"（Locality）：时间局部性——如果你访问了一个内存地址，不久后很可能再次访问它（想想循环里的计数器）；空间局部性——如果你访问了一个地址，邻近地址很可能也会被访问（想想数组的遍历）。操作系统和编译器一起努力利用局部性原理：OS通过大页面映射和预取机制，编译器通过循环分块（Loop Tiling）等优化，最大化Cache命中率。</p>
 
-        <h2>四、中断与异常</h2>
+        <h2 id="section-04">四、中断与异常</h2>
 
         <p>中断机制是硬件与操作系统沟通的"门铃"。没有中断，CPU必须不断轮询外设——那简直是对CPU算力的犯罪。操作系统的整个I/O模型都建立在中断基础之上。</p>
 
@@ -155,19 +159,18 @@ HDD                  1–10 TB           ~10 ms (10⁷ ns)      ~150 MB/s</code>
             <p><strong>理解框架</strong>：中断是"CPU被动的"，异常是"CPU主动报错"，陷阱是"程序主动求服务"。操作系统在这三种机制上构建了所有核心功能：设备驱动靠中断，虚拟内存靠缺页异常，系统调用靠陷阱。记住这个三分法，你后面学设备驱动、内存管理、系统调用时就能串起来了。</p>
         </div>
 
-        <h2>五、结语与下一章预告</h2>
+        <h2 id="section-05">五、结语与下一章预告</h2>
 
         <p>本章我们深度解析了硬件架构的四块基石：冯·诺依曼与哈佛架构的根本区别在于指令和数据通路是否分离；x86/ARM/RISC-V三大ISA体现了CISC与RISC的设计博弈从"阵营对立"走向"工程融合"；存储金字塔揭示了一个残酷的数量级事实——从寄存器到HDD延迟差了十亿倍；中断和异常机制则是OS接管硬件的"入口"，所有内核功能都建立在这上面。</p>
 
         <p>有了硬件架构的底子，下一章我们将正式进入操作系统的"核心地带"——OS内核架构。我们将讨论一个经典问题：宏内核、微内核和混合内核到底谁更好？Linux为什么选择了宏内核？Windows和macOS为什么走了不同的路？这些东西对你理解操作系统的设计哲学至关重要。</p>
-
-        <div class="footer-nav">
-            <a href="01.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="03.html">下一章 →</a>
-        </div>
-    </div>
 </div>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>解释一次缓存未命中与一次外部中断有何不同。</p><details><summary>查看思考提示</summary><p>先分清主动访问数据和被动响应设备事件。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<nav class="footer-nav" aria-label="章节前后导航"><a href="01.html">← 上一章 · 什么是操作系统</a><a href="index.html">返回课程目录</a><a href="03.html">下一章 · OS内核架构 →</a></nav>
+</article></main>
+</div>
+<footer class="site-footer">操作系统中文实践教程 · <a href="docs/guides/learning-path.md">学习路线</a> · <a href="docs/guides/content-guide.md">内容规范</a></footer>
 </div>
 </body>
 </html>

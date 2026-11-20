@@ -1,58 +1,61 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第9章 线程与协程</title>
-    <link rel="stylesheet" href="theme.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="线程通常由内核调度，协程由语言运行时或用户态调度器组织执行。">
+  <title>第 9 章 · 线程与协程 | 操作系统中文实践教程</title>
+  <link rel="stylesheet" href="assets/css/site.css">
 </head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>🖥️ 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 什么是操作系统</a></li>
-            <li><a href="02.html">第2章 硬件架构基础</a></li>
-            <li><a href="03.html">第3章 OS内核架构</a></li>
-            <li><a href="04.html">第4章 用户态与内核态</a></li>
-            <li><a href="05.html">第5章 引导与初始化</a></li>
-            <li><a href="06.html">第6章 OS内核源码初探</a></li>
-            <li><a href="07.html">第7章 OS实验环境搭建</a></li>
-            <li><a href="08.html">第8章 进程管理</a></li>
-            <li><a href="09.html" class="active">第9章 线程与协程</a></li>
-            <li><a href="10.html">第10章 CPU调度</a></li>
-            <li><a href="11.html">第11章 同步与互斥</a></li>
-            <li><a href="12.html">第12章 虚拟内存</a></li>
-            <li><a href="13.html">第13章 物理内存管理</a></li>
-            <li><a href="14.html">第14章 文件系统</a></li>
-            <li><a href="15.html">第15章 I/O模型与io_uring</a></li>
-            <li><a href="16.html">第16章 设备驱动</a></li>
-            <li><a href="17.html">第17章 中断与异常处理</a></li>
-            <li><a href="18.html">第18章 时间管理</a></li>
-            <li><a href="19.html">第19章 网络协议栈</a></li>
-            <li><a href="20.html">第20章 eBPF可观测性</a></li>
-            <li><a href="21.html">第21章 虚拟化技术</a></li>
-            <li><a href="22.html">第22章 容器与命名空间</a></li>
-            <li><a href="23.html">第23章 内核调试技术</a></li>
-            <li><a href="24.html">第24章 性能分析与调优</a></li>
-            <li><a href="25.html">第25章 动手写一个小OS</a></li>
-            <li><a href="26.html">第26章 现代OS前沿趋势</a></li>
-            <li><a href="27.html">第27章 OS内核设计决策</a></li>
-            <li><a href="28.html">第28章 综合项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
+<body class="chapter-page">
+<a class="skip-link" href="#content">跳转至正文</a>
+<div class="site-shell">
+<header class="site-masthead"><a href="index.html">操作系统 · 中文实践教程</a><span class="section-mark">CHAPTER 09 / 28</span></header>
+<div class="reading-layout">
+<nav class="sidebar" aria-label="课程章节"><details class="chapter-drawer" open><summary>全部 28 章</summary><ol><li><a href="01.html">01 · 什么是操作系统</a></li>
+<li><a href="02.html">02 · 硬件架构基础</a></li>
+<li><a href="03.html">03 · OS内核架构</a></li>
+<li><a href="04.html">04 · 用户态与内核态</a></li>
+<li><a href="05.html">05 · 引导与初始化</a></li>
+<li><a href="06.html">06 · OS内核源码初探</a></li>
+<li><a href="07.html">07 · OS实验环境搭建</a></li>
+<li><a href="08.html">08 · 进程管理</a></li>
+<li><a href="09.html" aria-current="page">09 · 线程与协程</a></li>
+<li><a href="10.html">10 · CPU调度</a></li>
+<li><a href="11.html">11 · 同步与互斥</a></li>
+<li><a href="12.html">12 · 虚拟内存</a></li>
+<li><a href="13.html">13 · 物理内存管理</a></li>
+<li><a href="14.html">14 · 文件系统</a></li>
+<li><a href="15.html">15 · I/O模型与io_uring</a></li>
+<li><a href="16.html">16 · 设备驱动</a></li>
+<li><a href="17.html">17 · 中断与异常处理</a></li>
+<li><a href="18.html">18 · 时间管理</a></li>
+<li><a href="19.html">19 · 网络协议栈</a></li>
+<li><a href="20.html">20 · eBPF可观测性</a></li>
+<li><a href="21.html">21 · 虚拟化技术</a></li>
+<li><a href="22.html">22 · 容器与命名空间</a></li>
+<li><a href="23.html">23 · 内核调试技术</a></li>
+<li><a href="24.html">24 · 性能分析与调优</a></li>
+<li><a href="25.html">25 · 动手写一个小OS</a></li>
+<li><a href="26.html">26 · 现代OS前沿趋势</a></li>
+<li><a href="27.html">27 · OS内核设计决策</a></li>
+<li><a href="28.html">28 · 综合项目</a></li></ol></details></nav>
+<main id="content" class="content-column"><article class="chapter-article" aria-labelledby="chapter-title">
+<header class="article-header"><p class="kicker">OPERATING SYSTEMS · CHAPTER 09</p><h1 id="chapter-title">第 9 章 · 线程与协程</h1><p class="article-dek">线程共享地址空间，协程又把调度交给了谁？</p></header>
+<section class="learning-map" aria-labelledby="learning-map-title"><h2 id="learning-map-title">先建立问题地图</h2><p>线程通常由内核调度，协程由语言运行时或用户态调度器组织执行。</p><div class="concept-steps" role="list"><div role="listitem"><strong>起点</strong><span>内核线程</span></div><div role="listitem"><strong>机制</strong><span>1:1 vs M:N模型</span></div><div role="listitem"><strong>拓展</strong><span>clone系统调用 / 协程与async/await</span></div></div><p class="map-note">这是帮助建立概念依赖的阅读地图，不表示内核内部的实际执行时序。</p></section>
 
-        <h2>第9章 线程与协程</h2>
-
-        <p>大家好，我是你们的讲师。上一章我们讲了进程——操作系统中资源分配的基本单位。但如果每次想并发执行多个任务都创建一个新进程，你会发现开销太大了：每个进程有自己的地址空间、文件描述符表、信号处理函数……光是复制这些数据结构就够CPU忙活一阵子。更关键的是，多个进程之间共享数据非常麻烦——必须用管道、消息队列、共享内存这些IPC机制，又慢又复杂。</p>
+<nav class="page-toc" aria-label="本章小节"><details open><summary>本章目录 · 4 个部分</summary><ol><li><a href="#section-01">线程：CPU调度的最小单位</a></li>
+<li><a href="#section-02">Linux中线程就是轻量级进程</a></li>
+<li><a href="#section-03">1:1 vs M:N 线程模型</a></li>
+<li><a href="#section-04">协程的本质</a></li></ol></details></nav>
+<div class="article-body">
+<p>大家好，我是你们的讲师。上一章我们讲了进程——操作系统中资源分配的基本单位。但如果每次想并发执行多个任务都创建一个新进程，你会发现开销太大了：每个进程有自己的地址空间、文件描述符表、信号处理函数……光是复制这些数据结构就够CPU忙活一阵子。更关键的是，多个进程之间共享数据非常麻烦——必须用管道、消息队列、共享内存这些IPC机制，又慢又复杂。</p>
 
         <p>那有没有一种更轻量的并发单位？有的，这就是线程（Thread）。线程和进程共享地址空间，但各自有独立的程序计数器、栈和寄存器上下文。切换线程比切换进程快得多。而协程（Coroutine）则更进一步，把调度权从内核态拿到了用户态，实现了微秒级别的切换开销。这章我们沿着"越来越轻"的路线，把这三者的区别和联系讲透。</p>
 
         <p>先讲一个我遇到的性能案例。几年前我优化一个游戏服务器的网络模块，当时每个连接用一个pthread处理。服务器连接数从1000涨到5000时，延迟突然飙升了10倍。用perf分析后发现，超过一半的CPU时间花在了内核态的线程切换上——频繁的上下文切换导致cache疯狂miss。后来改成了基于epoll的事件驱动+有限线程池，同样处理5000连接，CPU占用反而下降了70%。这个教训让我深刻理解了"线程不是免费的"。</p>
 
-        <h2>线程：CPU调度的最小单位</h2>
+        <h2 id="section-01">线程：CPU调度的最小单位</h2>
 
         <p>教科书上的经典定义：进程是资源分配的基本单位，线程是CPU调度的基本单位。这意味着什么？</p>
 
@@ -74,7 +77,7 @@
             <p><strong>关键认知</strong>：从内核的视角来看，它根本不知道"线程"这个概念。内核眼里只有"可调度的实体"——其实就是task_struct。但在Linux中，线程和进程的本质区别在于：多个线程之间共享了哪些CLONE_*标志。这一点我们马上细讲。</p>
         </div>
 
-        <h2>Linux中线程就是轻量级进程</h2>
+        <h2 id="section-02">Linux中线程就是轻量级进程</h2>
 
         <p>在Linux的哲学里，没有"线程"和"进程"的严格区分——一切都是"任务"（task）。创建所谓的"线程"时，用的系统调用和创建进程一样都是 <code>clone()</code>，只不过传入了不同的标志位，决定了父子之间共享哪些资源。</p>
 
@@ -109,7 +112,7 @@ clone(SIGCHLD, 0);
             <p><strong>底层视角</strong>：在shell里执行 <code>ps -eLf</code>，你会看到每个线程都有一条记录，但同一进程的线程有相同的PID（tgid）和不同的LWP（Lightweight Process ID）。从内核角度看，每个LWP就是一个独立的task_struct——差别在于它们之间的task_struct共享了哪些资源指针。</p>
         </div>
 
-        <h2>1:1 vs M:N 线程模型</h2>
+        <h2 id="section-03">1:1 vs M:N 线程模型</h2>
 
         <p>我们刚才说了，Linux内核里每个线程（轻量级进程）都是一个独立的调度实体（task_struct）。这意味着用户态创建的一个pthread，在内核中就对应一个可被独立调度的实体——这就是1:1线程模型。</p>
 
@@ -140,7 +143,7 @@ clone(SIGCHLD, 0);
             <p><strong>性能对比</strong>：创建一个pthread大约需要微秒级别的时间和数KB的栈空间（可设置最小栈）。而创建一个Goroutine的开销仅为约4KB的栈和不到百纳秒的创建时间。这也是为什么Go可以轻松启动数十万个Goroutine，而同等数量的pthread会导致系统资源耗尽。</p>
         </div>
 
-        <h2>协程的本质</h2>
+        <h2 id="section-04">协程的本质</h2>
 
         <p>讲完了线程，我们来聊聊协程（Coroutine）。其实协程的思路比线程更古老——它最早可以追溯到1958年Melvin Conway的论文。协程的核心思想就是：让函数可以暂停执行，在某个时刻恢复执行。</p>
 
@@ -197,14 +200,13 @@ class fetch_data__coroutine:
         <p>回顾一下这条"轻量化"的演进路线：进程→线程→协程。进程提供最完善的隔离但切换最重，线程共享地址空间减轻了切换代价，协程则彻底把调度放到了用户态实现了微秒级切换。没有哪种方案是压倒性最优的——隔离、开销、复杂度之间的权衡，取决于你的具体应用场景。</p>
 
         <p>下一章，我们把视角从"谁来执行"转向"谁决定谁先执行"——CPU调度。当一个系统里有几十个可运行的线程时，操作系统如何决定下一次该运行哪一个？公平、高效、低延迟，这三者怎么平衡？Linux的调度器从O(n)到O(1)到CFS再到EEVDF，每一次变革都带来了什么？下一章见。</p>
-
-        <div class="footer-nav">
-            <a href="08.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="10.html">下一章 →</a>
-        </div>
-    </div>
 </div>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>比较多线程与协程在一次阻塞操作中的行为。</p><details><summary>查看思考提示</summary><p>先明确阻塞调用是否阻塞了整个执行线程。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<nav class="footer-nav" aria-label="章节前后导航"><a href="08.html">← 上一章 · 进程管理</a><a href="index.html">返回课程目录</a><a href="10.html">下一章 · CPU调度 →</a></nav>
+</article></main>
+</div>
+<footer class="site-footer">操作系统中文实践教程 · <a href="docs/guides/learning-path.md">学习路线</a> · <a href="docs/guides/content-guide.md">内容规范</a></footer>
 </div>
 </body>
 </html>

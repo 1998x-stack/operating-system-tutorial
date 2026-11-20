@@ -1,58 +1,62 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第20章 eBPF可观测性</title>
-    <link rel="stylesheet" href="theme.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="eBPF 为受控的内核观测提供可编程事件处理与数据汇总能力。">
+  <title>第 20 章 · eBPF可观测性 | 操作系统中文实践教程</title>
+  <link rel="stylesheet" href="assets/css/site.css">
 </head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>🖥️ 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 什么是操作系统</a></li>
-            <li><a href="02.html">第2章 硬件架构基础</a></li>
-            <li><a href="03.html">第3章 OS内核架构</a></li>
-            <li><a href="04.html">第4章 用户态与内核态</a></li>
-            <li><a href="05.html">第5章 引导与初始化</a></li>
-            <li><a href="06.html">第6章 OS内核源码初探</a></li>
-            <li><a href="07.html">第7章 OS实验环境搭建</a></li>
-            <li><a href="08.html">第8章 进程管理</a></li>
-            <li><a href="09.html">第9章 线程与协程</a></li>
-            <li><a href="10.html">第10章 CPU调度</a></li>
-            <li><a href="11.html">第11章 同步与互斥</a></li>
-            <li><a href="12.html">第12章 虚拟内存</a></li>
-            <li><a href="13.html">第13章 物理内存管理</a></li>
-            <li><a href="14.html">第14章 文件系统</a></li>
-            <li><a href="15.html">第15章 I/O模型与io_uring</a></li>
-            <li><a href="16.html">第16章 设备驱动</a></li>
-            <li><a href="17.html">第17章 中断与异常处理</a></li>
-            <li><a href="18.html">第18章 时间管理</a></li>
-            <li><a href="19.html">第19章 网络协议栈</a></li>
-            <li><a href="20.html" class="active">第20章 eBPF可观测性</a></li>
-            <li><a href="21.html">第21章 虚拟化技术</a></li>
-            <li><a href="22.html">第22章 容器与命名空间</a></li>
-            <li><a href="23.html">第23章 内核调试技术</a></li>
-            <li><a href="24.html">第24章 性能分析与调优</a></li>
-            <li><a href="25.html">第25章 动手写一个小OS</a></li>
-            <li><a href="26.html">第26章 现代OS前沿趋势</a></li>
-            <li><a href="27.html">第27章 OS内核设计决策</a></li>
-            <li><a href="28.html">第28章 综合项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
+<body class="chapter-page">
+<a class="skip-link" href="#content">跳转至正文</a>
+<div class="site-shell">
+<header class="site-masthead"><a href="index.html">操作系统 · 中文实践教程</a><span class="section-mark">CHAPTER 20 / 28</span></header>
+<div class="reading-layout">
+<nav class="sidebar" aria-label="课程章节"><details class="chapter-drawer" open><summary>全部 28 章</summary><ol><li><a href="01.html">01 · 什么是操作系统</a></li>
+<li><a href="02.html">02 · 硬件架构基础</a></li>
+<li><a href="03.html">03 · OS内核架构</a></li>
+<li><a href="04.html">04 · 用户态与内核态</a></li>
+<li><a href="05.html">05 · 引导与初始化</a></li>
+<li><a href="06.html">06 · OS内核源码初探</a></li>
+<li><a href="07.html">07 · OS实验环境搭建</a></li>
+<li><a href="08.html">08 · 进程管理</a></li>
+<li><a href="09.html">09 · 线程与协程</a></li>
+<li><a href="10.html">10 · CPU调度</a></li>
+<li><a href="11.html">11 · 同步与互斥</a></li>
+<li><a href="12.html">12 · 虚拟内存</a></li>
+<li><a href="13.html">13 · 物理内存管理</a></li>
+<li><a href="14.html">14 · 文件系统</a></li>
+<li><a href="15.html">15 · I/O模型与io_uring</a></li>
+<li><a href="16.html">16 · 设备驱动</a></li>
+<li><a href="17.html">17 · 中断与异常处理</a></li>
+<li><a href="18.html">18 · 时间管理</a></li>
+<li><a href="19.html">19 · 网络协议栈</a></li>
+<li><a href="20.html" aria-current="page">20 · eBPF可观测性</a></li>
+<li><a href="21.html">21 · 虚拟化技术</a></li>
+<li><a href="22.html">22 · 容器与命名空间</a></li>
+<li><a href="23.html">23 · 内核调试技术</a></li>
+<li><a href="24.html">24 · 性能分析与调优</a></li>
+<li><a href="25.html">25 · 动手写一个小OS</a></li>
+<li><a href="26.html">26 · 现代OS前沿趋势</a></li>
+<li><a href="27.html">27 · OS内核设计决策</a></li>
+<li><a href="28.html">28 · 综合项目</a></li></ol></details></nav>
+<main id="content" class="content-column"><article class="chapter-article" aria-labelledby="chapter-title">
+<header class="article-header"><p class="kicker">OPERATING SYSTEMS · CHAPTER 20</p><h1 id="chapter-title">第 20 章 · eBPF可观测性</h1><p class="article-dek">不改动内核源码，怎样观察系统内部事件？</p></header>
+<section class="learning-map" aria-labelledby="learning-map-title"><h2 id="learning-map-title">先建立问题地图</h2><p>eBPF 为受控的内核观测提供可编程事件处理与数据汇总能力。</p><div class="concept-steps" role="list"><div role="listitem"><strong>起点</strong><span>eBPF架构全景</span></div><div role="listitem"><strong>机制</strong><span>bpftrace单行追踪</span></div><div role="listitem"><strong>拓展</strong><span>kprobe vs tracepoint / BPF Map类型</span></div></div><p class="map-note">这是帮助建立概念依赖的阅读地图，不表示内核内部的实际执行时序。</p></section>
 
-        <h2>第20章 eBPF可观测性</h2>
-
-        <p>大家好，我是你们的讲师。假设你有一个生产环境的问题：SQL查询突然变慢了，但数据库本身一切正常——不知道哪里出了问题。你想看看内核里究竟发生了什么？磁盘I/O排队了？CPU调度延迟了？网卡丢包了？传统的做法是什么？改内核源码加printk再编译——这等于让心脏科医生给病人做开胸手术。eBPF（extended Berkeley Packet Filter）彻底改变了这一切。</p>
+<nav class="page-toc" aria-label="本章小节"><details open><summary>本章目录 · 5 个部分</summary><ol><li><a href="#section-01">eBPF架构全景</a></li>
+<li><a href="#section-02">bpftrace一行命令追踪内核</a></li>
+<li><a href="#section-03">kprobe动态插桩 vs tracepoint静态埋点</a></li>
+<li><a href="#section-04">eBPF程序类型与Map</a></li>
+<li><a href="#section-05">实战：写一个eBPF程序</a></li></ol></details></nav>
+<div class="article-body">
+<p>大家好，我是你们的讲师。假设你有一个生产环境的问题：SQL查询突然变慢了，但数据库本身一切正常——不知道哪里出了问题。你想看看内核里究竟发生了什么？磁盘I/O排队了？CPU调度延迟了？网卡丢包了？传统的做法是什么？改内核源码加printk再编译——这等于让心脏科医生给病人做开胸手术。eBPF（extended Berkeley Packet Filter）彻底改变了这一切。</p>
 
         <p>eBPF被誉为"Linux内核的超级能力"。它让你能在不修改内核代码、不重启机器的前提下，安全地在内核中动态注入观测代码。从网络监控、安全审计到性能诊断、调度器热替换，eBPF的应用边界一直在扩大。可以说，不懂eBPF，你就错过了过去十年Linux内核领域最重要的一波创新浪潮。</p>
 
         <p>讲个我去年的亲身经历。某微服务网关延迟抖动严重，最高P999延迟冲到500ms。用 <code>perf</code> 和火焰图看不出明显异常，因为问题是间歇性的。后来写了一个20行的bpftrace脚本挂上 <code>kprobe:finish_task_switch</code>，统计每次上下文切换的耗时——发现有一个周期性任务每隔15秒抢占了网卡中断绑定的核心，导致网络延迟抖动。找到root cause后把该任务迁移到另一个核心，抖动消失。整个过程不到一小时，没有改一行内核代码。</p>
 
-        <h2>eBPF架构全景</h2>
+        <h2 id="section-01">eBPF架构全景</h2>
 
         <p>eBPF不是一个单一的功能点，而是一整套内核可编程架构。理解它的完整生命周期至关重要。</p>
 
@@ -92,7 +96,7 @@ $ bpftool map list                           # 列出BPF Map
 $ bpftool prog dump xlated id 42            # 查看BPF程序的反汇编代码
 $ bpftool trace                              # 实时查看trace_pipe输出</code></pre>
 
-        <h2>bpftrace一行命令追踪内核</h2>
+        <h2 id="section-02">bpftrace一行命令追踪内核</h2>
 
         <p>bpftrace是一个基于eBPF的高级前端工具，语法类似awk。它的核心卖点就是——你不需要懂eBPF内部实现，用一行命令就能完成复杂的动态追踪任务。</p>
 
@@ -147,7 +151,7 @@ Attaching 2 probes...
             <tr><td>系统调用延迟</td><td><code>rawtracepoint:sys_enter / sys_exit</code></td><td>系统调用入口/出口</td></tr>
         </table>
 
-        <h2>kprobe动态插桩 vs tracepoint静态埋点</h2>
+        <h2 id="section-03">kprobe动态插桩 vs tracepoint静态埋点</h2>
 
         <p>在eBPF的世界里，你挂载观测代码的位置有两种主要选择：kprobe和tracepoint。理解它们的能力差异和适用场景，是写出可靠eBPF程序的前提。</p>
 
@@ -165,7 +169,7 @@ Attaching 2 probes...
             <p><strong>选择策略</strong>：能用tracepoint先用tracepoint——稳定性优先。如果tracepoint覆盖不了你的需求（比如你想观测的正好是个没有tracepoint的内核函数），再降级到kprobe。做生产环境长期监控一定要用tracepoint，调试排查短期任务可以用kprobe。对于生产环境，还要注意kprobe可能被内核TOOLS/CFI机制拒绝。</p>
         </div>
 
-        <h2>eBPF程序类型与Map</h2>
+        <h2 id="section-04">eBPF程序类型与Map</h2>
 
         <p>eBPF不仅仅是观测工具。不同的BPF程序类型决定了它能挂载到系统的哪个位置、做什么事。</p>
 
@@ -213,7 +217,7 @@ int trace_sched(struct pt_regs *ctx) {
     return 0;
 }</code></pre>
 
-        <h2>实战：写一个eBPF程序</h2>
+        <h2 id="section-05">实战：写一个eBPF程序</h2>
 
         <p>理论讲了一堆，我们来动真格的。下面分别用BCC、bpftrace和libbpf三种方式实现同一个功能：统计系统调用延迟。对比这三种方式的差异，你就知道在生产环境应该选哪种。</p>
 
@@ -307,14 +311,13 @@ int sys_exit(struct bpf_raw_tracepoint_args *ctx) {
         <p>eBPF是操作系统可观测性领域的一次革命。从架构上看，它提供了用户态安全挂载代码到内核事件路径的能力；从工具链看，bpftrace的一行命令让动态追踪变得触手可及；从工程实践看，kprobe（灵活）和tracepoint（稳定）互为补充，适用于不同场景。学完本章，你应该能在自己的Linux机器上跑起第一个bpftrace脚本了。</p>
 
         <p>下一章我们将从"观测内核"转向"虚拟化内核"。如果说eBPF让我们看到了内核的内部运行情况，那么虚拟化技术则让我们能在一台物理机上运行多个独立的内核。KVM、QEMU、virtio——这些技术让Linux把自己变成了Hypervisor。准备好了吗？</p>
-
-        <div class="footer-nav">
-            <a href="19.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="21.html">下一章 →</a>
-        </div>
-    </div>
 </div>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>选择一个 tracepoint 并说明你希望观测的字段与开销。</p><details><summary>查看思考提示</summary><p>区分事件采样、数据汇总与结论推断。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<nav class="footer-nav" aria-label="章节前后导航"><a href="19.html">← 上一章 · 网络协议栈</a><a href="index.html">返回课程目录</a><a href="21.html">下一章 · 虚拟化技术 →</a></nav>
+</article></main>
+</div>
+<footer class="site-footer">操作系统中文实践教程 · <a href="docs/guides/learning-path.md">学习路线</a> · <a href="docs/guides/content-guide.md">内容规范</a></footer>
 </div>
 </body>
 </html>

@@ -1,52 +1,56 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第3章 OS内核架构</title>
-    <link rel="stylesheet" href="theme.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="内核架构在地址空间隔离、通信成本、故障边界与工程复杂度之间权衡。">
+  <title>第 3 章 · OS内核架构 | 操作系统中文实践教程</title>
+  <link rel="stylesheet" href="assets/css/site.css">
 </head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>🖥️ 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 什么是操作系统</a></li>
-            <li><a href="02.html">第2章 硬件架构基础</a></li>
-            <li><a href="03.html" class="active">第3章 OS内核架构</a></li>
-            <li><a href="04.html">第4章 用户态与内核态</a></li>
-            <li><a href="05.html">第5章 引导与初始化</a></li>
-            <li><a href="06.html">第6章 OS内核源码初探</a></li>
-            <li><a href="07.html">第7章 OS实验环境搭建</a></li>
-            <li><a href="08.html">第8章 进程管理</a></li>
-            <li><a href="09.html">第9章 线程与协程</a></li>
-            <li><a href="10.html">第10章 CPU调度</a></li>
-            <li><a href="11.html">第11章 同步与互斥</a></li>
-            <li><a href="12.html">第12章 虚拟内存</a></li>
-            <li><a href="13.html">第13章 物理内存管理</a></li>
-            <li><a href="14.html">第14章 文件系统</a></li>
-            <li><a href="15.html">第15章 I/O模型与io_uring</a></li>
-            <li><a href="16.html">第16章 设备驱动</a></li>
-            <li><a href="17.html">第17章 中断与异常处理</a></li>
-            <li><a href="18.html">第18章 时间管理</a></li>
-            <li><a href="19.html">第19章 网络协议栈</a></li>
-            <li><a href="20.html">第20章 eBPF可观测性</a></li>
-            <li><a href="21.html">第21章 虚拟化技术</a></li>
-            <li><a href="22.html">第22章 容器与命名空间</a></li>
-            <li><a href="23.html">第23章 内核调试技术</a></li>
-            <li><a href="24.html">第24章 性能分析与调优</a></li>
-            <li><a href="25.html">第25章 动手写一个小OS</a></li>
-            <li><a href="26.html">第26章 现代OS前沿趋势</a></li>
-            <li><a href="27.html">第27章 OS内核设计决策</a></li>
-            <li><a href="28.html">第28章 综合项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
+<body class="chapter-page">
+<a class="skip-link" href="#content">跳转至正文</a>
+<div class="site-shell">
+<header class="site-masthead"><a href="index.html">操作系统 · 中文实践教程</a><span class="section-mark">CHAPTER 03 / 28</span></header>
+<div class="reading-layout">
+<nav class="sidebar" aria-label="课程章节"><details class="chapter-drawer" open><summary>全部 28 章</summary><ol><li><a href="01.html">01 · 什么是操作系统</a></li>
+<li><a href="02.html">02 · 硬件架构基础</a></li>
+<li><a href="03.html" aria-current="page">03 · OS内核架构</a></li>
+<li><a href="04.html">04 · 用户态与内核态</a></li>
+<li><a href="05.html">05 · 引导与初始化</a></li>
+<li><a href="06.html">06 · OS内核源码初探</a></li>
+<li><a href="07.html">07 · OS实验环境搭建</a></li>
+<li><a href="08.html">08 · 进程管理</a></li>
+<li><a href="09.html">09 · 线程与协程</a></li>
+<li><a href="10.html">10 · CPU调度</a></li>
+<li><a href="11.html">11 · 同步与互斥</a></li>
+<li><a href="12.html">12 · 虚拟内存</a></li>
+<li><a href="13.html">13 · 物理内存管理</a></li>
+<li><a href="14.html">14 · 文件系统</a></li>
+<li><a href="15.html">15 · I/O模型与io_uring</a></li>
+<li><a href="16.html">16 · 设备驱动</a></li>
+<li><a href="17.html">17 · 中断与异常处理</a></li>
+<li><a href="18.html">18 · 时间管理</a></li>
+<li><a href="19.html">19 · 网络协议栈</a></li>
+<li><a href="20.html">20 · eBPF可观测性</a></li>
+<li><a href="21.html">21 · 虚拟化技术</a></li>
+<li><a href="22.html">22 · 容器与命名空间</a></li>
+<li><a href="23.html">23 · 内核调试技术</a></li>
+<li><a href="24.html">24 · 性能分析与调优</a></li>
+<li><a href="25.html">25 · 动手写一个小OS</a></li>
+<li><a href="26.html">26 · 现代OS前沿趋势</a></li>
+<li><a href="27.html">27 · OS内核设计决策</a></li>
+<li><a href="28.html">28 · 综合项目</a></li></ol></details></nav>
+<main id="content" class="content-column"><article class="chapter-article" aria-labelledby="chapter-title">
+<header class="article-header"><p class="kicker">OPERATING SYSTEMS · CHAPTER 03</p><h1 id="chapter-title">第 3 章 · OS内核架构</h1><p class="article-dek">把内核服务放在同一地址空间或拆开，会改变什么？</p></header>
+<section class="learning-map" aria-labelledby="learning-map-title"><h2 id="learning-map-title">先建立问题地图</h2><p>内核架构在地址空间隔离、通信成本、故障边界与工程复杂度之间权衡。</p><div class="concept-steps" role="list"><div role="listitem"><strong>起点</strong><span>宏内核</span></div><div role="listitem"><strong>机制</strong><span>微内核</span></div><div role="listitem"><strong>拓展</strong><span>混合内核 / Unikernel</span></div></div><p class="map-note">这是帮助建立概念依赖的阅读地图，不表示内核内部的实际执行时序。</p></section>
 
-        <h2>第3章 OS内核架构</h2>
-
-        <p>大家好，我是你们的讲师。上一章我们夯实了硬件基础，知道了CPU怎么执行指令、Cache怎么提速、中断如何处理。现在我们要回答一个核心问题：操作系统内核本身应该长什么样？</p>
+<nav class="page-toc" aria-label="本章小节"><details open><summary>本章目录 · 5 个部分</summary><ol><li><a href="#section-01">一、宏内核（Monolithic Kernel）</a></li>
+<li><a href="#section-02">二、微内核（Microkernel）</a></li>
+<li><a href="#section-03">三、混合内核（Hybrid Kernel）</a></li>
+<li><a href="#section-04">四、Unikernel与Library OS</a></li>
+<li><a href="#section-05">五、结语与下一章预告</a></li></ol></details></nav>
+<div class="article-body">
+<p>大家好，我是你们的讲师。上一章我们夯实了硬件基础，知道了CPU怎么执行指令、Cache怎么提速、中断如何处理。现在我们要回答一个核心问题：操作系统内核本身应该长什么样？</p>
 
         <p>这个问题在计算机科学史上引发了无数次激烈的争论——比Vim和Emacs的战争要激烈得多。核心派别主要有三个：宏内核把几乎所有功能都塞进内核空间，追求极致性能；微内核只保留最小功能在内核态，把一切能用IPC解决的都推出去；混合内核则是一个"两头下注"的务实方案。每种方案背后都是深刻的工程哲学取舍——安全vs性能、复杂度vs灵活性。</p>
 
@@ -56,7 +60,7 @@
             <p><strong>核心问题</strong>：内核架构的本质是"什么功能应该运行在最高特权级的内核态，什么功能应该运行在低权限的用户态"。这个边界划在哪里，决定了内核架构的类型和特征。</p>
         </div>
 
-        <h2>一、宏内核（Monolithic Kernel）</h2>
+        <h2 id="section-01">一、宏内核（Monolithic Kernel）</h2>
 
         <p>宏内核对"边界"的回答是：几乎所有操作系统服务都运行在内核态——进程管理、内存管理、文件系统、设备驱动、网络协议栈，它们全在一个巨大的内核地址空间中，彼此可以直接调用函数、共享数据结构。</p>
 
@@ -76,7 +80,7 @@
             <p><strong>踩坑实录</strong>：我曾经在服务器上加载一个第三方的网卡驱动模块，结果驱动里有一个off-by-one错误导致内核Oops（内核级崩溃）。那台机器的所有nginx、MySQL进程瞬间全死，服务中断了10分钟才重启恢复。这就是宏内核的典型风险——一个驱动的bug可以拖垮整个系统。从那以后，我在生产环境加载任何非主线内核模块前，一定会在测试环境做充分验证。</p>
         </div>
 
-        <h2>二、微内核（Microkernel）</h2>
+        <h2 id="section-02">二、微内核（Microkernel）</h2>
 
         <p>微内核的回答和宏内核截然相反：尽可能少地运行在内核态。微内核只提供最小化的核心机制——地址空间管理、线程调度、进程间通信（IPC）。所有其他传统OS服务（文件系统、设备驱动、网络协议栈、系统调用处理）都以用户态服务进程的形式运行，通过IPC机制与微内核通信。</p>
 
@@ -99,7 +103,7 @@
             <p><strong>适用场景</strong>：微内核在安全关键系统中大放异彩——汽车电子（QNX）、航空航天（VxWorks 653）、高安全手机系统（Google的Pixel中用到了Trusty微内核作为可信执行环境）。当你需要"一个驱动崩溃了但也别让系统崩"的隔离性时，微内核是更安全的选择。</p>
         </div>
 
-        <h2>三、混合内核（Hybrid Kernel）</h2>
+        <h2 id="section-03">三、混合内核（Hybrid Kernel）</h2>
 
         <p>混合内核是"成年人不做选择，我都要"的产物——把核心OS服务放在内核态以获得高性能，同时借鉴微内核的模块化设计来实现一定程度的隔离。本质上它是在宏内核的底子上，穿上了微内核的"马甲"。</p>
 
@@ -125,7 +129,7 @@ kvm_intel             397312  0</code></pre>
             <p><strong>现实情况</strong>：今天没有任何一个主流通用OS采用"纯粹"的微内核架构——因为纯粹的微内核IPC性能在通用计算场景下仍然无法与宏内核匹敌。但纯粹微内核在安全关键领域找到了自己的生态位。混合内核则是"在地板上搭积木"——核心运行在内核态，但尽量模块化组织，降低复杂度。</p>
         </div>
 
-        <h2>四、Unikernel与Library OS</h2>
+        <h2 id="section-04">四、Unikernel与Library OS</h2>
 
         <p>如果说宏内核是"大而全"、微内核是"小而美"、混合内核是"折中"，那么Unikernel就是"极致剪裁"——把操作系统变成你的应用程序编译时链接的一个库。</p>
 
@@ -149,19 +153,18 @@ kvm_intel             397312  0</code></pre>
             <p><strong>发展趋势</strong>：Unikernel一直没有成为主流，但它背后的思想深刻影响了容器技术和轻量级虚拟化。Kata Containers、Firecracker（AWS Lambda的底层VM）都借鉴了Unikernel"应用即机器"的理念。你不需要成为一个Unikernel开发者，但理解这个设计方向能帮你把握OS架构的演进趋势。</p>
         </div>
 
-        <h2>五、结语与下一章预告</h2>
+        <h2 id="section-05">五、结语与下一章预告</h2>
 
         <p>本章我们走过了OS内核架构的四大流派：宏内核追求性能但牺牲隔离，微内核追求安全但牺牲速度，混合内核在两者间务实折中，Unikernel则在特殊场景下另辟蹊径。没有完美的架构，只有最合适的取舍。当你以后设计系统时，问问自己：我更在意性能还是安全？我需要多租户隔离吗？我的场景是通用计算还是专用计算？</p>
 
         <p>无论哪种内核架构，都绕不开一个最基础的设计决策——用户态和内核态的隔离。下一章我们将深入这个隔离机制的核心，看看从Ring 0到Ring 3、从系统调用的完整路径到上下文切换的真实成本，彻底搞懂操作系统的"马奇诺防线"是如何运作的。</p>
-
-        <div class="footer-nav">
-            <a href="02.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="04.html">下一章 →</a>
-        </div>
-    </div>
 </div>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>比较宏内核与微内核中的一次文件服务请求路径。</p><details><summary>查看思考提示</summary><p>先标出服务运行在哪个地址空间，再讨论通信与故障。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<nav class="footer-nav" aria-label="章节前后导航"><a href="02.html">← 上一章 · 硬件架构基础</a><a href="index.html">返回课程目录</a><a href="04.html">下一章 · 用户态与内核态 →</a></nav>
+</article></main>
+</div>
+<footer class="site-footer">操作系统中文实践教程 · <a href="docs/guides/learning-path.md">学习路线</a> · <a href="docs/guides/content-guide.md">内容规范</a></footer>
 </div>
 </body>
 </html>

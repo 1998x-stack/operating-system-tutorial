@@ -71,23 +71,14 @@
 
         <p>这种设计起到了"适配器"的作用：你可以在同一个系统上同时挂载ext4（传统磁盘文件系统）、Btrfs（COW文件系统）、tmpfs（内存文件系统）、procfs（进程信息文件系统）、sysfs（内核对象文件系统）。它们各自的实现天差地别，但通过VFS提供的统一接口，用户态看到的都是"文件"。</p>
 
-        <pre><code>// 用户态调用 read() 的完整路径
-read(fd, buf, 1024);
+        <pre><code>read() / pread64()
+  ↓ VFS: fd → struct file → file_operations.read_iter
+  ↓ 具体文件系统的 read_iter 实现（以 ext4 为例）
+  ↓ 通用 buffered-read / filemap 路径（适用时）
+  ↓ page cache 查找；缺页时由 readahead / read_folio 等路径填充 folio
+  ↓ copy_to_user() 返回数据
 
-  ↓ sys_read()  // 系统调用入口
-  ↓ vfs_read()  // VFS公共层（权限检查、锁等）
-  ↓ file->f_op->read_iter()  // 具体的文件系统回调
-    ↓ ext4_file_read_iter()  // ext4的实现
-      ↓ generic_file_read_iter()
-        ↓ filemap_read()      // 通过页缓存读取
-          ↓ address_space_operations.readpage()
-            ↓ ext4_readpage()  // 从磁盘读取到页缓存
-
-// 如果是 procfs 的文件（如 /proc/cpuinfo），路径完全不同：
-read(fd, buf, 1024);
-  ↓ sys_read() → vfs_read()
-  ↓ proc_reg_read()  // procfs 的实现
-    ↓ ...直接从内核数据结构中获取信息</code></pre>
+说明：这是帮助定位层次的概念路径，不是所有内核版本/文件系统都完全相同的函数调用栈。</code></pre>
 
         <div class="highlight">
             <p><strong>设计哲学</strong>：VFS是UNIX"一切皆文件"理念的工程实现。通过分层抽象：系统调用层→VFS层→具体文件系统层→块设备层→物理设备层——每一层的职责清晰，替换任意一层都不影响其他层。你更换了硬盘，应用程序代码不需要改一行。</p>
@@ -166,9 +157,7 @@ struct ext4_extent {
             <tr><td>分配策略</td><td>按写入路径分配</td><td>支持 delayed allocation 与 fallocate 预分配</td></tr>
         </table>
 
-        <div class="highlight">
-            <p><strong>权衡思考</strong>：ext4的延迟分配是一把双刃剑。它提升了性能、减少了碎片，但降低了数据安全性——如果系统在延迟窗口内崩溃，那些已被应用程序"确认写入"（write()返回成功）但实际还在页缓存中的数据会丢失。所以在数据库场景下，通常会打开O_DIRECT或使用O_SYNC标志，绕过页缓存直接写入磁盘。</p>
-        </div>
+        <div class="tip"><p><strong>持久性边界</strong>：对 buffered I/O 而言，<code>write()</code> 成功通常表示数据已被内核接受，并不等于已到稳定存储。应用需要按协议使用 <code>fdatasync()</code>/<code>fsync()</code>，并在原子替换文件后按需同步父目录。<code>O_DIRECT</code> 主要改变缓存路径，不自动保证掉电持久性；<code>O_SYNC</code> 则提供同步写语义，但仍受文件系统和设备正确实现影响。</p></div>
 
         <h2 id="section-04">Btrfs与写时复制</h2>
 

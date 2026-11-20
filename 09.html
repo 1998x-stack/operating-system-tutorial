@@ -135,9 +135,7 @@
         <h3>Go Goroutine的M:N调度</h3>
         <p>Go语言的Goroutine是M:N模型最成功的工业实践。Go运行时维护一个M（Machine，内核线程）对N（Goroutine，用户态协程）的映射，用G（Goroutine）、M（Machine）、P（Processor）三个结构体实现了高效的M:N调度。Go的调度器在程序主动让出（channel操作、time.Sleep、系统调用）时自动切换Goroutine，避免了内核态切换的开销。</p>
 
-        <div class="highlight">
-            <p><strong>性能对比</strong>：创建一个pthread大约需要微秒级别的时间和数KB的栈空间（可设置最小栈）。而创建一个Goroutine的开销仅为约4KB的栈和不到百纳秒的创建时间。这也是为什么Go可以轻松启动数十万个Goroutine，而同等数量的pthread会导致系统资源耗尽。</p>
-        </div>
+        <div class="tip"><p><strong>实现边界</strong>：pthread 的默认栈大小由线程库配置与资源限制决定；Go goroutine 使用较小、可增长的用户栈，但初始栈大小会随 Go 运行时版本与 GC 反馈调整。创建延迟、栈占用和可承载并发数都依赖工作负载、运行时版本、平台与内存限制，不能用固定纳秒数或固定 KB 数作跨平台比较。</p></div>
 
         <h2 id="section-04">协程的本质</h2>
 

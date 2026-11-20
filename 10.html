@@ -145,39 +145,23 @@ static struct sched_entity *__pick_first_entity(struct cfs_rq *cfs_rq)
             <p><strong>设计突破</strong>：EEVDF的核心洞见是——"公平"不等于"平均"。两个进程，一个需要立即响应、一个可以延迟处理，给它们完全相同的CPU时间份额是公平的，但用户体验极差。EEVDF允许调度器在"公平分配CPU时间"的大前提下，优先让"紧急"的任务先执行。</p>
         </div>
 
-        <p>EEVDF被合入Linux 6.6主线，作为新的默认调度器。这是CFS服役17年后的首次更替。内核邮件列表上的讨论长达数年，测试基准覆盖了从数据库到Web服务器、从HPC到桌面交互的全场景。最终EEVDF在保持CFS公平性的同时，在延迟和吞吐量方面都展现出优势。</p>
+        <p>Linux 6.6 开始把 EEVDF 引入公平调度类，逐步替代传统 CFS 的选取逻辑。EEVDF 仍以公平份额为基础，通过 lag 判断任务是否 eligible，再按虚拟截止时间选择任务；具体实现与调度行为会随主线内核持续演进。不能把它概括成在所有工作负载上同时提高延迟和吞吐量的无条件结论。</p>
 
         <h2 id="section-04">sched_ext与用户态调度</h2>
 
-        <p>如果说EEVDF是内核调度的自我革新，那sched_ext（从Linux 6.12开始合入）代表的则是一个更激进的范式转变——用eBPF让用户态写调度器。</p>
+        <p>sched_ext 是可扩展的内核调度类，调度策略由 eBPF 程序实现并在内核中执行。用户态加载器/守护进程可以负责加载、配置和观测，但这不等于调度决策本身运行在普通用户态。sched_ext 在 Linux 6.12 文档中已提供接口；具体 API 不承诺稳定 ABI，需按目标内核版本核对。</p>
 
-        <p>传统上调度器是内核最核心的模块之一，修改它需要理解复杂的内核调度框架、通过LKML审核、合入主线。这对普通开发者来说门槛极高。sched_ext通过eBPF提供了一组调度器操作的钩子（ops），开发者可以用C语言（编译为BPF字节码）编写自定义调度策略，动态加载到内核中。</p>
+        <p>传统调度器策略位于内核调度框架内部。sched_ext 暴露一组 BPF 调度器回调与 dispatch queue 等机制，让开发者能在不直接改写核心调度代码的情况下试验策略。BPF 程序仍受 verifier、可用 helper/kfunc、调度类优先级和内核版本 API 的约束；接口不保证跨版本稳定。</p>
 
-        <pre><code>// sched_ext 调度器示例（极简伪代码）
-// 开发者只需实现几个回调函数
+        <pre><code>// 概念示意：真实 sched_ext 程序需要 BPF SEC("struct_ops")、
+// sched_ext_ops 回调、dispatch queue 与 verifier 允许的 API。
+// 这里仅展示控制流，不是可直接编译或加载的调度器。
 
-struct sched_ops my_sched = {
-    .select_cpu     = my_pick_next_task,
-    .enqueue        = my_enqueue_task,
-    .dequeue        = my_dequeue_task,
-    .tick           = my_tick,
-    .running        = my_running,
-    .stopping       = my_stopping,
-};
-
-// 示例：一个简单的"优先调度I/O密集型任务"的策略
-s32 my_pick_next_task(struct task_struct *prev)
-{
-    // 获取当前CPU上我自定义的运行队列
-    struct my_rq *mrq = get_my_rq();
-
-    // 优先选择近期被I/O阻塞过的任务
-    struct task_struct *p = first_io_bound(mrq);
-    if (!p)
-        p = first_cpu_bound(mrq);
-
-    return p->sched_task_id;
-}</code></pre>
+// enqueue(task): 把 runnable task 放入自定义队列
+// dispatch(cpu): 从队列中选择 task 并交给该 CPU 的 DSQ
+// running(task): 记录任务开始运行
+// stopping(task): 记录任务停止运行
+// exit(): 清理状态并回退到默认调度策略</code></pre>
 
         <p>sched_ext最有想象力的应用场景包括：</p>
         <ul>
@@ -202,29 +186,29 @@ s32 my_pick_next_task(struct task_struct *prev)
             <tr><th>策略</th><th>调度方式</th><th>行为</th></tr>
             <tr><td>SCHED_FIFO</td><td>先进先出</td><td>一旦获得CPU，就运行到主动让出或被更高优先级任务抢占。同优先级FIFO内按等待时间排序。</td></tr>
             <tr><td>SCHED_RR</td><td>时间片轮转</td><td>在SCHED_FIFO基础上增加了时间片限制——每个实时进程运行一段时间片后让出CPU。</td></tr>
-            <tr><td>SCHED_DEADLINE</td><td>最早截止时间优先</td><td>使用EDF（Earliest Deadline First）算法，每个任务声明周期和运行时间，内核保证在截止时间前完成。</td></tr>
+            <tr><td>SCHED_DEADLINE</td><td>截止时间调度</td><td>采用 GEDF 与 CBS 思路，任务声明 runtime、deadline、period；准入控制与带宽约束决定能否接纳，不代表硬件故障或超出模型时仍绝对保证截止时间。</td></tr>
         </table>
 
-        <p>调度优先级范围：实时进程的优先级范围是0-99（数值越大优先级越高），普通进程的nice值范围是-20到19，nice值-20映射到100，nice值19映射到139——所以<strong>任何实时进程的优先级都高于所有普通进程</strong>。这意味着如果你写了一个 <code>SCHED_FIFO</code> 的死循环，它可以"饿死"所有普通进程（包括sshd和bash），让你连ssh都登不上机器——我当年干过这事，血的教训。</p>
+        <p>在 Linux 的 <code>SCHED_FIFO</code>/<code>SCHED_RR</code> 用户接口中，实时优先级通常为 1–99（数值越大越高）；普通公平类任务使用 nice 值 -20 至 19。实时类优先于普通公平类，但 <code>SCHED_DEADLINE</code> 属于更高优先级的调度类。若让高优先级 FIFO 任务持续占用 CPU，普通任务可能长期得不到运行机会；实验应在可恢复的虚拟机中进行，避免在远程生产主机上尝试。</p>
 
         <h3>PREEMPT_RT：20年的工程结晶</h3>
 
-        <p>Linux的实时能力提升是一个持续了20年的工程。核心问题是：标准的Linux内核在很多地方是不可抢占的——比如在执行spinlock保护的临界区时、在处理中断时。这意味着即使有一个高优先级的实时任务就绪，它也可能被一个低优先级任务在临界区中"挡住"数十到数百微秒——在实时系统中这是不可接受的。</p>
+        <p>PREEMPT_RT 的目标是降低内核不可抢占区造成的延迟。它通过线程化大部分中断处理、调整锁语义并缩小不可抢占区来改善响应性；具体可抢占范围取决于配置、架构和驱动，延迟上界必须在目标硬件与工作负载上测量。</p>
 
         <p>PREEMPT_RT补丁集的核心工作包括：</p>
         <ul>
-            <li>将spinlock替换为可睡眠的rt_mutex（raw_spinlock例外）</li>
+            <li>在 PREEMPT_RT 配置下，许多 <code>spinlock_t</code> / <code>rwlock_t</code> 变为可睡眠锁语义；<code>raw_spinlock_t</code> 仍用于必须保持真正自旋语义的区域</li>
             <li>将中断处理线程化（interrupt threading）——大部分中断处理程序以内核线程形式运行，可以被实时任务抢占</li>
             <li>将各种不可抢占的临界区缩小到极致</li>
         </ul>
 
-        <p>经过长达20年的补丁维护和主线合并工作，PREEMPT_RT在Linux 6.12中正式合入主线内核。这意味着任何Linux发行版都可以方便地开启完全可抢占模式，而不需要打额外的补丁。</p>
+        <p>PREEMPT_RT 从 Linux 6.12 起进入主线内核，但发行版是否提供相应配置、是否启用该选项以及是否需要专门内核包，仍取决于发行版构建。它并不意味着任意发行版内核都可在运行时一键切换为实时内核。</p>
 
         <div class="tip">
-            <p><strong>实验命令</strong>：检查你的Linux内核是否支持PREEMPT_RT：<code>cat /boot/config-$(uname -r) | grep PREEMPT</code>。如果输出包含 <code>CONFIG_PREEMPT_RT=y</code>，你的内核就是一个正式支持的实时内核。在实时内核上，调度延迟的中位数通常在个位数微秒级别，最坏情况也能控制在几十微秒内。</p>
+            <p><strong>实验命令</strong>：可先检查当前内核配置：<code>grep CONFIG_PREEMPT_RT /boot/config-$(uname -r)</code>（若发行版未安装 config 文件，可检查 <code>/proc/config.gz</code>）。配置项只能说明内核构建选项；实时性能仍需用 <code>cyclictest</code> 等工具在目标硬件、IRQ 负载和驱动条件下测量，不能引用通用的“最坏延迟”数字。</p>
         </div>
 
-        <p>CPU调度器是操作系统的心脏——它决定了谁跑、跑多久、什么时候换人。从O(n)的蛮力遍历到CFS的vruntime公平模型，再到EEVDF的延迟感知，再到sched_ext的用户态可编程调度，每一步都是对更大规模、更多样化负载的适配。实时调度领域的PREEMPT_RT合入主线，更是Linux走向工业控制领域的里程碑事件。</p>
+        <p>CPU调度器是操作系统的心脏——它决定了谁跑、跑多久、什么时候换人。从O(n)的蛮力遍历到CFS的vruntime公平模型，再到EEVDF的延迟感知，再到sched_ext 的 BPF 可编程调度，每一步都是对更大规模、更多样化负载的适配。实时调度领域的PREEMPT_RT合入主线，更是Linux走向工业控制领域的里程碑事件。</p>
 
         <p>下一章，我们把目光从"谁来跑"转向"怎么协同跑"——当多个进程或多个线程同时访问共享数据时，如何确保数据的一致性？自旋锁、互斥锁、信号量、RCU——这些同步原语各有什么特长和场景？死锁的四个条件是什么，lockdep又是如何在内核中自动检测潜在死锁的？下一章见。</p>
 </div>

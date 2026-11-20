@@ -54,7 +54,7 @@
 
         <p>进程（Process）是操作系统中最核心的抽象之一。它不仅是资源分配的基本单位，也是系统隔离和保护的基础。可以毫不夸张地说，理解了进程管理，你就理解了操作系统的半边天。这一章，我们从进程的物理本质出发，深入到Linux内核的task_struct、五种状态模型、fork的写时拷贝机制，一直到execve如何加载一个新程序。这一整套链路，构成了进程从"生"到"死"的完整故事。</p>
 
-        <p>说一个我踩过的坑。刚工作那会儿，我写了一个后台服务，上线后每隔一段时间就会莫名其妙地丢失大量子进程，日志里全是"Resource temporarily unavailable"的错误。排查了半天，发现是进程数量突破了`ulimit -u`限制——我每次请求都fork新进程但忘了wait回收，导致僵尸进程堆积，耗尽了系统的进程数上限。从那以后我牢牢记住了：进程资源不是无限的，创建进程的同时，你必须想清楚谁来收尸。</p>
+        <p>先提出一个可验证的问题：父进程 fork() 后，子进程修改一个私有变量，为什么父进程通常仍看到原值？理解这个现象，需要同时观察进程标识、地址空间映射、页表权限和 wait() 回收路径。</p>
 
         <h2 id="section-01">进程到底是什么</h2>
 
@@ -86,7 +86,7 @@
 
         <h2 id="section-02">task_struct：Linux进程的"身份证"</h2>
 
-        <p>在内核眼里，每个进程都是用一个庞大的结构体来描述的——这就是 <code>task_struct</code>，定义在 <code>include/linux/sched.h</code> 中。这个结构体有多大？不同内核版本略有差异，但通常超过2000字节，包含了几十个字段。它是Linux内核中最核心的数据结构，没有之一。</p>
+        <p>在 Linux 内核中，每个可调度任务（包括进程组中的各个线程）都由一个 <code>task_struct</code> 描述。它包含任务状态、调度信息、凭据、资源指针和父子关系等字段。结构体布局会随内核版本、架构与配置变化，不应把它的大小或内部字段当作稳定 ABI。</p>
 
         <p>一个进程从被创建到消亡，内核把它的所有信息都塞进了这个结构体。我们来看看最重要的几类字段：</p>
 
@@ -102,24 +102,17 @@
             <tr><td>时间统计</td><td>utime、stime、start_time</td><td>用户态/内核态CPU时间</td></tr>
         </table>
 
-        <p>有趣的是，Linux内核把<strong>所有</strong> task_struct 通过链表串起来。你可以用 <code>ps aux</code> 看到的每一个进程（包括内核线程），在内核中都是一个 task_struct 实例。它们通过 <code>tasks</code> 链表成员串成一个双向循环链表——内核遍历所有进程，本质上就是遍历这个链表。</p>
+        <p>Linux 的每个线程都是一个独立的 task_struct；同一线程组中的任务共享部分资源指针，例如地址空间和文件描述符表。内核提供不同的遍历接口：例如进程组 leader 的遍历与所有 task 的遍历并不相同。用户态可用 <code>ps -eLf</code> 查看线程级条目；不要把 <code>ps aux</code> 的默认输出等同于内核所有 task 的完整清单。</p>
 
         <h3>current宏：找到"我"自己</h3>
 
         <p>内核代码中经常看到 <code>current</code> 这个宏，它返回当前正在执行的进程的 task_struct 指针。这是个极其高频使用的宏——内核需要频繁读取当前进程的uid、pid、内存描述符等信息。</p>
 
-        <pre><code>// 在 x86-64 上，current 通过 per-CPU 变量实现
-// 每个 CPU 核心维护一个指向当前进程 task_struct 的指针
-// 每次进程切换时更新这个指针
+        <pre><code>// 内核代码可通过 current 宏取得当前 task_struct。
+// current 的底层实现由架构相关代码提供，并非稳定的用户态接口。
 
-static __always_inline struct task_struct *get_current(void)
-{
-    return this_cpu_read_stable(pcpu_hot.current_task);
-}
-
-// 使用示例
-printk("Current PID: %d, State: %ld\n",
-       current->pid, current->__state);</code></pre>
+struct task_struct *task = current;
+pr_info("current pid=%d\\n", task->pid);</code></pre>
 
         <div class="highlight">
             <p><strong>核心洞见</strong>：task_struct之所以如此庞大，是因为Linux奉行"一切皆进程"的设计哲学。甚至是内核自己的工作——比如内存回收、刷脏页、处理中断下半部——也包装成"内核线程"，用task_struct来表示。在Linux里，几乎任何执行上下文都能归结为一个task_struct。</p>
@@ -140,15 +133,13 @@ printk("Current PID: %d, State: %ld\n",
             <tr><td>TASK_UNINTERRUPTIBLE</td><td>阻塞（不可打断）</td><td>等待内核态条件（如磁盘I/O），信号也无法唤醒</td></tr>
             <tr><td>TASK_STOPPED</td><td>暂停</td><td>收到 SIGSTOP/SIGTSTP 等信号后暂停执行</td></tr>
             <tr><td>TASK_TRACED</td><td>被跟踪</td><td>被ptrace跟踪（如gdb调试时）</td></tr>
-            <tr><td>EXIT_ZOMBIE</td><td>僵尸</td><td>进程已终止，但task_struct未被父进程回收</td></tr>
-            <tr><td>EXIT_DEAD</td><td>终止</td><td>最终状态，等待被彻底移除</td></tr>
+            <tr><td>exit_state = EXIT_ZOMBIE</td><td>僵尸</td><td>任务已退出，保留退出状态供父进程 wait 系列调用回收</td></tr>
+            <tr><td>exit_state = EXIT_DEAD</td><td>待最终释放</td><td>退出清理过程中的内部状态，不等同于普通运行状态</td></tr>
         </table>
 
-        <p>TASK_UNINTERRUPTIBLE 是一个特别值得讲的状态。当你执行 <code>kill -9</code> 都杀不死一个进程时，它可能就是卡在D状态（即 TASK_UNINTERRUPTIBLE）。这通常意味着进程在内核中执行某种不可打断的操作（典型如等待磁盘I/O）。遇到这种情况，光靠kill是没用的——需要修复根本的硬件或驱动问题。</p>
+        <p><code>TASK_UNINTERRUPTIBLE</code> 表示任务处于不可由普通信号打断的睡眠状态，常见于某些 I/O 等待路径，但并非所有 D 状态都意味着磁盘故障。<code>SIGKILL</code> 可以设置致命信号，但任务通常要等到当前不可中断等待结束后才能完成退出；排查时应同时检查等待原因、设备、文件系统和内核栈。</p>
 
-        <div class="warning">
-            <p><strong>踩坑经验</strong>：我曾经在NFS挂载的网络文件系统上跑了大数据任务。NFS服务器挂了之后，所有读写NFS的进程都进入了D状态，kill -9都杀不掉，最终只能重启机器。这就是TASK_UNINTERRUPTIBLE状态最经典的场景——等待的I/O既不能中断，也无法完成，进程"卡死"了。</p>
-        </div>
+        <div class="tip"><p><strong>诊断提示</strong>：可结合 <code>ps -eo pid,stat,wchan:32,comm</code>、<code>cat /proc/PID/stack</code>（权限允许时）和内核日志观察 D 状态任务。状态字母只能提示睡眠类别，不能单独确定根因。</p></div>
 
         <h3>僵尸进程</h3>
 
@@ -166,7 +157,7 @@ printk("Current PID: %d, State: %ld\n",
 
         <h3>COW的工作原理</h3>
 
-        <p>COW的核心思想很巧妙：fork()时，内核不为子进程复制物理内存，而是让父进程和子进程共享同一份物理页，但把这些页的页表项都标记为"只读"。当任何一方尝试写入时，CPU触发缺页异常，内核在异常处理中分配一个新的物理页，把原内容复制过去，然后修改页表指向新页并标记为可写——这就是"写时拷贝"的名字来源：只有在真正写入的那一刻，拷贝才发生。</p>
+        <p>COW 的核心是延迟复制：对于私有、原本可写的映射，fork() 后父子暂时引用相同物理页，内核通过页表权限与写保护缺页来检测写入。发生写保护缺页时，内核判断是否仍可共享；若需要隔离写入，就分配新页、复制内容并更新映射。只读页、共享映射和特殊映射的处理并不等同于“所有页一律标记只读”。</p>
 
         <pre><code>// fork()系统调用的核心路径（简化）
 SYSCALL_DEFINE0(fork)
@@ -196,10 +187,10 @@ static __latent_entropy struct task_struct *copy_process(...)
     // copy_signal() — 复制信号处理相关结构
 }</code></pre>
 
-        <p>内核开发者在优化fork的性能上下了大功夫。在Linux 5.x之后，即使是内核栈也用了vmalloc，进一步减少了fork时必须拷贝的部分。当你在Linux上启动一个进程时，fork的延迟主要花在复制task_struct和页表结构上——物理内存的复制被推迟到了必须的时刻。</p>
+        <p>fork() 通常不会立即复制整个用户态数据集，但仍需要创建任务元数据、处理页表与映射、增加相关引用并执行必要的 TLB 同步。内核栈是否通过 vmalloc 映射取决于架构和 <code>CONFIG_VMAP_STACK</code> 等配置，不能概括为所有 Linux 5.x 内核的固定行为。</p>
 
         <div class="tip">
-            <p><strong>性能洞见</strong>：COW把fork操作的时间复杂度从O(进程地址空间大小)降到了O(页表大小)。对于一个大进程（比如占用数GB内存的数据库），fork的性能提升是数量级的。这也是为什么Redis的RDB持久化可以用fork + COW来创建内存快照——子进程共享主进程的物理页，只有在主进程修改数据时才复制。</p>
+            <p><strong>工程权衡</strong>：COW 把大量数据页的复制推迟到真正写入时，但 fork 仍有页表和元数据成本。若父子进程在 fork 后都大量写入，复制与内存压力仍可能很大。Redis 等程序使用 fork 创建快照子进程时，也必须考虑写入期间的 COW 内存放大；不能把 fork 的复杂度简化成对所有负载都成立的单一大 O 结论。</p>
         </div>
 
         <h2 id="section-05">execve()：一个程序的诞生</h2>
@@ -232,11 +223,11 @@ int execve(const char *pathname, char *const argv[],
 7.       c. 遍历程序头，将PT_LOAD类型的段映射到内存
 8.       d. 设置新进程的栈（argv, envp, auxv）
 9.       e. 设置mm->start_code/end_code等地址范围
-10.      f. 释放旧的地址空间 (exec_mmap)
+10.      f. 在新映像准备完成后切换到新的地址空间，并清理旧映像（实现细节随版本变化）
 11.      g. 设置新程序的入口点（ELF入口地址）
 12. 返回用户态 → CPU跳转到新程序的入口地址开始执行</code></pre>
 
-        <p>从这个流程可以看到：execve()先释放掉旧的地址空间（包括通过fork COW共享的那些物理页），然后根据ELF文件中的段信息重新建立内存映射。这也是为什么fork+execve的组合如此经典——fork只是复制了地址空间的"骨架"（页表），execve直接把"肉"换掉了。</p>
+        <p>execve() 不会创建一个新 PID；它让调用进程替换当前程序映像。内核先准备新程序的映像与启动栈，在成功切换后清理旧地址空间。ELF 的 PT_LOAD 段通常建立为文件映射，页面可按需调入；若存在 PT_INTERP，还会启动动态链接器完成后续装载与重定位。</p>
 
         <div class="highlight">
             <p><strong>本质思考</strong>：fork() + execve() 的两步设计是UNIX系统设计的经典案例。fork提供"快速创建进程上下文"的能力，execve提供"替换进程内容"的能力。两者分离，各司其职，组合起来就形成了一个强大的进程创建原语。相比之下，Windows的CreateProcess()是一个一步到位的API，同时完成"创建"和"加载"——各有利弊。</p>

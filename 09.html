@@ -53,19 +53,19 @@
 
         <p>那有没有一种更轻量的并发单位？有的，这就是线程（Thread）。线程和进程共享地址空间，但各自有独立的程序计数器、栈和寄存器上下文。切换线程比切换进程快得多。而协程（Coroutine）则更进一步，把调度权从内核态拿到了用户态，实现了微秒级别的切换开销。这章我们沿着"越来越轻"的路线，把这三者的区别和联系讲透。</p>
 
-        <p>先讲一个我遇到的性能案例。几年前我优化一个游戏服务器的网络模块，当时每个连接用一个pthread处理。服务器连接数从1000涨到5000时，延迟突然飙升了10倍。用perf分析后发现，超过一半的CPU时间花在了内核态的线程切换上——频繁的上下文切换导致cache疯狂miss。后来改成了基于epoll的事件驱动+有限线程池，同样处理5000连接，CPU占用反而下降了70%。这个教训让我深刻理解了"线程不是免费的"。</p>
+        <p>先比较两个设计：每个连接创建一个 OS 线程，还是让少量 OS 线程运行大量用户态协程？答案不能只看“切换更轻”，还要考虑阻塞调用、栈内存、调度公平性、调试和故障隔离。</p>
 
         <h2 id="section-01">线程：CPU调度的最小单位</h2>
 
         <p>教科书上的经典定义：进程是资源分配的基本单位，线程是CPU调度的基本单位。这意味着什么？</p>
 
-        <p>一个进程可以包含多个线程，这些线程共享进程的地址空间（代码段、数据段、堆），但每个线程有自己的栈、寄存器和程序计数器。切换线程时，因为地址空间不变（页表不用换），TLB不用刷新，cache热数据也还在——所以线程切换的开销远小于进程切换。</p>
+        <p>同一进程中的线程共享地址空间，但各自拥有寄存器上下文、栈和线程局部状态。切换同一地址空间内的线程通常不需要切换用户地址空间根，但调度仍涉及寄存器、内核栈、运行队列和缓存局部性；跨地址空间切换是否导致 TLB 项失效，还取决于 PCID/ASID 等硬件与内核机制。CPU cache 不会因为上下文切换而整体清空。</p>
 
         <table>
             <tr><th>对比维度</th><th>进程</th><th>线程</th></tr>
             <tr><td>地址空间</td><td>独立地址空间</td><td>共享进程地址空间</td></tr>
             <tr><td>资源开销</td><td>大（独立PCB、页表、文件表）</td><td>小（只分配栈和寄存器上下文）</td></tr>
-            <tr><td>切换开销</td><td>高（TLB刷新、cache失效）</td><td>低（无需刷新地址空间）</td></tr>
+            <tr><td>切换开销</td><td>可能涉及地址空间切换与 TLB 管理</td><td>同一地址空间可复用映射，但仍有调度与缓存局部性成本</td></tr>
             <tr><td>数据共享</td><td>需要IPC（共享内存、管道等）</td><td>直接读写全局变量</td></tr>
             <tr><td>隔离性</td><td>强（一个进程挂了不影响其他）</td><td>弱（一个线程crash可能导致整个进程崩溃）</td></tr>
             <tr><td>创建速度</td><td>慢（需要复制/COW页表）</td><td>快（共享页表）</td></tr>
@@ -87,13 +87,9 @@
 
         <p>Linux内核中，创建进程和线程都通过 <code>clone()</code> 系统调用实现。区别只在于flags参数：</p>
 
-        <pre><code>// 创建进程：fork() 实际上调用 clone(SIGCHLD, 0)
-clone(SIGCHLD, 0);
-
-// 创建线程：pthread_create() 内部调用
-// clone(CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND |
-//       CLONE_THREAD | CLONE_SETTLS | CLONE_PARENT_SETTID |
-//       CLONE_CHILD_CLEARTID | CLONE_SYSVSEM, ...)</code></pre>
+        <pre><code>// Linux/glibc 的 fork() wrapper 使用与 fork 语义等价的 clone flags。
+// NPTL pthread 实现也使用 clone/clone3 路径，并按需共享资源。
+// 具体 flags 与调用封装属于 libc/内核版本实现细节，不是 POSIX ABI。</code></pre>
 
         <p>关键的flags含义如下：</p>
 
@@ -102,7 +98,7 @@ clone(SIGCHLD, 0);
             <tr><td>CLONE_VM</td><td>共享地址空间</td><td>父子进程使用同一个mm_struct（页表）</td></tr>
             <tr><td>CLONE_FS</td><td>共享文件系统信息</td><td>当前目录、umask等</td></tr>
             <tr><td>CLONE_FILES</td><td>共享文件描述符表</td><td>打开的文件、socket等</td></tr>
-            <tr><td>CLONE_SIGHAND</td><td>共享信号处理函数</td><td>signal_struct</td></tr>
+            <tr><td>CLONE_SIGHAND</td><td>共享信号处理表</td><td>sighand_struct（不是 signal_struct）</td></tr>
             <tr><td>CLONE_THREAD</td><td>成为同一线程组</td><td>tgid相同（getpid()返回值相同）</td></tr>
         </table>
 
@@ -161,7 +157,7 @@ clone(SIGCHLD, 0);
             <tr><td>语言代表</td><td>Go Goroutine、C++ Boost.Coroutine</td><td>Python async/await、Rust async、C++20 coroutine</td></tr>
         </table>
 
-        <p>Go的Goroutine是有栈协程。每个Goroutine有自己的栈（初始4KB，动态增长），可以在任意嵌套函数中调用 <code>runtime.Gosched()</code> 让出。Python的async/await是无栈协程——它把协程的"暂停点"用状态机表示，不维护独立的调用栈。</p>
+        <p>Go 的 goroutine 拥有由运行时管理、可增长和收缩的用户栈；初始大小不是固定 ABI 常量。<code>runtime.Gosched()</code> 是显式让出调度机会的 API，但 Go 运行时还具有异步抢占等机制。Python 的原生 coroutine 对象保存挂起状态，事件循环负责推进它们；“有栈/无栈”是有用的实现模型，但不同语言和运行时的具体实现并不完全相同。</p>
 
         <h3>async/await的底层原理</h3>
 
@@ -191,7 +187,7 @@ class fetch_data__coroutine:
             self.__result = ...          # 最终结果
             raise StopIteration</code></pre>
 
-        <p>每次await都是一个"暂停点"，协程把当前状态保存到一个状态对象中，返回控制权给事件循环。事件循环（如Python的asyncio或Node.js的libuv）负责监控所有等待的I/O事件，一旦某个事件就绪，就唤醒对应的协程从暂停点继续执行。整个过程完全在用户态完成，不需要内核参与。</p>
+        <p>当 <code>await</code> 遇到尚未完成的 awaitable 时，当前 coroutine 会挂起并把控制权交还给调用者/事件循环；事件循环随后通过平台相关的 I/O 多路复用或完成通知机制等待事件，再恢复对应任务。协程调度本身通常由用户态运行时管理，但 I/O 就绪通知、系统调用和实际数据传输仍依赖内核。</p>
 
         <div class="tip">
             <p><strong>本质洞察</strong>：协程说到底是把"控制流的切换"从内核态拿到了用户态。它利用编译器（状态机变换）或运行时（独立栈+寄存器保存）来实现函数执行的中断和恢复。对于I/O密集型的应用（比如Web服务器），协程可以轻松管理数十万并发连接——这是线程模型难以企及的。</p>

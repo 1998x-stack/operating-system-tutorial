@@ -254,21 +254,19 @@ pgsteal_direct 318</code></pre>
             <tr><td><code>memory.max</code></td><td>硬限制</td><td>达到上限且回收无法降低使用量时，可能触发该 cgroup 内的 OOM</td></tr>
         </table>
 
-        <p>low 是 best-effort 保护而非保底承诺；high 超限时施加节流和直接回收压力但不触发 OOM；max 是硬限制，但短时可能超出，达到且无法回收时才触发 cgroup OOM。比如一个容器设置 <code>memory.low=1G memory.high=2G memory.max=4G</code>，意味着保底1GB、建议控制在2GB以内、坚决不能超过4GB。</p>
+        <p>low 是 best-effort 保护而非保底承诺；high 超限时施加节流和直接回收压力但不触发 OOM；max 是硬限制，但短时可能超出，达到且无法回收时才触发 cgroup OOM。例如设置 low/high/max 为 1/2/4 GiB（写入 cgroup v2 控制文件时使用字节数），分别表达尽力保护、回收节流阈值和硬限制；它们不是“保底/建议/绝对不越界”的三段承诺。</p>
 
-        <pre><code># 为容器设置内存cgroup
-# 创建cgroup并设置limits
-mkdir /sys/fs/cgroup/my_container
-echo 1G > /sys/fs/cgroup/my_container/memory.low
-echo 2G > /sys/fs/cgroup/my_container/memory.high
-echo 4G > /sys/fs/cgroup/my_container/memory.max
-
-# 把进程加入到cgroup
-echo $PID > /sys/fs/cgroup/my_container/cgroup.procs
-
-# 查看cgroup的内存使用
-cat /sys/fs/cgroup/my_container/memory.current
-# 输出: 1560281088  (约1.45GB)</code></pre>
+        <pre><code># 前提：系统启用 cgroup v2，memory controller 已由父级启用，
+# 且当前目录是管理员委派给本实验的可写子树。
+# 不要直接在 systemd 管理的根 cgroup 中随意创建目录。
+mkdir my_container
+printf '1073741824\\n' > my_container/memory.low
+printf '2147483648\\n' > my_container/memory.high
+printf '4294967296\\n' > my_container/memory.max
+# 将进程加入实验 cgroup（先确认 PID 属于本实验）：
+printf '%s\\n' "$PID" > my_container/cgroup.procs
+cat my_container/memory.current
+cat my_container/memory.events</code></pre>
 
         <p>在使用 cgroup v2 且运行时配置资源控制时，容器/Pod 的内存限制通常由运行时映射到 memory.max 等控制文件；并非所有容器都自动获得独立的内存限制。Docker <code>--memory</code> 与 Kubernetes limits 的最终行为还受 cgroup 版本、驱动、父级限制和运行时配置影响。</p>
 

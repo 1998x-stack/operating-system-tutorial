@@ -74,8 +74,9 @@ $ ls -l /sys/block/sda
 lrwxrwxrwx 1 root root 0 Jun 30 09:00 /sys/block/sda -> ../devices/pci0000:00/0000:00:1f.2/ata1/host0/target0:0:0/0:0:0:0/block/sda
 
 # 查看驱动的probe信息
-$ cat /sys/bus/pci/drivers/nvme/probe
-# 输出驱动支持的设备ID列表
+$ ls /sys/bus/pci/drivers/nvme/
+# 常见条目包括 bind、unbind、module、new_id、remove_id（依驱动而异）
+# probe() 是内核驱动回调，不是通用 sysfs 文件
 
 # 手动绑定/解绑驱动（调试有用）
 $ echo -n "0000:01:00.0" > /sys/bus/pci/drivers/nvme/unbind

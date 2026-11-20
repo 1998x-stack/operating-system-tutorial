@@ -1,0 +1,60 @@
+{
+  "chapter": "07",
+  "title": "OS实验环境搭建",
+  "claims": [
+    {
+      "id": "lab-01",
+      "claim": "QEMU 的 -S 会暂停 Guest CPU，-s 是监听 TCP 1234 的 GDB stub 简写；-gdb 可指定调试设备。",
+      "kind": "tool behavior",
+      "source_url": "https://www.qemu.org/docs/master/system/gdb.html",
+      "locator": "GDB usage",
+      "status": "verified",
+      "notes": "本章示例将 TCP endpoint 绑定到 loopback。"
+    },
+    {
+      "id": "lab-02",
+      "claim": "QEMU user-mode network stack 默认阻止外部主动连入，可通过 hostfwd 显式转发。",
+      "kind": "tool networking",
+      "source_url": "https://www.qemu.org/docs/master/system/devices/net.html",
+      "locator": "Using the user mode network stack",
+      "status": "verified",
+      "notes": "网络地址和 ICMP 行为还受 QEMU 版本与配置影响。"
+    },
+    {
+      "id": "lab-03",
+      "claim": "MIT xv6-RISC-V 需要 RISC-V newlib 工具链和 riscv64-softmmu QEMU，并可通过 make qemu 启动。",
+      "kind": "teaching OS build",
+      "source_url": "https://github.com/mit-pdos/xv6-riscv",
+      "locator": "README: BUILDING AND RUNNING XV6",
+      "status": "verified",
+      "notes": "工具链名称与安装方式因发行版而异。"
+    },
+    {
+      "id": "lab-04",
+      "claim": "ftrace function tracer 通过 tracefs 接口配置，实际可用函数和 tracer 由当前内核配置决定。",
+      "kind": "kernel tracing",
+      "source_url": "https://docs.kernel.org/trace/ftrace.html",
+      "locator": "function tracer; Filter commands",
+      "status": "verified",
+      "notes": "函数追踪有观测开销，不是零开销。"
+    },
+    {
+      "id": "lab-05",
+      "claim": "perf_events 权限受 perf_event_paranoid 与能力控制；CAP_PERFMON 是专用的性能监控能力。",
+      "kind": "kernel security policy",
+      "source_url": "https://docs.kernel.org/admin-guide/perf-security.html",
+      "locator": "Unprivileged users; CAP_PERFMON",
+      "status": "verified",
+      "notes": "实际权限还受内核版本、发行版和系统策略影响。"
+    },
+    {
+      "id": "lab-06",
+      "claim": "bpftrace tracepoint 探针通过 args 访问事件参数，通常比依赖具体内核函数名的 kprobe 接口更稳定。",
+      "kind": "tool interface",
+      "source_url": "https://github.com/bpftrace/bpftrace/blob/master/docs/language.md",
+      "locator": "Arguments; tracepoint probes",
+      "status": "verified",
+      "notes": "仍需确认目标 tracepoint 和字段在当前内核上可用。"
+    }
+  ]
+}

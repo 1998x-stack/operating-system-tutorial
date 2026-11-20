@@ -1,0 +1,51 @@
+{
+  "chapter": "04",
+  "title": "用户态与内核态",
+  "claims": [
+    {
+      "id": "priv-01",
+      "claim": "Linux x86-64 系统调用 ABI 使用 rax 传递系统调用号，rdi/rsi/rdx/r10/r8/r9 传递最多六个参数。",
+      "kind": "ABI",
+      "source_url": "https://man7.org/linux/man-pages/man2/syscall.2.html",
+      "locator": "Architecture calling conventions: x86-64",
+      "status": "verified",
+      "notes": "其他架构使用不同寄存器与陷入指令。"
+    },
+    {
+      "id": "priv-02",
+      "claim": "Linux ptrace 可观察和控制 tracee，并用于断点调试与系统调用追踪。",
+      "kind": "kernel interface",
+      "source_url": "https://man7.org/linux/man-pages/man2/ptrace.2.html",
+      "locator": "DESCRIPTION",
+      "status": "verified",
+      "notes": "多线程程序的 ptrace attach/stop 语义按线程处理。"
+    },
+    {
+      "id": "priv-03",
+      "claim": "strace 记录系统调用名称、参数、返回值和信号，跟踪会改变目标执行时序。",
+      "kind": "tool behavior",
+      "source_url": "https://man7.org/linux/man-pages/man1/strace.1.html",
+      "locator": "DESCRIPTION",
+      "status": "verified",
+      "notes": "输出格式和捕获到的系统调用取决于目标程序与运行环境。"
+    },
+    {
+      "id": "priv-04",
+      "claim": "系统调用进入内核态不必然导致调度器切换到另一个任务。",
+      "kind": "conceptual distinction",
+      "source_url": "https://research.cs.wisc.edu/wind/OSTEP/",
+      "locator": "Processes and CPU virtualization topics",
+      "status": "derived",
+      "notes": "本章据此区分 privilege transition 与 task context switch。"
+    },
+    {
+      "id": "priv-05",
+      "claim": "Arm Exception Level 与 RISC-V U/S/M privilege modes 的定义由各自架构规范规定。",
+      "kind": "architecture specification",
+      "source_url": "https://docs.riscv.org/reference/isa/priv/priv-intro.html",
+      "locator": "RISC-V privilege levels",
+      "status": "verified",
+      "notes": "Arm 参考 https://developer.arm.com/-/media/Arm%20Developer%20Community/PDF/Learn%20the%20Architecture/Exception%20model.pdf"
+    }
+  ]
+}

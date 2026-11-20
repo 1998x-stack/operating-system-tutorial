@@ -1,0 +1,51 @@
+{
+  "chapter": "02",
+  "title": "硬件架构基础",
+  "claims": [
+    {
+      "id": "hw-01",
+      "claim": "Intel 64 与 IA-32 架构的指令、保护、异常和系统编程语义由处理器架构手册定义。",
+      "kind": "architecture specification",
+      "source_url": "https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html",
+      "locator": "Intel 64 and IA-32 Architectures Software Developer Manuals",
+      "status": "verified",
+      "notes": "具体微架构性能和实现细节需要查对应处理器文档。"
+    },
+    {
+      "id": "hw-02",
+      "claim": "AArch64 使用 Exception Level；EL0/EL1 是基础 OS/应用常用级别，EL2 与 EL3 可选；安全状态与异常级别是不同维度。",
+      "kind": "architecture specification",
+      "source_url": "https://developer.arm.com/-/media/Arm%20Developer%20Community/PDF/Learn%20the%20Architecture/Exception%20model.pdf",
+      "locator": "Exception levels and security state",
+      "status": "verified",
+      "notes": "具体实现可选择不实现 EL2/EL3。"
+    },
+    {
+      "id": "hw-03",
+      "claim": "RISC-V 特权架构定义 U、S、M 等模式，且实现可以支持不同数量的特权级别组合。",
+      "kind": "architecture specification",
+      "source_url": "https://docs.riscv.org/reference/isa/priv/priv-intro.html",
+      "locator": "RISC-V privilege levels and supported combinations",
+      "status": "verified",
+      "notes": "虚拟化扩展另行定义 guest privilege modes。"
+    },
+    {
+      "id": "hw-04",
+      "claim": "缓存层级、访问延迟和带宽依处理器、内存配置与设备而变化；通用数字只能作为数量级示意。",
+      "kind": "measurement boundary",
+      "source_url": "https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html",
+      "locator": "Architecture and optimization references",
+      "status": "illustrative",
+      "notes": "本章不把特定机器的延迟数字作为跨平台常数。"
+    },
+    {
+      "id": "hw-05",
+      "claim": "经典 Harvard/modified Harvard 的区别涉及指令与数据通路组织；现代处理器可在统一地址空间下采用分离的 L1 指令/数据缓存。",
+      "kind": "architecture explanation",
+      "source_url": "https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html",
+      "locator": "Processor architecture and memory hierarchy",
+      "status": "derived",
+      "notes": "图示是概念层面的常见组织方式，不代表所有 CPU 的内部拓扑。"
+    }
+  ]
+}

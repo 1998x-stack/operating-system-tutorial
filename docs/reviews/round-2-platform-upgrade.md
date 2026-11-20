@@ -69,3 +69,24 @@ GitHub Actions 现在包含：
 3. 扩展浏览器测试到全部章节的移动端与桌面端布局。
 4. 为每个代码实验增加可自动运行的 smoke test 或明确标注人工验证。
 5. 增加外链检查与链接失效报告，并在发布前人工复核重要上游文档。
+
+## 第二轮逐章技术审计进展（2026-11）
+
+在平台首页/视觉/实验/CI 升级之后，已继续执行 28 章技术事实审计：
+
+- 01–07：保留第一轮逐章复核记录，详见 `docs/reviews/chapters-01-07.md` 与 `evidence/01.json`–`evidence/07.json`。
+- 08–14：完成第二次版本敏感复核，修正 fork/clone、Go 栈、sched_ext、PREEMPT_RT、锁/RCU/lockdep、TLB/major fault/mTHP、cgroup v2、read_folio、Bcachefs 与 EROFS。
+- 15–21：完成第二次版本敏感复核，修正 io_uring SQE mixed/ZC Rx/DMA-BUF、Rust for Linux、tasklet/threaded IRQ、NO_HZ/HZ、TCP backlog/syncookies、eBPF verifier/map、KVM 架构术语。
+- 22–28：完成第二次版本敏感复核，修正 namespace/cgroup/OverlayFS、KASAN/kdump/kgdb、E820、Rust/LDOS/CoCo/PCIe IDE、宏内核/微内核比较、BPF runqlat、字符设备注册和 xv6 COW 实现边界。
+
+每个批次的详细差异分别记录在：
+- `docs/reviews/chapters-01-07.md`
+- `docs/reviews/chapters-08-14.md`
+- `docs/reviews/chapters-15-21.md`
+- `docs/reviews/chapters-22-28.md`
+
+各章 evidence ledger 已补充对应的上游文档、man-pages、架构规范、项目说明或课程实验来源。静态质量检查继续验证证据 JSON 结构、HTTPS 来源与页面/导航完整性。
+
+### 本轮审计结论与限制
+
+本次完成的是逐章正文/API/实现语义的文档级复核和代码示例修订，不等于 28 章所有代码都已通过编译、加载和运行。需要真实 VM/硬件才能验证的内容（内核模块、QEMU BIOS boot、KASAN/kdump/kgdb、io_uring ZC Rx、PCIe IDE、CoCo、sched_ext、eBPF loader、xv6 COW）均已明确标注验证边界；不得把“文档已审阅”表述成“实验已跑通”。

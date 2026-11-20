@@ -1,0 +1,42 @@
+{
+  "chapter": "08",
+  "title": "进程管理",
+  "claims": [
+    {
+      "id": "proc-08-01",
+      "claim": "Linux 中每个可调度任务由 task_struct 描述；线程与传统进程在内核中都属于 task。",
+      "kind": "kernel implementation",
+      "source_url": "https://github.com/torvalds/linux/blob/master/include/linux/sched.h",
+      "locator": "struct task_struct",
+      "status": "verified",
+      "notes": "字段布局随内核版本和配置变化；文章不再给出固定结构体字节数。"
+    },
+    {
+      "id": "proc-08-02",
+      "claim": "fork 创建子进程；Linux 常以写时复制降低初始地址空间复制成本。",
+      "kind": "system call behavior",
+      "source_url": "https://man7.org/linux/man-pages/man2/fork.2.html",
+      "locator": "NOTES",
+      "status": "verified",
+      "notes": "COW 不代表父子进程共享同一个可写用户地址空间；首次写入时触发复制。"
+    },
+    {
+      "id": "proc-08-03",
+      "claim": "execve 用新程序映像替换当前进程映像，成功时不返回调用点。",
+      "kind": "system call behavior",
+      "source_url": "https://man7.org/linux/man-pages/man2/execve.2.html",
+      "locator": "DESCRIPTION",
+      "status": "verified",
+      "notes": "进程身份与部分进程属性保留，具体属性按 execve 语义处理。"
+    },
+    {
+      "id": "proc-08-04",
+      "claim": "子进程退出后父进程应通过 wait 系列接口获取状态并完成回收。",
+      "kind": "system call behavior",
+      "source_url": "https://man7.org/linux/man-pages/man2/wait.2.html",
+      "locator": "NOTES",
+      "status": "verified",
+      "notes": "僵尸状态用于保留退出状态供父进程读取。"
+    }
+  ]
+}

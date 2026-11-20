@@ -1,0 +1,33 @@
+{
+  "chapter": "09",
+  "title": "线程与协程",
+  "claims": [
+    {
+      "id": "thread-09-01",
+      "claim": "Linux clone/clone3 通过标志控制新任务与调用者共享哪些资源。",
+      "kind": "system call behavior",
+      "source_url": "https://man7.org/linux/man-pages/man2/clone.2.html",
+      "locator": "The child process",
+      "status": "verified",
+      "notes": "具体 pthread 实现还涉及 libc/NPTL 与内核版本。"
+    },
+    {
+      "id": "thread-09-02",
+      "claim": "POSIX 线程共享进程级资源，但每个线程具有独立执行状态与栈。",
+      "kind": "API semantics",
+      "source_url": "https://man7.org/linux/man-pages/man7/pthreads.7.html",
+      "locator": "DESCRIPTION",
+      "status": "verified",
+      "notes": "不要把线程切换成本描述为固定比例或保证不刷新 TLB。"
+    },
+    {
+      "id": "thread-09-03",
+      "claim": "协程调度通常由语言运行时或用户态调度器管理，是否能在阻塞 I/O 时让出执行权取决于运行时集成。",
+      "kind": "runtime model",
+      "source_url": "https://go.dev/doc/effective_go#goroutines",
+      "locator": "Goroutines",
+      "status": "verified",
+      "notes": "M:N 是常见模型之一，不代表所有协程实现完全相同。"
+    }
+  ]
+}

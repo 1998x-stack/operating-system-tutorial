@@ -37,6 +37,33 @@
       "locator": "DESCRIPTION",
       "status": "verified",
       "notes": "设备缓存、文件系统和应用写入协议共同决定崩溃一致性。"
+    },
+    {
+      "id": "fs-14-05",
+      "claim": "当前 Linux VFS 页缓存读取接口以 read_folio/readahead 为核心，不应把旧 readpage 回调描述为当前通用接口。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://docs.kernel.org/filesystems/vfs.html",
+      "locator": "struct address_space_operations; read_folio",
+      "status": "verified",
+      "notes": "具体文件系统回调和调用路径随版本变化。"
+    },
+    {
+      "id": "fs-14-06",
+      "claim": "Bcachefs 在 Linux 6.17 被标记为 externally maintained，后续主线移除了内置实现；新内核需参考外部维护/DKMS 方案。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f2c61db29f277b9c80de92102fc532cc247495cd",
+      "locator": "Remove bcachefs core code",
+      "status": "verified",
+      "notes": "历史上于 Linux 6.7 合入主线，不代表当前内核继续内置。"
+    },
+    {
+      "id": "fs-14-07",
+      "claim": "containerd 提供 EROFS snapshotter；直接将 OCI 镜像转换为 EROFS blob 需要相应的 EROFS differ，不能笼统推广为 Docker/CRI-O 原生支持。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://github.com/containerd/containerd/blob/main/docs/snapshotters/erofs.md",
+      "locator": "EROFS Snapshotter",
+      "status": "verified",
+      "notes": "运行时集成取决于 snapshotter 与 differ 配置。"
     }
   ]
 }

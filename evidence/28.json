@@ -1,0 +1,42 @@
+{
+  "chapter": "28",
+  "title": "综合项目",
+  "claims": [
+    {
+      "id": "proj-28-01",
+      "claim": "BPF programs are checked by the verifier before loading, subject to program type, privileges and kernel support.",
+      "kind": "kernel behavior, API or project documentation",
+      "source_url": "https://docs.kernel.org/bpf/verifier.html",
+      "locator": "The verifier",
+      "status": "verified",
+      "notes": "A verifier-approved program can still be logically incorrect or expensive."
+    },
+    {
+      "id": "proj-28-02",
+      "claim": "Linux character devices expose file operations through kernel device interfaces and user-copy helpers.",
+      "kind": "kernel behavior, API or project documentation",
+      "source_url": "https://docs.kernel.org/core-api/kernel-api.html",
+      "locator": "Character device drivers",
+      "status": "verified",
+      "notes": "Examples must be adapted to the target kernel API."
+    },
+    {
+      "id": "proj-28-03",
+      "claim": "xv6 teaching materials include virtual memory and copy-on-write exercises in selected course versions.",
+      "kind": "kernel behavior, API or project documentation",
+      "source_url": "https://pdos.csail.mit.edu/6.1810/",
+      "locator": "6.1810 course materials",
+      "status": "verified",
+      "notes": "The assignment and code base vary by course year."
+    },
+    {
+      "id": "proj-28-04",
+      "claim": "perf record and perf report can collect and inspect sampled performance profiles.",
+      "kind": "kernel behavior, API or project documentation",
+      "source_url": "https://perf.wiki.kernel.org/index.php/Main_Page",
+      "locator": "perf wiki",
+      "status": "verified",
+      "notes": "Sampling can miss short-lived events and introduces measurement overhead."
+    }
+  ]
+}

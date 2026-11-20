@@ -33,21 +33,25 @@ try {
 
   for (let number = 1; number <= 28; number += 1) {
     const path = `${String(number).padStart(2, "0")}.html`;
-    await page.setViewportSize({ width: 1440, height: 1000 });
-    const response = await page.goto(`${baseURL}/${path}`, { waitUntil: "domcontentloaded" });
-    if (!response?.ok()) {
-      failures.push(`${path}: HTTP ${response?.status()}`);
-      continue;
+    for (const viewport of [{ width: 360, height: 800 }, { width: 1440, height: 1000 }]) {
+      await page.setViewportSize(viewport);
+      const response = await page.goto(`${baseURL}/${path}`, { waitUntil: "domcontentloaded" });
+      if (!response?.ok()) {
+        failures.push(`${path}: HTTP ${response?.status()}`);
+        continue;
+      }
+      const result = await page.evaluate(() => ({
+        h1: document.querySelectorAll("h1").length,
+        main: document.querySelectorAll("main").length,
+        toc: Boolean(document.querySelector(".page-toc")),
+        width: document.documentElement.scrollWidth,
+        viewport: window.innerWidth,
+      }));
+      if (result.h1 !== 1) failures.push(`${path}: expected one H1, got ${result.h1}`);
+      if (result.main !== 1) failures.push(`${path}: expected one main, got ${result.main}`);
+      if (!result.toc) failures.push(`${path}: missing section navigation`);
+      if (result.width > result.viewport + 1) failures.push(`${path} [${viewport.width}px]: horizontal overflow ${result.width} > ${result.viewport}`);
     }
-    const result = await page.evaluate(() => ({
-      h1: document.querySelectorAll("h1").length,
-      main: document.querySelectorAll("main").length,
-      toc: Boolean(document.querySelector(".page-toc")),
-      title: document.title,
-    }));
-    if (result.h1 !== 1) failures.push(`${path}: expected one H1, got ${result.h1}`);
-    if (result.main !== 1) failures.push(`${path}: expected one main, got ${result.main}`);
-    if (!result.toc) failures.push(`${path}: missing section navigation`);
   }
 
   await page.setViewportSize({ width: 360, height: 800 });

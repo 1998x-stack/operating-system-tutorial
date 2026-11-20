@@ -37,6 +37,15 @@
       "locator": "NOTES",
       "status": "verified",
       "notes": "僵尸状态用于保留退出状态供父进程读取。"
+    },
+    {
+      "id": "proc-08-05",
+      "claim": "Linux 内核栈分配方式受 VMAP_STACK 等配置、架构和内核版本影响，不能概括为所有 Linux 5.x 内核统一使用 vmalloc。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://docs.kernel.org/mm/vmalloc.html",
+      "locator": "VMAP_STACK and vmalloc overview",
+      "status": "derived",
+      "notes": "具体实现需对照目标架构配置与源码。"
     }
   ]
 }

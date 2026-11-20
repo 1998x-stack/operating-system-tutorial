@@ -1,0 +1,42 @@
+{
+  "chapter": "24",
+  "title": "性能分析与调优",
+  "claims": [
+    {
+      "id": "perf-24-01",
+      "claim": "perf provides Linux performance counters and profiling/tracing facilities for CPU and software events.",
+      "kind": "kernel behavior, API or project documentation",
+      "source_url": "https://perf.wiki.kernel.org/index.php/Main_Page",
+      "locator": "perf wiki",
+      "status": "verified",
+      "notes": "Event availability depends on CPU, kernel and permissions."
+    },
+    {
+      "id": "perf-24-02",
+      "claim": "Flame graphs visualize aggregated stack samples; wide frames indicate more sampled activity, not necessarily exclusive wall-clock time.",
+      "kind": "kernel behavior, API or project documentation",
+      "source_url": "https://www.brendangregg.com/flamegraphs.html",
+      "locator": "Flame Graphs",
+      "status": "verified",
+      "notes": "Interpretation depends on sampling mode and stack collection."
+    },
+    {
+      "id": "perf-24-03",
+      "claim": "fio is a flexible I/O workload generator and benchmark tool.",
+      "kind": "kernel behavior, API or project documentation",
+      "source_url": "https://fio.readthedocs.io/en/latest/fio_doc.html",
+      "locator": "fio documentation",
+      "status": "verified",
+      "notes": "Results require workload, hardware and configuration context."
+    },
+    {
+      "id": "perf-24-04",
+      "claim": "kmemleak reports possible orphaned allocations and is a debugging aid rather than a proof of a memory leak.",
+      "kind": "kernel behavior, API or project documentation",
+      "source_url": "https://docs.kernel.org/dev-tools/kmemleak.html",
+      "locator": "kmemleak",
+      "status": "verified",
+      "notes": "False positives and untracked allocation paths are possible."
+    }
+  ]
+}

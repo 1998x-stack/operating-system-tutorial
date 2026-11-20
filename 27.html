@@ -132,7 +132,7 @@
         <p>这也解释了为什么很多硬件厂商（如NVIDIA）被社区批评"拒绝将驱动合入主线"——因为闭源的专有驱动每次内核大版本更新都需要重新适配，而且不能保证在所有内核版本上都能正常工作。</p>
 
         <div class="warning">
-            <p><strong>踩坑经验</strong>：如果你在内核开发中需要使用非主线驱动，建议的做法是使用<code>DKMS</code>（Dynamic Kernel Module Support）框架。DKMS会在你升级内核版本时自动重新编译第三方驱动模块。我在一次生产环境内核升级中因为没有使用DKMS，结果重启后发现网卡驱动加载失败——服务器直接断网了。那次之后，所有非主线驱动我都强制走DKMS流程。</p>
+            <p><strong>工程提示</strong>：DKMS 可在安装新内核时尝试重新构建第三方模块，但不能保证模块与新内核 API/ABI 兼容，也不能替代签名、测试和回滚方案。关键系统应在升级前验证模块构建、加载与设备功能，并准备带外访问或恢复路径。</p>
         </div>
 
         <h2 id="section-04">四、关键设计取舍</h2>
@@ -141,14 +141,14 @@
 
         <h3>文件系统之争：ext4 vs XFS vs Btrfs</h3>
 
-        <p>Linux支持数十种文件系统，但最常被比较的就是这三个。它们各自代表了不同的设计哲学：</p>
+        <p>ext4、XFS 与 Btrfs 常被用于比较，但功能边界会随内核版本和用户态工具变化。下表只概括常见设计差异，不替代目标发行版的文档与实测：</p>
 
         <table>
             <tr><th>特性</th><th>ext4</th><th>XFS</th><th>Btrfs</th></tr>
             <tr><td>设计年代</td><td>2008（ext3演进）</td><td>1994（SGI开发）</td><td>2007（Oracle开发）</td></tr>
             <tr><td>核心哲学</td><td>稳定、保守、向后兼容</td><td>高性能、大文件、大规模</td><td>功能丰富、写时拷贝、快照</td></tr>
             <tr><td>最大文件系统</td><td>1EB（理论值）</td><td>8EB</td><td>16EB</td></tr>
-            <tr><td>快照</td><td>不支持</td><td>支持（xfs_fsr）</td><td>原生支持，轻量级COW快照</td></tr>
+            <tr><td>快照</td><td>不提供原生子卷快照</td><td>不提供原生文件系统快照</td><td>支持子卷快照</td></tr>
             <tr><td>数据校验</td><td>仅metadata校验</td><td>仅metadata校验</td><td>metadata+数据校验</td></tr>
             <tr><td>适用场景</td><td>通用、嵌入式、系统分区</td><td>大文件存储、媒体服务器</td><td>需要快照/压缩/校验的场景</td></tr>
         </table>

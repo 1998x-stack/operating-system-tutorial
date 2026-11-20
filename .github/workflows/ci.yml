@@ -36,6 +36,12 @@ jobs:
         run: |
           python3 -m http.server 4173 > /tmp/os-tutorial-site.log 2>&1 &
           echo $! > /tmp/os-tutorial-site.pid
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/os-tutorial-site.log
+          exit 1
       - name: Test mobile, desktop and chapter pages
         run: npm run test:browser
         env:

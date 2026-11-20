@@ -1,0 +1,51 @@
+{
+  "chapter": "16",
+  "title": "设备驱动",
+  "claims": [
+    {
+      "id": "drv-16-01",
+      "claim": "Linux 设备模型通过 bus、device、driver 等对象组织设备与驱动的匹配关系。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://docs.kernel.org/driver-api/driver-model/overview.html",
+      "locator": "Overview",
+      "status": "verified",
+      "notes": "具体设备总线有各自匹配与 probe 细节。"
+    },
+    {
+      "id": "drv-16-02",
+      "claim": "字符设备通过设备号与 file_operations 等接口接入内核设备文件操作路径。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://docs.kernel.org/core-api/kernel-api.html",
+      "locator": "Character device drivers",
+      "status": "verified",
+      "notes": "实际注册 API 依内核版本为准。"
+    },
+    {
+      "id": "drv-16-03",
+      "claim": "用户空间指针访问应使用 copy_to_user/copy_from_user 等 uaccess API，而非普通 memcpy。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://docs.kernel.org/core-api/mm-api.html",
+      "locator": "User Space Memory Access",
+      "status": "verified",
+      "notes": "必须处理未复制字节数与错误路径。"
+    },
+    {
+      "id": "drv-16-04",
+      "claim": "设备树描述硬件资源与设备拓扑，内核驱动通过匹配表绑定对应节点。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://docs.kernel.org/devicetree/usage-model.html",
+      "locator": "Usage model",
+      "status": "verified",
+      "notes": "设备树并非所有平台的唯一硬件描述机制。"
+    },
+    {
+      "id": "drv-16-05",
+      "claim": "Rust for Linux 提供在内核中编写部分驱动与模块的支持，但 API 覆盖仍在演进。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://docs.kernel.org/rust/index.html",
+      "locator": "Rust",
+      "status": "verified",
+      "notes": "可用接口受内核版本、配置与安全抽象覆盖度限制。"
+    }
+  ]
+}

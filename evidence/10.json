@@ -1,0 +1,33 @@
+{
+  "chapter": "10",
+  "title": "CPU调度",
+  "claims": [
+    {
+      "id": "sched-10-01",
+      "claim": "Linux 调度器按调度类和每 CPU 运行队列组织可运行任务。",
+      "kind": "kernel implementation",
+      "source_url": "https://docs.kernel.org/scheduler/sched-design-CFS.html",
+      "locator": "Overview",
+      "status": "verified",
+      "notes": "不同调度类有不同策略，不能将公平调度等同于全部调度器。"
+    },
+    {
+      "id": "sched-10-02",
+      "claim": "EEVDF 使用 eligibility 与 virtual deadline 选择公平调度类中的任务。",
+      "kind": "kernel implementation",
+      "source_url": "https://docs.kernel.org/scheduler/sched-eevdf.html",
+      "locator": "Earliest Eligible Virtual Deadline First",
+      "status": "verified",
+      "notes": "Linux 6.6 起逐步引入公平调度实现演进；发行版回移补丁可能改变具体行为。"
+    },
+    {
+      "id": "sched-10-03",
+      "claim": "调度器开销与可运行任务数、调度频率、迁移和硬件拓扑相关。",
+      "kind": "derived",
+      "source_url": "https://docs.kernel.org/scheduler/sched-design-CFS.html",
+      "locator": "CFS run queues and scheduling",
+      "status": "derived",
+      "notes": "本文删除无来源的统一 CPU 百分比。"
+    }
+  ]
+}

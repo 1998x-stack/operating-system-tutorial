@@ -2,7 +2,7 @@
 
 > 28 章从硬件基础、内核机制到 Linux 工具链与综合项目的中文学习资料。**这是独立教学项目，不是 Linux 内核官方文档。**
 
-**[阅读课程首页](index.html)** · **[从第 01 章开始](01.html)** · [学习路线](docs/guides/learning-path.md) · [内容规范](docs/guides/content-guide.md) · [贡献指南](CONTRIBUTING.md)
+**[阅读课程首页](index.html)** · **[从第 01 章开始](01.html)** · [学习路线](docs/guides/learning-path.md) · [内容规范](docs/guides/content-guide.md) · [08–14 章复核记录](docs/reviews/chapters-08-14.md) · [贡献指南](CONTRIBUTING.md)
 
 这套教程围绕三个问题组织每一章：**为什么需要这个机制 → 它如何工作 → 怎样观察或验证它**。网页采用静态 HTML，章节之间可直接前后跳转，保留原有 `01.html` 至 `28.html` 链接以便引用与分享。
 
@@ -82,11 +82,11 @@ operating-system-tutorial/
 ├── assets/
 │   ├── css/site.css              # 统一的阅读设计系统
 │   └── diagrams/                 # 原创操作系统机制图
-├── evidence/                      # 第 01–07 章逐条论断与来源证据
+├── evidence/                      # 第 01–14 章逐条论断与来源证据
 ├── labs/                          # 系统调用、模块与 QEMU/xv6 实验
 ├── docs/
 │   ├── guides/                   # 学习路线与内容规范
-│   └── reviews/                  # 分批技术复核记录
+│   └── reviews/                  # 分批技术复核记录（01–07、08–14）
 ├── theme.css                      # 旧样式路径的兼容入口
 ├── scripts/check_site.py          # 静态 HTML、章节索引、证据和链接校验
 └── .github/workflows/ci.yml      # 提交与 PR 的静态质量检查

@@ -1,0 +1,42 @@
+{
+  "chapter": "14",
+  "title": "文件系统",
+  "claims": [
+    {
+      "id": "fs-14-01",
+      "claim": "VFS 为不同文件系统提供共同的内核对象与操作分派抽象。",
+      "kind": "kernel architecture",
+      "source_url": "https://docs.kernel.org/filesystems/vfs.html",
+      "locator": "The Linux VFS",
+      "status": "verified",
+      "notes": "统一抽象不表示所有文件描述符对象都由同一种磁盘文件系统实现。"
+    },
+    {
+      "id": "fs-14-02",
+      "claim": "ext4 使用 extent、日志与 delayed allocation 等机制；数据模式与挂载选项影响一致性语义。",
+      "kind": "filesystem implementation",
+      "source_url": "https://docs.kernel.org/filesystems/ext4/",
+      "locator": "The ext4 filesystem",
+      "status": "verified",
+      "notes": "实际选项与默认值应核对运行内核和挂载配置。"
+    },
+    {
+      "id": "fs-14-03",
+      "claim": "Btrfs 使用写时复制树结构，并提供子卷、快照和校验和等功能。",
+      "kind": "filesystem implementation",
+      "source_url": "https://docs.kernel.org/filesystems/btrfs.html",
+      "locator": "Btrfs documentation",
+      "status": "verified",
+      "notes": "校验和检测损坏不等于任何 RAID 配置都能自动修复。"
+    },
+    {
+      "id": "fs-14-04",
+      "claim": "O_DIRECT 不等价于持久化保证；应用持久化语义需要理解 fsync/fdatasync 与目录同步。",
+      "kind": "API semantics",
+      "source_url": "https://man7.org/linux/man-pages/man2/fsync.2.html",
+      "locator": "DESCRIPTION",
+      "status": "verified",
+      "notes": "设备缓存、文件系统和应用写入协议共同决定崩溃一致性。"
+    }
+  ]
+}

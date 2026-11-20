@@ -97,7 +97,7 @@ def main() -> int:
         check("<title" in svg and "<desc" in svg and "viewBox" in svg, f"{path.name}: accessible SVG metadata missing")
 
     # Validate chapter evidence ledgers introduced in the technical review batches.
-    for number in range(1, 8):
+    for number in range(1, 15):
         chapter_id = f"{number:02d}"
         evidence_path = ROOT / "evidence" / f"{chapter_id}.json"
         check(evidence_path.exists(), f"missing evidence ledger: {chapter_id}.json")
@@ -118,6 +118,7 @@ def main() -> int:
     for relative in [
         "evidence/README.md",
         "docs/reviews/chapters-01-07.md",
+        "docs/reviews/chapters-08-14.md",
         "labs/ch04-syscall/hello.c",
         "labs/ch04-syscall/README.md",
         "labs/ch06-hello-module/hello.c",

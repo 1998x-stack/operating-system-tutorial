@@ -28,6 +28,24 @@
       "locator": "Submitting patches",
       "status": "verified",
       "notes": "Project workflows and subsystem maintainer requirements vary."
+    },
+    {
+      "id": "design-27-05",
+      "claim": "seL4 形式化证明覆盖特定内核实现、抽象规范、配置与假设；不能外推为所有用户态服务、驱动、硬件与部署配置都被证明。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://docs.sel4.systems/projects/sel4/",
+      "locator": "seL4 verification documentation",
+      "status": "verified",
+      "notes": "性能数字必须附平台、编译器、消息大小与测量方法。"
+    },
+    {
+      "id": "design-27-06",
+      "claim": "Linux 用户空间 ABI 稳定原则不意味着所有内核内部接口（尤其模块内部 API）稳定；内核模块通常需针对目标内核重新构建与测试。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://docs.kernel.org/process/stable-api-nonsense.html",
+      "locator": "The Linux Kernel Driver Interface",
+      "status": "verified",
+      "notes": "外部模块不应假定跨版本稳定 ABI。"
     }
   ]
 }

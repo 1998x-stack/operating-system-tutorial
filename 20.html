@@ -58,10 +58,10 @@
 
         <h3>从用户态到内核态：五步走</h3>
         <ol>
-            <li><strong>用户态编写BPF程序</strong>：通常用C语言编写，看似普通函数，但有严格限制——不能有循环（直到最近版本允许有界循环）、栈大小限制512字节、不能随意调用内核函数（只能调用BPF helper函数）。</li>
+            <li><strong>用户态编写BPF程序</strong>：通常用C语言编写，看似普通函数，但有严格限制——允许满足验证器要求的有界循环；循环上界、复杂度和程序状态仍需通过 verifier 检查、栈大小限制512字节、不能随意调用内核函数（只能调用BPF helper函数）。</li>
             <li><strong>bpf()系统调用加载</strong>：用户态通过 <code>bpf(BPF_PROG_LOAD, ...)</code> 将BPF字节码送入内核。</li>
             <li><strong>验证器（Verifier）</strong>：这是eBPF安全性的关键。验证器对BPF字节码进行静态分析——模拟执行所有可能路径，检查不会导致内核崩溃（空指针解引用、越界访问、死循环）。符合安全要求的程序才通过。</li>
-            <li><strong>JIT编译</strong>：验证通过后，BPF JIT编译器将字节码编译成当前CPU架构的原生机器码（x86_64, ARM64, RISC-V等）。性能接近手写内核模块。</li>
+            <li><strong>JIT编译</strong>：验证通过后，BPF JIT编译器将字节码编译成当前CPU架构的原生机器码（x86_64, ARM64, RISC-V等）。JIT 可将通过验证的 BPF 字节码编译为本机指令，但实际性能取决于程序类型、挂接点、helper/map 访问、JIT 配置和工作负载；不能笼统说与手写内核模块性能相当。</li>
             <li><strong>内核态挂载执行</strong>：编译后的BPF程序挂载到指定的事件上（kprobe、tracepoint、XDP、TC等），事件触发时自动执行。</li>
         </ol>
 
@@ -186,7 +186,7 @@ Attaching 2 probes...
         <ul>
             <li><strong>BPF_MAP_TYPE_HASH</strong>：通用哈希表，最常用的Map类型。适合记录per-pid计数器、黑名单等。</li>
             <li><strong>BPF_MAP_TYPE_ARRAY</strong>：固定大小的数组，查找速度比哈希快（不会哈希冲突），适合CPU核心统计数据、per-CPU计数器。</li>
-            <li><strong>BPF_MAP_TYPE_PERF_EVENT_ARRAY</strong>：环形缓冲区，适合将事件数据流式输出到用户态——bpftrace的 <code>printf</code> 就是通过这个Map传递的。</li>
+            <li><strong>BPF_MAP_TYPE_PERF_EVENT_ARRAY</strong>：保存 perf event fd 索引，常与 <code>bpf_perf_event_output()</code> 配合把事件送往用户态；它与 <code>BPF_MAP_TYPE_RINGBUF</code> 是不同机制。具体工具使用哪种输出通道取决于版本与配置。</li>
             <li><strong>BPF_MAP_TYPE_RINGBUF</strong>：Perf Event Array的改进版——支持可变长度记录、更高效的多生产者/单消费者模型。</li>
             <li><strong>BPF_MAP_TYPE_STACK_TRACE</strong>：专门用于存储调用栈，用于生成火焰图。</li>
         </ul>
@@ -202,13 +202,15 @@ struct {
 // 在BPF程序中读写Map
 SEC("kprobe/schedule")
 int trace_sched(struct pt_regs *ctx) {
-    u32 pid = bpf_get_current_pid_tgid();
-    u64 *val = bpf_map_lookup_elem(&lat_map, &pid);
+    u64 pid_tgid = bpf_get_current_pid_tgid();
+u32 tid = (u32)pid_tgid;
+u32 tgid = pid_tgid >> 32;
+    u64 *val = bpf_map_lookup_elem(&lat_map, &tid);
     if (val) {
         __sync_fetch_and_add(val, 1);  // 原子递增
     } else {
         u64 one = 1;
-        bpf_map_update_elem(&lat_map, &pid, &one, BPF_NOEXIST);
+        bpf_map_update_elem(&lat_map, &tid, &one, BPF_NOEXIST);
     }
     return 0;
 }</code></pre>

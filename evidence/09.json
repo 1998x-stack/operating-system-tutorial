@@ -28,6 +28,15 @@
       "locator": "Goroutines",
       "status": "verified",
       "notes": "M:N 是常见模型之一，不代表所有协程实现完全相同。"
+    },
+    {
+      "id": "thread-09-04",
+      "claim": "Go goroutine 使用可增长的用户栈；运行时以约 2 KiB 最小栈为基础，并可根据 GC 统计调整后续 goroutine 的起始大小。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://go.dev/src/runtime/stack.go",
+      "locator": "startingStackSize; fixedStack",
+      "status": "verified",
+      "notes": "栈大小与创建耗时不能作为固定性能基准；以目标 Go 版本源码为准。"
     }
   ]
 }

@@ -249,12 +249,12 @@ pgsteal_direct 318</code></pre>
 
         <table>
             <tr><th>参数</th><th>含义</th><th>超额时的行为</th></tr>
-            <tr><td><code>memory.low</code></td><td>保证内存</td><td>此之内的内存不会被回收（即使系统整体内存紧张）</td></tr>
+            <tr><td><code>memory.low</code></td><td>尽力保护</td><td>有效 low 边界内的内存通常受保护，但在未保护 cgroup 无可回收内存或父级保护超额时仍可能被回收</td></tr>
             <tr><td><code>memory.high</code></td><td>软限制</td><td>超过时，触发内存回收节流（throttle），但可以继续超过</td></tr>
-            <tr><td><code>memory.max</code></td><td>硬限制</td><td>超过时，触发OOM Killer（在cgroup内杀进程）</td></tr>
+            <tr><td><code>memory.max</code></td><td>硬限制</td><td>达到上限且回收无法降低使用量时，可能触发该 cgroup 内的 OOM</td></tr>
         </table>
 
-        <p>这三个参数构成了一个三级防护：low保证你一定能拿到多少，high提醒你开始收敛，max是你绝不能超过的上限。比如一个容器设置 <code>memory.low=1G memory.high=2G memory.max=4G</code>，意味着保底1GB、建议控制在2GB以内、坚决不能超过4GB。</p>
+        <p>low 是 best-effort 保护而非保底承诺；high 超限时施加节流和直接回收压力但不触发 OOM；max 是硬限制，但短时可能超出，达到且无法回收时才触发 cgroup OOM。比如一个容器设置 <code>memory.low=1G memory.high=2G memory.max=4G</code>，意味着保底1GB、建议控制在2GB以内、坚决不能超过4GB。</p>
 
         <pre><code># 为容器设置内存cgroup
 # 创建cgroup并设置limits
@@ -270,10 +270,10 @@ echo $PID > /sys/fs/cgroup/my_container/cgroup.procs
 cat /sys/fs/cgroup/my_container/memory.current
 # 输出: 1560281088  (约1.45GB)</code></pre>
 
-        <p>在容器化部署中（Docker、Kubernetes），每个容器自动拥有自己的memcg。Docker的 <code>--memory</code> 参数实际上就是设置memory.max。Kubernetes的Pod resource limits同样是映射到cgroup的memory.max。</p>
+        <p>在使用 cgroup v2 且运行时配置资源控制时，容器/Pod 的内存限制通常由运行时映射到 memory.max 等控制文件；并非所有容器都自动获得独立的内存限制。Docker <code>--memory</code> 与 Kubernetes limits 的最终行为还受 cgroup 版本、驱动、父级限制和运行时配置影响。</p>
 
         <div class="tip">
-            <p><strong>生产实践</strong>：配置docker容器的memory limit时，建议不要设置得刚好等于应用的预期内存使用——留出10-20%的余量给page cache和内核开销。我曾经见过一个Java应用设置了 <code>-Xmx512m</code> 和Docker memory limit 512MB，结果JVM还没开始干活就被OOM Kill了——因为JVM本身和操作系统内核也需要额外内存。</p>
+            <p><strong>生产实践</strong>：应把匿名内存、页缓存、内核记账、线程栈和峰值波动纳入容量模型。不要采用固定 10–20% 作为通用余量；应根据容器的 <code>memory.current</code>、<code>memory.stat</code>、<code>memory.events</code> 与压力测试结果设定限制。</p>
         </div>
 
         <p>物理内存管理是操作系统中最靠近硬件的部分之一——Buddy System管理物理页、Slub加速小对象分配、kswapd和MGLRU在内存压力下优雅降级、memcg实现多租户隔离。这些机制合在一起，让物理内存这个有限且复杂的资源变得易于使用而又高效可控。</p>

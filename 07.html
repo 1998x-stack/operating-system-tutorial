@@ -1,52 +1,56 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第7章 OS实验环境搭建</title>
-    <link rel="stylesheet" href="theme.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="QEMU、GDB 与教学内核提供可控的执行现场，观测工具帮助验证假设。">
+  <title>第 7 章 · OS实验环境搭建 | 操作系统中文实践教程</title>
+  <link rel="stylesheet" href="assets/css/site.css">
 </head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>🖥️ 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 什么是操作系统</a></li>
-            <li><a href="02.html">第2章 硬件架构基础</a></li>
-            <li><a href="03.html">第3章 OS内核架构</a></li>
-            <li><a href="04.html">第4章 用户态与内核态</a></li>
-            <li><a href="05.html">第5章 引导与初始化</a></li>
-            <li><a href="06.html">第6章 OS内核源码初探</a></li>
-            <li><a href="07.html" class="active">第7章 OS实验环境搭建</a></li>
-            <li><a href="08.html">第8章 进程管理</a></li>
-            <li><a href="09.html">第9章 线程与协程</a></li>
-            <li><a href="10.html">第10章 CPU调度</a></li>
-            <li><a href="11.html">第11章 同步与互斥</a></li>
-            <li><a href="12.html">第12章 虚拟内存</a></li>
-            <li><a href="13.html">第13章 物理内存管理</a></li>
-            <li><a href="14.html">第14章 文件系统</a></li>
-            <li><a href="15.html">第15章 I/O模型与io_uring</a></li>
-            <li><a href="16.html">第16章 设备驱动</a></li>
-            <li><a href="17.html">第17章 中断与异常处理</a></li>
-            <li><a href="18.html">第18章 时间管理</a></li>
-            <li><a href="19.html">第19章 网络协议栈</a></li>
-            <li><a href="20.html">第20章 eBPF可观测性</a></li>
-            <li><a href="21.html">第21章 虚拟化技术</a></li>
-            <li><a href="22.html">第22章 容器与命名空间</a></li>
-            <li><a href="23.html">第23章 内核调试技术</a></li>
-            <li><a href="24.html">第24章 性能分析与调优</a></li>
-            <li><a href="25.html">第25章 动手写一个小OS</a></li>
-            <li><a href="26.html">第26章 现代OS前沿趋势</a></li>
-            <li><a href="27.html">第27章 OS内核设计决策</a></li>
-            <li><a href="28.html">第28章 综合项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
+<body class="chapter-page">
+<a class="skip-link" href="#content">跳转至正文</a>
+<div class="site-shell">
+<header class="site-masthead"><a href="index.html">操作系统 · 中文实践教程</a><span class="section-mark">CHAPTER 07 / 28</span></header>
+<div class="reading-layout">
+<nav class="sidebar" aria-label="课程章节"><details class="chapter-drawer" open><summary>全部 28 章</summary><ol><li><a href="01.html">01 · 什么是操作系统</a></li>
+<li><a href="02.html">02 · 硬件架构基础</a></li>
+<li><a href="03.html">03 · OS内核架构</a></li>
+<li><a href="04.html">04 · 用户态与内核态</a></li>
+<li><a href="05.html">05 · 引导与初始化</a></li>
+<li><a href="06.html">06 · OS内核源码初探</a></li>
+<li><a href="07.html" aria-current="page">07 · OS实验环境搭建</a></li>
+<li><a href="08.html">08 · 进程管理</a></li>
+<li><a href="09.html">09 · 线程与协程</a></li>
+<li><a href="10.html">10 · CPU调度</a></li>
+<li><a href="11.html">11 · 同步与互斥</a></li>
+<li><a href="12.html">12 · 虚拟内存</a></li>
+<li><a href="13.html">13 · 物理内存管理</a></li>
+<li><a href="14.html">14 · 文件系统</a></li>
+<li><a href="15.html">15 · I/O模型与io_uring</a></li>
+<li><a href="16.html">16 · 设备驱动</a></li>
+<li><a href="17.html">17 · 中断与异常处理</a></li>
+<li><a href="18.html">18 · 时间管理</a></li>
+<li><a href="19.html">19 · 网络协议栈</a></li>
+<li><a href="20.html">20 · eBPF可观测性</a></li>
+<li><a href="21.html">21 · 虚拟化技术</a></li>
+<li><a href="22.html">22 · 容器与命名空间</a></li>
+<li><a href="23.html">23 · 内核调试技术</a></li>
+<li><a href="24.html">24 · 性能分析与调优</a></li>
+<li><a href="25.html">25 · 动手写一个小OS</a></li>
+<li><a href="26.html">26 · 现代OS前沿趋势</a></li>
+<li><a href="27.html">27 · OS内核设计决策</a></li>
+<li><a href="28.html">28 · 综合项目</a></li></ol></details></nav>
+<main id="content" class="content-column"><article class="chapter-article" aria-labelledby="chapter-title">
+<header class="article-header"><p class="kicker">OPERATING SYSTEMS · CHAPTER 07</p><h1 id="chapter-title">第 7 章 · OS实验环境搭建</h1><p class="article-dek">如何在不影响宿主机的情况下观察内核内部？</p></header>
+<section class="learning-map" aria-labelledby="learning-map-title"><h2 id="learning-map-title">先建立问题地图</h2><p>QEMU、GDB 与教学内核提供可控的执行现场，观测工具帮助验证假设。</p><div class="concept-steps" role="list"><div role="listitem"><strong>起点</strong><span>QEMU虚拟平台</span></div><div role="listitem"><strong>机制</strong><span>GDB远程调试</span></div><div role="listitem"><strong>拓展</strong><span>xv6教学内核 / perf/bpftrace/ftrace</span></div></div><p class="map-note">这是帮助建立概念依赖的阅读地图，不表示内核内部的实际执行时序。</p></section>
 
-        <h2>第7章 OS实验环境搭建</h2>
-
-        <p>大家好，我是你们的讲师。前面的六章我们一起完成了从硬件到内核的理论学习。但操作系统学习有一条铁律：光看不练等于白学。从本章开始，我们正式进入"动手做"阶段。</p>
+<nav class="page-toc" aria-label="本章小节"><details open><summary>本章目录 · 5 个部分</summary><ol><li><a href="#section-01">一、QEMU搭建虚拟硬件平台</a></li>
+<li><a href="#section-02">二、GDB+QEMU远程调试内核</a></li>
+<li><a href="#section-03">三、xv6教学内核初体验</a></li>
+<li><a href="#section-04">四、构建分析工具链</a></li>
+<li><a href="#section-05">五、结语与下一章预告</a></li></ol></details></nav>
+<div class="article-body">
+<p>大家好，我是你们的讲师。前面的六章我们一起完成了从硬件到内核的理论学习。但操作系统学习有一条铁律：光看不练等于白学。从本章开始，我们正式进入"动手做"阶段。</p>
 
         <p>操作系统实验有一个天然的困难：你研究的是最底层的系统软件，如果代码写崩了，不只是程序崩溃——是整个系统崩溃。你不能像调试普通程序一样，在IDE里点个断点就完事。你需要一套专门的环境：一个模拟出来的"虚拟电脑"让你为所欲为，一个源码级的调试器让你在内核代码里设断点，一个教学用的迷你操作系统让你快速上手。这就是本章要搭建的东西。</p>
 
@@ -56,7 +60,7 @@
             <p><strong>整体规划</strong>：本章将搭建四个实验环境组件——QEMU虚拟硬件平台、GDB+QEMU远程调试工具链、xv6教学内核、以及性能分析工具链（perf/bpftrace/ftrace）。这四个组件将贯穿后续所有章节的学习。</p>
         </div>
 
-        <h2>一、QEMU搭建虚拟硬件平台</h2>
+        <h2 id="section-01">一、QEMU搭建虚拟硬件平台</h2>
 
         <p>QEMU（Quick EMUlator）是一个开源的机器模拟器，能在你的宿主机上模拟出完整的计算机——包括CPU、内存、磁盘、网卡、显示控制器、中断控制器等。更重要的是，QEMU支持GDB远程调试协议，让你能在模拟的"裸机"上调试操作系统内核。</p>
 
@@ -110,7 +114,7 @@ $ qemu-system-x86_64 -m 4G -smp 4 \
             <p><strong>最佳实践</strong>：日常开发使用 <code>-nographic</code> + <code>console=ttyS0</code> 组合，QEMU的串口输出直接显示在终端，方便与GDB集成。需要图形界面时去掉 <code>-nographic</code> 即可。</p>
         </div>
 
-        <h2>二、GDB+QEMU远程调试内核</h2>
+        <h2 id="section-02">二、GDB+QEMU远程调试内核</h2>
 
         <p>这是OS学习中最重要的调试技能。通过GDB连接到QEMU，你可以像调试普通程序一样——在源码中设置断点、单步执行、查看变量——来调试正在运行的内核。</p>
 
@@ -191,7 +195,7 @@ rcx            0x0                 0
             <p><strong>踩坑实录</strong>：我在调试内核时曾经连续"崩溃"了十几次，后来发现每次重新启动QEMU后，GDB连接时都提示"Remote 'g' packet reply is too long"。这是QEMU和GDB之间的CPU状态描述格式不匹配。解决方案是在 <code>~/.gdbinit</code> 里加上一行 <code>set arch i386:x86-64</code>，或者在GDB中手动设置架构为 <code>i386:x86-64</code>。如果你遇到这个奇怪的错误，现在知道原因了。</p>
         </div>
 
-        <h2>三、xv6教学内核初体验</h2>
+        <h2 id="section-03">三、xv6教学内核初体验</h2>
 
         <p>xv6是MIT为操作系统课程"6.S081"设计的一个教学用类Unix内核。它是Unix V6（1976年的经典UNIX版本）在RISC-V和x86平台上的现代重写，去掉了所有与教学无关的复杂特性，保留了操作系统的核心概念——进程、文件系统、虚拟内存、中断、管道——而且全程用C语言编写，代码量仅约1万行，非常适合学生学习和修改。</p>
 
@@ -272,7 +276,7 @@ $ Ctrl-p    # 显示当前进程列表
             <p><strong>学习建议</strong>：MIT的6.S081课程将xv6作为完整的实验平台，全部实验材料在MIT的PDOS网站上公开。如果你希望深入操作系统实验，强烈推荐在完成本课程后挑战MIT的xv6实验——它们会要求你给xv6添加写时复制fork、懒分配（lazy allocation）、内存映射文件（mmap）等功能，这些是真实OS中的重要机制。</p>
         </div>
 
-        <h2>四、构建分析工具链</h2>
+        <h2 id="section-04">四、构建分析工具链</h2>
 
         <p>操作系统调试和性能分析不能只靠"printf打天下"。我们需要一套专业的工具来观察内核在干什么。下面四个工具是你后续章节实验的标准配置。</p>
 
@@ -361,19 +365,18 @@ $ sudo trace-cmd record -e sched_switch -e sched_wakeup \
             <p><strong>权限提醒</strong>：以上大多数工具需要root权限运行，或者需要将用户加入特定组。因为读取CPU性能计数器和挂载kprobe/tracepoint都需要访问内核的底层接口。在虚拟机上实验时尽量使用root或 <code>sudo</code>。在生产环境中请使用专门的性能观察账户 + 有限的capabilities（如 <code>CAP_PERFMON</code>）。</p>
         </div>
 
-        <h2>五、结语与下一章预告</h2>
+        <h2 id="section-05">五、结语与下一章预告</h2>
 
         <p>本章我们搭建了四套实验环境：QEMU虚拟硬件平台让你可以"报废"操作系统而不用担心——Ctrl-C重启就好；GDB+QEMU远程调试让你能从start_kernel第一行代码起跟进内核的执行；xv6教学内核用1万行优雅代码展示了操作系统的精巧设计；perf/ftrace/bpftrace/trace-cmd组成了你的内核分析工具箱。</p>
 
         <p>从下一章开始，我们将正式进入操作系统的核心机制——进程管理。你会学到进程到底是什么，它和程序有什么区别，内核是如何通过 <code>fork()</code>/<code>exec()</code>/<code>exit()</code> 来创建和管理进程的。当然，我们会用刚搭建的实验环境亲手验证每一个概念。</p>
-
-        <div class="footer-nav">
-            <a href="06.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="08.html">下一章 →</a>
-        </div>
-    </div>
 </div>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>写一份最小实验计划：启动目标、设置断点、观察寄存器。</p><details><summary>查看思考提示</summary><p>记录 QEMU 架构、GDB 连接方式与内核镜像版本。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://www.qemu.org/docs/master/">QEMU 文档</a><a href="https://pdos.csail.mit.edu/6.1810/">xv6 教学资源</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<nav class="footer-nav" aria-label="章节前后导航"><a href="06.html">← 上一章 · OS内核源码初探</a><a href="index.html">返回课程目录</a><a href="08.html">下一章 · 进程管理 →</a></nav>
+</article></main>
+</div>
+<footer class="site-footer">操作系统中文实践教程 · <a href="docs/guides/learning-path.md">学习路线</a> · <a href="docs/guides/content-guide.md">内容规范</a></footer>
 </div>
 </body>
 </html>

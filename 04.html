@@ -1,52 +1,56 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第4章 用户态与内核态</title>
-    <link rel="stylesheet" href="theme.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="处理器权限级别与系统调用入口把用户代码和受保护的内核服务隔开。">
+  <title>第 4 章 · 用户态与内核态 | 操作系统中文实践教程</title>
+  <link rel="stylesheet" href="assets/css/site.css">
 </head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>🖥️ 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 什么是操作系统</a></li>
-            <li><a href="02.html">第2章 硬件架构基础</a></li>
-            <li><a href="03.html">第3章 OS内核架构</a></li>
-            <li><a href="04.html" class="active">第4章 用户态与内核态</a></li>
-            <li><a href="05.html">第5章 引导与初始化</a></li>
-            <li><a href="06.html">第6章 OS内核源码初探</a></li>
-            <li><a href="07.html">第7章 OS实验环境搭建</a></li>
-            <li><a href="08.html">第8章 进程管理</a></li>
-            <li><a href="09.html">第9章 线程与协程</a></li>
-            <li><a href="10.html">第10章 CPU调度</a></li>
-            <li><a href="11.html">第11章 同步与互斥</a></li>
-            <li><a href="12.html">第12章 虚拟内存</a></li>
-            <li><a href="13.html">第13章 物理内存管理</a></li>
-            <li><a href="14.html">第14章 文件系统</a></li>
-            <li><a href="15.html">第15章 I/O模型与io_uring</a></li>
-            <li><a href="16.html">第16章 设备驱动</a></li>
-            <li><a href="17.html">第17章 中断与异常处理</a></li>
-            <li><a href="18.html">第18章 时间管理</a></li>
-            <li><a href="19.html">第19章 网络协议栈</a></li>
-            <li><a href="20.html">第20章 eBPF可观测性</a></li>
-            <li><a href="21.html">第21章 虚拟化技术</a></li>
-            <li><a href="22.html">第22章 容器与命名空间</a></li>
-            <li><a href="23.html">第23章 内核调试技术</a></li>
-            <li><a href="24.html">第24章 性能分析与调优</a></li>
-            <li><a href="25.html">第25章 动手写一个小OS</a></li>
-            <li><a href="26.html">第26章 现代OS前沿趋势</a></li>
-            <li><a href="27.html">第27章 OS内核设计决策</a></li>
-            <li><a href="28.html">第28章 综合项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
-
-        <h2>第4章 用户态与内核态</h2>
-
-        <p>大家好，我是你们的讲师。上一章我们比较了几种内核架构的优劣，它们有一个共性前提：用户态和内核态是分离的。这个看似简单的划分，其实是整个操作系统安全模型的基石。</p>
+<body class="chapter-page">
+<a class="skip-link" href="#content">跳转至正文</a>
+<div class="site-shell">
+<header class="site-masthead"><a href="index.html">操作系统 · 中文实践教程</a><span class="section-mark">CHAPTER 04 / 28</span></header>
+<div class="reading-layout">
+<nav class="sidebar" aria-label="课程章节"><details class="chapter-drawer" open><summary>全部 28 章</summary><ol><li><a href="01.html">01 · 什么是操作系统</a></li>
+<li><a href="02.html">02 · 硬件架构基础</a></li>
+<li><a href="03.html">03 · OS内核架构</a></li>
+<li><a href="04.html" aria-current="page">04 · 用户态与内核态</a></li>
+<li><a href="05.html">05 · 引导与初始化</a></li>
+<li><a href="06.html">06 · OS内核源码初探</a></li>
+<li><a href="07.html">07 · OS实验环境搭建</a></li>
+<li><a href="08.html">08 · 进程管理</a></li>
+<li><a href="09.html">09 · 线程与协程</a></li>
+<li><a href="10.html">10 · CPU调度</a></li>
+<li><a href="11.html">11 · 同步与互斥</a></li>
+<li><a href="12.html">12 · 虚拟内存</a></li>
+<li><a href="13.html">13 · 物理内存管理</a></li>
+<li><a href="14.html">14 · 文件系统</a></li>
+<li><a href="15.html">15 · I/O模型与io_uring</a></li>
+<li><a href="16.html">16 · 设备驱动</a></li>
+<li><a href="17.html">17 · 中断与异常处理</a></li>
+<li><a href="18.html">18 · 时间管理</a></li>
+<li><a href="19.html">19 · 网络协议栈</a></li>
+<li><a href="20.html">20 · eBPF可观测性</a></li>
+<li><a href="21.html">21 · 虚拟化技术</a></li>
+<li><a href="22.html">22 · 容器与命名空间</a></li>
+<li><a href="23.html">23 · 内核调试技术</a></li>
+<li><a href="24.html">24 · 性能分析与调优</a></li>
+<li><a href="25.html">25 · 动手写一个小OS</a></li>
+<li><a href="26.html">26 · 现代OS前沿趋势</a></li>
+<li><a href="27.html">27 · OS内核设计决策</a></li>
+<li><a href="28.html">28 · 综合项目</a></li></ol></details></nav>
+<main id="content" class="content-column"><article class="chapter-article" aria-labelledby="chapter-title">
+<header class="article-header"><p class="kicker">OPERATING SYSTEMS · CHAPTER 04</p><h1 id="chapter-title">第 4 章 · 用户态与内核态</h1><p class="article-dek">应用为什么不能直接执行内核特权操作？</p></header>
+<section class="learning-map" aria-labelledby="learning-map-title"><h2 id="learning-map-title">先建立问题地图</h2><p>处理器权限级别与系统调用入口把用户代码和受保护的内核服务隔开。</p><div class="concept-steps" role="list"><div role="listitem"><strong>起点</strong><span>特权级别</span></div><div role="listitem"><strong>机制</strong><span>系统调用全流程</span></div><div role="listitem"><strong>拓展</strong><span>strace实战 / 上下文切换成本</span></div></div><p class="map-note">这是帮助建立概念依赖的阅读地图，不表示内核内部的实际执行时序。</p></section>
+<figure class="mechanism-figure"><img src="assets/diagrams/syscall-boundary.svg" width="800" height="236" alt="系统调用穿过用户态与内核态边界"><figcaption>用户代码通过受控入口进入内核，执行请求后再返回用户态。该图只表示权限边界的概念路径。</figcaption></figure>
+<nav class="page-toc" aria-label="本章小节"><details open><summary>本章目录 · 5 个部分</summary><ol><li><a href="#section-01">一、特权级别</a></li>
+<li><a href="#section-02">二、系统调用全流程</a></li>
+<li><a href="#section-03">三、strace实战</a></li>
+<li><a href="#section-04">四、上下文切换的成本</a></li>
+<li><a href="#section-05">五、结语与下一章预告</a></li></ol></details></nav>
+<div class="article-body">
+<p>大家好，我是你们的讲师。上一章我们比较了几种内核架构的优劣，它们有一个共性前提：用户态和内核态是分离的。这个看似简单的划分，其实是整个操作系统安全模型的基石。</p>
 
         <p>想象一下：你写了一个程序，里面有一行 <code>*(int*)0 = 42;</code>，想往地址0写数据。如果没有用户态/内核态的隔离，这一行代码直接向物理地址0写入数据——那可能是中断向量表的位置，整个系统瞬间崩溃。但有了隔离，操作系统会优雅地给你一个"Segmentation Fault"信号，你的程序挂了，但机器安然无恙。这就是特权隔离在保护我们。</p>
 
@@ -56,7 +60,7 @@
             <p><strong>核心概念</strong>：用户态（User Mode）是应用程序运行时的最低特权级别，不能直接访问硬件和内核数据结构。内核态（Kernel Mode）是操作系统内核运行时的最高特权级别，可以执行任何CPU指令和访问任何内存地址。二者之间的"门"是系统调用。</p>
         </div>
 
-        <h2>一、特权级别</h2>
+        <h2 id="section-01">一、特权级别</h2>
 
         <h3>1. x86的Ring 0–3</h3>
         <p>x86架构提供了4个特权级别（Privilege Level），编号Ring 0到Ring 3。Ring 0是最高特权级（内核态），Ring 3是最低特权级（用户态），Ring 1和Ring 2在主流OS中几乎不使用（部分虚拟化方案和OS/2用过）。当前CPU的特权级由CS寄存器的CPL（Current Privilege Level）字段标识。一条指令能否执行、一个内存段能否访问，由CPL和段描述符/页表项的DPL/RPL共同决定。关键的限制包括：用户态无法执行 <code>lgdt</code> / <code>lidt</code> 等特权指令、无法直接修改控制寄存器（CR0/CR3/CR4）、无法直接操作中断控制器和I/O端口（除非I/O位图特别允许）。</p>
@@ -76,7 +80,7 @@
             <p><strong>为什么需要特权隔离</strong>：从安全角度看，这是"最小权限原则"（Principle of Least Privilege）在硬件层面的体现。应用程序永远不应该拥有它不需要的权限。从稳定角度看，一个用户程序的bug不应该能影响到其他程序，更不应该能破坏内核。</p>
         </div>
 
-        <h2>二、系统调用全流程</h2>
+        <h2 id="section-02">二、系统调用全流程</h2>
 
         <p>理解了特权级别后，我们来看看"跨越鸿沟"的关键机制——系统调用。这是一个从用户态的 <code>printf()</code> 到内核态的 <code>sys_write()</code> 的完整旅程。</p>
 
@@ -103,7 +107,7 @@ js     handle_error    ; 跳转到错误处理</code></pre>
             <p><strong>重要理解</strong>：系统调用是用户态与内核态之间"协商的入口"——你不能任意跳转到内核中的任意地址去执行代码，只能通过预定义的系统调用号进入预定义的入口。这就是"门"的含义。系统调用表（sys_call_table）定义了哪些功能可以被用户态请求，内核利用这个"门"来控制所有对底层资源的访问。</p>
         </div>
 
-        <h2>三、strace实战</h2>
+        <h2 id="section-03">三、strace实战</h2>
 
         <p>说一万遍不如动一次手。我们用 <code>strace</code> 这个工具来"窃听"程序与内核的对话——它会拦截并打印每一次系统调用的详细信息。</p>
 
@@ -147,7 +151,7 @@ write(1, "Hello, OS!\n", 11) = 11
             <p><strong>实战技巧</strong>：strace是你调试线上问题的最好朋友之一。当你的程序莫名其妙变慢时，先跑一个 <code>strace -c -p PID</code> 看看系统调用的统计。如果 <code>read</code>/<code>write</code> 的调用次数异常高或errno为EAGAIN特别多，那大概率是I/O模型的问题。我曾经用这个方法定位到一个Nginx worker疯狂进行 <code>epoll_wait</code> 返回超时的问题——根本不是业务代码的锅，而是内核网络栈的参数需要调优。</p>
         </div>
 
-        <h2>四、上下文切换的成本</h2>
+        <h2 id="section-04">四、上下文切换的成本</h2>
 
         <p>用户态与内核态之间的切换不是免费的。每次 <code>syscall</code> / <code>sysret</code> 或中断时，CPU都有一整套状态保存和恢复的动作，这些动作消耗CPU周期。</p>
 
@@ -175,19 +179,18 @@ write(1, "Hello, OS!\n", 11) = 11
             <p><strong>经典数据</strong>：Google在2019年的一篇论文中报道，在其生产服务器上，Linux内核的"系统调用开销"占用了大约5–10%的总CPU时间。这意味着在所有服务器上，大约每10台就有一台在不停地处理用户态和内核态的切换开销。优化这部分就是实打实的成本节约。</p>
         </div>
 
-        <h2>五、结语与下一章预告</h2>
+        <h2 id="section-05">五、结语与下一章预告</h2>
 
         <p>本章我们深入剖析了操作系统的"特区划界"——用户态与内核态的隔离机制。我们搞懂了x86 Ring 0-3和ARM EL0-3的硬件防御体系；从glibc的 <code>printf()</code> 一路追踪到了 <code>sys_write()</code>，完整走了一遍系统调用的旅程；用strace实战观察了程序与内核的每一次"对话"；最后量化了上下文切换的CPU周期消耗，为性能优化提供了数据支撑。</p>
 
         <p>现在你已经了解了"内核长什么样"以及"怎么进内核"。下一个自然而然的疑问是：当我们按下电脑的电源键时，内核是怎么被加载到内存中并启动起来的？下一章我们将完整走一遍启动流程——从固件到Bootloader到内核到init进程，见证操作系统从无到有的全过程。</p>
-
-        <div class="footer-nav">
-            <a href="03.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="05.html">下一章 →</a>
-        </div>
-    </div>
 </div>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>画出 read() 从用户态进入内核再返回的边界。</p><details><summary>查看思考提示</summary><p>区分权限转换、服务执行和返回用户态三个时刻。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<nav class="footer-nav" aria-label="章节前后导航"><a href="03.html">← 上一章 · OS内核架构</a><a href="index.html">返回课程目录</a><a href="05.html">下一章 · 引导与初始化 →</a></nav>
+</article></main>
+</div>
+<footer class="site-footer">操作系统中文实践教程 · <a href="docs/guides/learning-path.md">学习路线</a> · <a href="docs/guides/content-guide.md">内容规范</a></footer>
 </div>
 </body>
 </html>

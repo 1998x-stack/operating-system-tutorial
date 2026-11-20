@@ -1,58 +1,62 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第8章 进程管理</title>
-    <link rel="stylesheet" href="theme.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="进程具有自己的执行上下文；fork 后部分资源以引用或写时复制方式共享。">
+  <title>第 8 章 · 进程管理 | 操作系统中文实践教程</title>
+  <link rel="stylesheet" href="assets/css/site.css">
 </head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>🖥️ 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 什么是操作系统</a></li>
-            <li><a href="02.html">第2章 硬件架构基础</a></li>
-            <li><a href="03.html">第3章 OS内核架构</a></li>
-            <li><a href="04.html">第4章 用户态与内核态</a></li>
-            <li><a href="05.html">第5章 引导与初始化</a></li>
-            <li><a href="06.html">第6章 OS内核源码初探</a></li>
-            <li><a href="07.html">第7章 OS实验环境搭建</a></li>
-            <li><a href="08.html" class="active">第8章 进程管理</a></li>
-            <li><a href="09.html">第9章 线程与协程</a></li>
-            <li><a href="10.html">第10章 CPU调度</a></li>
-            <li><a href="11.html">第11章 同步与互斥</a></li>
-            <li><a href="12.html">第12章 虚拟内存</a></li>
-            <li><a href="13.html">第13章 物理内存管理</a></li>
-            <li><a href="14.html">第14章 文件系统</a></li>
-            <li><a href="15.html">第15章 I/O模型与io_uring</a></li>
-            <li><a href="16.html">第16章 设备驱动</a></li>
-            <li><a href="17.html">第17章 中断与异常处理</a></li>
-            <li><a href="18.html">第18章 时间管理</a></li>
-            <li><a href="19.html">第19章 网络协议栈</a></li>
-            <li><a href="20.html">第20章 eBPF可观测性</a></li>
-            <li><a href="21.html">第21章 虚拟化技术</a></li>
-            <li><a href="22.html">第22章 容器与命名空间</a></li>
-            <li><a href="23.html">第23章 内核调试技术</a></li>
-            <li><a href="24.html">第24章 性能分析与调优</a></li>
-            <li><a href="25.html">第25章 动手写一个小OS</a></li>
-            <li><a href="26.html">第26章 现代OS前沿趋势</a></li>
-            <li><a href="27.html">第27章 OS内核设计决策</a></li>
-            <li><a href="28.html">第28章 综合项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
+<body class="chapter-page">
+<a class="skip-link" href="#content">跳转至正文</a>
+<div class="site-shell">
+<header class="site-masthead"><a href="index.html">操作系统 · 中文实践教程</a><span class="section-mark">CHAPTER 08 / 28</span></header>
+<div class="reading-layout">
+<nav class="sidebar" aria-label="课程章节"><details class="chapter-drawer" open><summary>全部 28 章</summary><ol><li><a href="01.html">01 · 什么是操作系统</a></li>
+<li><a href="02.html">02 · 硬件架构基础</a></li>
+<li><a href="03.html">03 · OS内核架构</a></li>
+<li><a href="04.html">04 · 用户态与内核态</a></li>
+<li><a href="05.html">05 · 引导与初始化</a></li>
+<li><a href="06.html">06 · OS内核源码初探</a></li>
+<li><a href="07.html">07 · OS实验环境搭建</a></li>
+<li><a href="08.html" aria-current="page">08 · 进程管理</a></li>
+<li><a href="09.html">09 · 线程与协程</a></li>
+<li><a href="10.html">10 · CPU调度</a></li>
+<li><a href="11.html">11 · 同步与互斥</a></li>
+<li><a href="12.html">12 · 虚拟内存</a></li>
+<li><a href="13.html">13 · 物理内存管理</a></li>
+<li><a href="14.html">14 · 文件系统</a></li>
+<li><a href="15.html">15 · I/O模型与io_uring</a></li>
+<li><a href="16.html">16 · 设备驱动</a></li>
+<li><a href="17.html">17 · 中断与异常处理</a></li>
+<li><a href="18.html">18 · 时间管理</a></li>
+<li><a href="19.html">19 · 网络协议栈</a></li>
+<li><a href="20.html">20 · eBPF可观测性</a></li>
+<li><a href="21.html">21 · 虚拟化技术</a></li>
+<li><a href="22.html">22 · 容器与命名空间</a></li>
+<li><a href="23.html">23 · 内核调试技术</a></li>
+<li><a href="24.html">24 · 性能分析与调优</a></li>
+<li><a href="25.html">25 · 动手写一个小OS</a></li>
+<li><a href="26.html">26 · 现代OS前沿趋势</a></li>
+<li><a href="27.html">27 · OS内核设计决策</a></li>
+<li><a href="28.html">28 · 综合项目</a></li></ol></details></nav>
+<main id="content" class="content-column"><article class="chapter-article" aria-labelledby="chapter-title">
+<header class="article-header"><p class="kicker">OPERATING SYSTEMS · CHAPTER 08</p><h1 id="chapter-title">第 8 章 · 进程管理</h1><p class="article-dek">fork 出来的子进程与父进程究竟共享什么？</p></header>
+<section class="learning-map" aria-labelledby="learning-map-title"><h2 id="learning-map-title">先建立问题地图</h2><p>进程具有自己的执行上下文；fork 后部分资源以引用或写时复制方式共享。</p><div class="concept-steps" role="list"><div role="listitem"><strong>起点</strong><span>task_struct</span></div><div role="listitem"><strong>机制</strong><span>进程五状态模型</span></div><div role="listitem"><strong>拓展</strong><span>fork写时拷贝 / execve加载程序</span></div></div><p class="map-note">这是帮助建立概念依赖的阅读地图，不表示内核内部的实际执行时序。</p></section>
 
-        <h2>第8章 进程管理</h2>
-
-        <p>大家好，我是你们的讲师。想象一下，你打开了一台新电脑——浏览器开了30个标签页、VS Code在编译工程、网易云音乐在后台播放、微信在接收消息、还有一个Docker容器在跑数据库。电脑到底是怎么"同时"做完这么多事情的？每个程序在底层是怎么被"管"起来的？这就是进程管理的核心问题。</p>
+<nav class="page-toc" aria-label="本章小节"><details open><summary>本章目录 · 5 个部分</summary><ol><li><a href="#section-01">进程到底是什么</a></li>
+<li><a href="#section-02">task_struct：Linux进程的&quot;身份证&quot;</a></li>
+<li><a href="#section-03">进程五状态模型与Linux实现</a></li>
+<li><a href="#section-04">fork()写时拷贝的魔法</a></li>
+<li><a href="#section-05">execve()：一个程序的诞生</a></li></ol></details></nav>
+<div class="article-body">
+<p>大家好，我是你们的讲师。想象一下，你打开了一台新电脑——浏览器开了30个标签页、VS Code在编译工程、网易云音乐在后台播放、微信在接收消息、还有一个Docker容器在跑数据库。电脑到底是怎么"同时"做完这么多事情的？每个程序在底层是怎么被"管"起来的？这就是进程管理的核心问题。</p>
 
         <p>进程（Process）是操作系统中最核心的抽象之一。它不仅是资源分配的基本单位，也是系统隔离和保护的基础。可以毫不夸张地说，理解了进程管理，你就理解了操作系统的半边天。这一章，我们从进程的物理本质出发，深入到Linux内核的task_struct、五种状态模型、fork的写时拷贝机制，一直到execve如何加载一个新程序。这一整套链路，构成了进程从"生"到"死"的完整故事。</p>
 
         <p>说一个我踩过的坑。刚工作那会儿，我写了一个后台服务，上线后每隔一段时间就会莫名其妙地丢失大量子进程，日志里全是"Resource temporarily unavailable"的错误。排查了半天，发现是进程数量突破了`ulimit -u`限制——我每次请求都fork新进程但忘了wait回收，导致僵尸进程堆积，耗尽了系统的进程数上限。从那以后我牢牢记住了：进程资源不是无限的，创建进程的同时，你必须想清楚谁来收尸。</p>
 
-        <h2>进程到底是什么</h2>
+        <h2 id="section-01">进程到底是什么</h2>
 
         <p>一个最经典的定义——进程是"运行中的程序"。程序是一堆躺在磁盘上的二进制指令和数据，是静态的；进程是这些指令被加载到内存、CPU开始逐条执行后的那个动态实体。同一个程序（比如你的浏览器）可以同时启动多个进程，每个进程有自己的内存空间、文件描述符、堆栈和执行上下文。</p>
 
@@ -80,7 +84,7 @@
             <p><strong>面试考点</strong>：进程地址空间的五个段（Text/Data/BSS/Heap/Stack）是OS面试几乎必问的基础题。常见延伸问题包括：BSS段为什么和Data段分开？答案是为了节省可执行文件的空间——BSS段不占用磁盘空间，只记录大小，加载时由内核初始化为零。</p>
         </div>
 
-        <h2>task_struct：Linux进程的"身份证"</h2>
+        <h2 id="section-02">task_struct：Linux进程的"身份证"</h2>
 
         <p>在内核眼里，每个进程都是用一个庞大的结构体来描述的——这就是 <code>task_struct</code>，定义在 <code>include/linux/sched.h</code> 中。这个结构体有多大？不同内核版本略有差异，但通常超过2000字节，包含了几十个字段。它是Linux内核中最核心的数据结构，没有之一。</p>
 
@@ -121,7 +125,7 @@ printk("Current PID: %d, State: %ld\n",
             <p><strong>核心洞见</strong>：task_struct之所以如此庞大，是因为Linux奉行"一切皆进程"的设计哲学。甚至是内核自己的工作——比如内存回收、刷脏页、处理中断下半部——也包装成"内核线程"，用task_struct来表示。在Linux里，几乎任何执行上下文都能归结为一个task_struct。</p>
         </div>
 
-        <h2>进程五状态模型与Linux实现</h2>
+        <h2 id="section-03">进程五状态模型与Linux实现</h2>
 
         <p>教科书上经典的进程五状态模型是：创建（New）、就绪（Ready）、运行（Running）、阻塞（Blocked/Waiting）、终止（Terminated）。我们来看看Linux内核是如何映射这些抽象状态的。</p>
 
@@ -152,7 +156,7 @@ printk("Current PID: %d, State: %ld\n",
 
         <p>少量的僵尸进程没问题，但如果大量堆积，就会耗尽内核能分配的pid上限（<code>/proc/sys/kernel/pid_max</code>），导致无法创建新进程。</p>
 
-        <h2>fork()写时拷贝的魔法</h2>
+        <h2 id="section-04">fork()写时拷贝的魔法</h2>
 
         <p>创建新进程的传统方式是fork()系统调用。但这个系统调用的实现却非常巧妙——它用了一个叫"写时拷贝"（Copy-on-Write，COW）的延迟复制技术。</p>
 
@@ -198,7 +202,7 @@ static __latent_entropy struct task_struct *copy_process(...)
             <p><strong>性能洞见</strong>：COW把fork操作的时间复杂度从O(进程地址空间大小)降到了O(页表大小)。对于一个大进程（比如占用数GB内存的数据库），fork的性能提升是数量级的。这也是为什么Redis的RDB持久化可以用fork + COW来创建内存快照——子进程共享主进程的物理页，只有在主进程修改数据时才复制。</p>
         </div>
 
-        <h2>execve()：一个程序的诞生</h2>
+        <h2 id="section-05">execve()：一个程序的诞生</h2>
 
         <p>fork创建了一个"几乎和父进程一模一样"的子进程（共享地址空间但用COW）。但绝大多数情况下，你fork之后想干的是——让子进程运行一个完全不同的程序。这就是execve()系统调用的职责。</p>
 
@@ -241,14 +245,13 @@ int execve(const char *pathname, char *const argv[],
         <p>讲到这里，进程从创建（fork）、内容替换（execve）、状态转换（五状态模型）到终止（exit + wait）的完整生命周期就讲完了。你可以看到，每个环节都有精妙的设计——COW避免不必要的内存复制、ELF加载器的层次化设计、进程状态的细粒度控制——这些都不是拍脑袋想出来的，而是几十年的工程实践积累的智慧。</p>
 
         <p>下一章，我们沿着"执行粒度更小"的方向继续深挖——从进程到线程，再到协程。你会发现，当同步机制越来越重、切换开销越来越成为瓶颈时，操作系统提供了更轻量的并发原语来应对。我们下一章见。</p>
-
-        <div class="footer-nav">
-            <a href="07.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="09.html">下一章 →</a>
-        </div>
-    </div>
 </div>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>指出 fork 后地址空间、文件描述符与 PID 的差异。</p><details><summary>查看思考提示</summary><p>区分相同虚拟内容、共享内核对象与真正相同的进程身份。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<nav class="footer-nav" aria-label="章节前后导航"><a href="07.html">← 上一章 · OS实验环境搭建</a><a href="index.html">返回课程目录</a><a href="09.html">下一章 · 线程与协程 →</a></nav>
+</article></main>
+</div>
+<footer class="site-footer">操作系统中文实践教程 · <a href="docs/guides/learning-path.md">学习路线</a> · <a href="docs/guides/content-guide.md">内容规范</a></footer>
 </div>
 </body>
 </html>

@@ -60,7 +60,7 @@
 
         <p>VFS 为普通文件、目录、符号链接和特殊文件等提供统一的文件系统对象模型；文件描述符接口也能承载 socket、pipe 等对象，但这不意味着内核中的所有对象都是文件。<code>open()</code>、<code>read()</code>、<code>write()</code> 等系统调用经由 VFS 与具体文件系统或特殊对象实现交互。</p>
 
-        <p>VFS定义了三种关键的操作表（operations），每种文件系统都要实现这些回调：</p>
+        <p>VFS 提供多组操作表（operations），文件系统按其支持的对象类型实现所需回调；不是每个文件系统都必须提供每一张表中的所有方法：</p>
 
         <table>
             <tr><th>操作表</th><th>作用</th><th>包含的核心回调</th></tr>
@@ -92,30 +92,25 @@
         <p>dentry 表示路径查找中的一个名称与其父目录关系，并在适用时关联 inode。路径查找会逐分量遍历，但 dcache 可能命中、缺失或需要 revalidate；挂载点、符号链接、权限检查与并发更新也会影响路径解析。因此不能假设每个路径分量都恰好对应一个已缓存 dentry，更不能假设每次都会读磁盘。</p>
 
         <h3>inode（索引节点）</h3>
-        <p>inode存储文件的所有元数据（除文件名以外）：权限、大小、时间戳、数据块指针等。文件名不存储在inode中——文件名在目录项中，inode通过编号（inode number）被目录项引用。inode中关键的数据块指针结构对于不同文件系统各不相同。</p>
+        <p>内存中的 inode 表示文件元数据，如权限、大小、时间戳和文件系统私有信息；文件名由目录项关联，不属于 inode 的通用字段。磁盘上的 inode/元数据布局以及数据块或 extent 映射方式由具体文件系统定义，不能把所有文件系统都描述为 inode 内含一组数据块指针。</p>
 
         <h3>page cache（页缓存）</h3>
         <p>对普通 buffered I/O，文件数据通常通过 inode 的 <code>address_space</code> 进入页缓存；写入会使 folio 变脏，随后由 writeback 路径提交到底层存储。文件映射也可共享同一页缓存内容。Direct I/O、DAX、特殊文件系统和设备文件可能走不同路径。</p>
 
-        <pre><code>开文件 /home/user/doc.txt 的数据流：
+        <pre><code>open("/home/user/doc.txt") 的概念路径：
 
-1. 路径解析（Path Walk）
-   dentry cache lookup:    "/" → dcache hit？ 否 → 从disk读根目录inode
-   dentry cache lookup:    "home" → dcache hit？ 否 → readdir遍历根目录找home
-   dentry cache lookup:    "user" → ...
-   dentry cache lookup:    "doc.txt" → dcache hit？是！得到dentry
+1. 从当前进程的 fs_struct / mount namespace 确定起始路径。
+2. 逐个路径分量进行 lookup；优先查询 dcache，必要时调用具体文件系统 lookup。
+3. 处理挂载点、符号链接、权限与 revalidation 等规则。
+4. 最终取得 dentry/inode，并创建 struct file（open file description）。
 
-2. 获取inode
-   dentry->d_inode → inode #12345
-   包含：文件大小、权限、数据块指针等
+后续 buffered read：
+1. 通过 struct file 的 read_iter 等操作进入具体实现。
+2. 查询 inode->i_mapping 对应的 page cache。
+3. 缺页时由 readahead/read_folio 等路径填充 folio。
+4. 将数据复制到用户缓冲区。
 
-3. 读取数据
-   → page cache lookup:  inode 12345 offset 0 → cache hit？否
-   → ext4_readpage(): 根据inode中的extent tree找到磁盘块号
-   → submit_bio(): 向块设备层提交I/O请求
-   → 磁盘返回数据 → 放入页缓存 → copy_to_user() 给应用程序
-
-完成！下次读取同一文件直接从page cache返回，无需磁盘I/O。</code></pre>
+概念流程：真实函数路径会因内核版本、文件系统、缓存状态和 I/O 类型而变化。</code></pre>
 
         <div class="tip">
             <p><strong>性能观察</strong>：通过 <code>cat /proc/meminfo</code> 查看 <code>Cached</code> 和 <code>Dirty</code> 两行。Cached就是页缓存的总大小，Dirty是需要写回磁盘的脏页数量。如果Dirty持续增长，说明系统在大量写文件，writeback可能跟不上。可以用 <code>sysctl vm.dirty_ratio</code> 和 <code>sysctl vm.dirty_background_ratio</code> 调整writeback的触发时机。</p>
@@ -151,8 +146,7 @@ struct ext4_extent {
 
         <table>
             <tr><th>特性</th><th>ext3</th><th>ext4</th></tr>
-            <tr><td>块映射</td><td>间接块指针（多层）</td><td>Extent Tree（区段树）</td></tr>
-            <tr><td>块映射</td><td>间接块指针</td><td>extent 树映射逻辑块范围</td></tr>
+            <tr><td>块映射</td><td>间接块指针（多层）</td><td>extent 树映射逻辑块范围</td></tr>
             <tr><td>数据一致性</td><td>依赖日志模式</td><td>依赖日志模式、同步调用与设备写入语义</td></tr>
             <tr><td>分配策略</td><td>按写入路径分配</td><td>支持 delayed allocation 与 fallocate 预分配</td></tr>
         </table>
@@ -202,7 +196,7 @@ btrfs filesystem df /mnt/data</code></pre>
         <table>
             <tr><th>文件系统</th><th>专项优势</th><th>适用场景</th></tr>
             <tr><td>XFS</td><td>大规模高并发扩展性</td><td>大型文件服务器、数据仓库、多线程写入</td></tr>
-            <tr><td>Bcachefs</td><td>海量小文件优化、完整数据校验</td><td>通用场景（新兴、潜力大）</td></tr>
+            <tr><td>Bcachefs</td><td>COW、校验与多设备管理目标</td><td>需核对外部模块/发行版维护状态</td></tr>
             <tr><td>F2FS</td><td>闪存优化（磨损均衡、GC友好）</td><td>SSD、SD卡、移动设备</td></tr>
             <tr><td>EROFS</td><td>只读极致压缩和性能</td><td>容器镜像、嵌入式固件</td></tr>
         </table>
@@ -214,10 +208,10 @@ btrfs filesystem df /mnt/data</code></pre>
         <p>Bcachefs 最初在 Linux 6.7 合入主线，但上游当前维护者清单将其状态标记为 <em>Externally maintained</em>。因此不能假设任意主线或发行版内核都内置它；使用前应核对发行版是否提供外部模块、对应工具链与升级策略。其功能与性能目标应以项目自身文档和实际版本为准。</p>
 
         <h3>F2FS</h3>
-        <p>F2FS（Flash-Friendly File System）由三星开发，专门为NAND闪存设计。传统文件系统（如ext4）的碎片整理、写放大等问题在SSD上非常突出。F2FS在日志结构（Log-structured）的基础上引入了几个闪存友好的设计：用多级日志区域组织数据、冷热数据分离、自适应的GC（垃圾回收）策略。它在消费级SSD和SD卡上的表现通常优于ext4。</p>
+        <p>F2FS（Flash-Friendly File System）由三星开发，专门为NAND闪存设计。传统文件系统（如ext4）的碎片整理、写放大等问题在SSD上非常突出。F2FS 以 log-structured 设计为基础，包含多段日志区域、冷热数据分离和清理（GC）机制，目标是适应 NAND 闪存的写入与擦除特性。它在某类设备/工作负载上可能有优势，但不能笼统断言在消费级 SSD 或 SD 卡上普遍优于 ext4。</p>
 
         <h3>EROFS</h3>
-        <p>EROFS（Enhanced Read-Only File System）是华为开发的高性能只读文件系统，Linux 5.4合入主线。它的设计核心是极致压缩和解压性能——使用了固定输出大小的压缩策略（fixed-sized output compression），解压速度比传统压缩文件系统快数倍。EROFS 面向只读场景，支持压缩与高效读取，常用于嵌入式系统和只读镜像场景。容器运行时能否直接使用 EROFS 作为镜像层取决于 snapshotter、内核与发行版集成，不能泛化为所有 Docker/CRI-O 部署都已默认支持。</p>
+        <p>EROFS（Enhanced Read-Only File System）是面向只读场景的文件系统，Linux 5.4 起进入主线。它支持压缩与高效读取，设计上采用固定输出大小等压缩布局策略；实际压缩率、解压速度和镜像启动表现依数据集、设备与配置而变。EROFS 面向只读场景，支持压缩与高效读取，常用于嵌入式系统和只读镜像场景。容器运行时能否直接使用 EROFS 作为镜像层取决于 snapshotter、内核与发行版集成，不能泛化为所有 Docker/CRI-O 部署都已默认支持。</p>
 
         <div class="highlight">
             <p><strong>生态视野</strong>：文件系统的选择不是"谁最好"的问题，而是"哪个最适合我的场景"的问题。你不可能用一个文件系统覆盖所有需求——ext4的成熟稳定适合通用服务器，Btrfs的快照适合开发和备份，XFS的大规模并发适合数据仓库，F2FS的闪存优化适合移动设备，EROFS的只读压缩适合容器镜像。在系统设计中，根据场景选对文件系统，能省去很多运维层面的烦恼。</p>

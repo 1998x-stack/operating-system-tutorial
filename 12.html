@@ -180,7 +180,7 @@ TLB miss + 缺失映射/权限错误:
 
         <h2 id="section-05">大页的威力</h2>
 
-        <p>我们讲到TLB条目数量是有限的。x86-64 CPU中，每个核心通常有几十到几百个TLB条目。如果页大小是4KB，那么TLB能覆盖的总地址范围也就几百MB到几MB。但如果页大小是2MB呢？每个TLB条目覆盖2MB，几百个条目就能覆盖数GB的地址范围。</p>
+        <p>TLB 容量与组织方式依微架构而异，可能分为指令/数据、不同页大小和不同层级。大页的一个潜在收益是：相同数量的翻译项可以覆盖更大的虚拟地址范围，从而降低部分工作负载的 TLB miss；实际收益仍取决于访问局部性、页大小支持与内存碎片。</p>
 
         <p>这就是大页（Huge Pages）的核心价值——用更少的TLB条目覆盖更大的工作集。</p>
 
@@ -188,18 +188,16 @@ TLB miss + 缺失映射/权限错误:
 
         <table>
             <tr><th>方案</th><th>页大小</th><th>分配方式</th><th>优点</th><th>缺点</th></tr>
-            <tr><td>传统大页（Hugetlbfs）</td><td>2MB / 1GB</td><td>显式预留（hugetlbfs挂载）</td><td>性能最稳定</td><td>需要预先配置，管理麻烦</td></tr>
-            <tr><td>透明大页（THP）</td><td>2MB</td><td>内核自动promote</td><td>无需应用修改</td><td>可能引入延迟抖动</td></tr>
-            <tr><td>Multi-size THP (mTHP)</td><td>16K~2MB多种</td><td>按需自动</td><td>灵活适配，Linux 6.x新特性</td><td>较新，生态支持有限</td></tr>
+            <tr><td>传统大页（Hugetlb）</td><td>架构/平台支持的 huge page sizes</td><td>显式预留或 hugetlb 接口</td><td>资源与数量可控</td><td>需要预留和管理</td></tr>
+            <tr><td>透明大页（THP）</td><td>依架构与映射类型</td><td>内核按策略分配/折叠</td><td>应用通常无需改动</td><td>可能增加 compaction/reclaim 成本</td></tr>
+            <tr><td>Multi-size THP (mTHP)</td><td>多个中间 folio 大小</td><td>内核按策略选择</td><td>在基础页与 PMD 大页间提供粒度选择</td><td>可用尺寸依架构/版本/配置</td></tr>
         </table>
 
         <p>Hugetlb 页面通常由管理员预留或通过 hugetlbfs/mmap 等接口显式使用；Transparent Huge Pages（THP）则允许内核按策略为适合的映射分配或折叠大页。THP 不只是“发现连续页后合并”：分配路径、后台 khugepaged 折叠、内存压缩与回退策略都可能参与。它可能减少 TLB 与页表开销，也可能增加分配/压缩延迟和内存碎片成本。</p>
 
         <p>Multi-size THP（mTHP）允许在基础页与 PMD 大页之间使用多个按 2 的幂次扩展的 folio 大小；可用尺寸取决于架构、内核版本、配置和具体映射类型。官方文档列举的匿名内存示例包括 16 KiB、32 KiB、64 KiB 等，但不能把某一组尺寸视为所有机器的固定支持列表。</p>
 
-        <div class="tip">
-            <p><strong>调优建议</strong>：对于数据库类应用（如PostgreSQL、MySQL）和Java应用（JVM堆通常在GB级别），强烈建议使用大页。在PostgreSQL中设置 <code>huge_pages = on</code>，在JVM中设置 <code>-XX:+UseLargePages</code>，可以看到10-30%的性能提升。通过 <code>grep HugePages /proc/meminfo</code> 可以查看当前系统的大页使用情况。</p>
-        </div>
+        <div class="tip"><p><strong>调优建议</strong>：是否启用 HugeTLB 或 THP，应通过目标应用的工作集、TLB miss、页错误、内存碎片和延迟分布进行测量。PostgreSQL 的 <code>huge_pages</code> 与 JVM 的 <code>-XX:+UseLargePages</code> 是应用级选项，不保证固定比例的性能提升；先在隔离环境对照测试，再决定是否部署。</p></div>
 
         <p>虚拟内存是操作系统中最精妙的设计之一。它通过多级页表实现了进程间的地址空间隔离，通过TLB加速了地址翻译，通过缺页机制实现了按需分配和内存超用，通过大页优化了TLB覆盖范围。配合下一章要讲的物理内存管理，构成了操作系统内存管理的完整图景。</p>
 

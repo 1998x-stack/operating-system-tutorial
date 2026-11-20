@@ -332,7 +332,7 @@ static ssize_t buffer_size_store(struct device *dev,
 static DEVICE_ATTR_RW(buffer_size);</code></pre>
 
         <div class="warning">
-            <p><strong>常见踩坑</strong>：在驱动开发中，最容易被忽略的问题是多进程并发。如果你没有用互斥锁保护共享数据，两个进程同时write可能会导致内存损坏。我在开发时曾因为忘记加锁，导致一个进程写入的数据被另一个进程的写入覆盖——排查了两天才发现是锁的问题。记住：内核编程中"先加锁，再操作"应该写在你手边的墙上。</p>
+            <p><strong>并发检查</strong>：字符设备的多个 file descriptor 可能并发调用 read/write/ioctl。是否需要互斥锁取决于共享状态与操作语义；锁的范围、睡眠能力、错误路径和生命周期都应明确设计。不能简单套用“先加锁再操作”，因为中断上下文、自旋锁与互斥锁有不同约束。</p>
         </div>
 
         <h2 id="section-03">三、项目三：为xv6添加写时拷贝fork</h2>

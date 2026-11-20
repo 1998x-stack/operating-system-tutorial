@@ -52,7 +52,7 @@
 
 GitHub Actions 现在包含：
 - Python 静态站点检查：章节、导航、锚点、证据台账、实验文档结构。
-- Playwright Chromium 冒烟测试：首页 360/390/1440px、28 章页面加载、H1/main/目录存在性与键盘 Skip Link。
+- Playwright Chromium 冒烟测试：首页 360/390/1440px；28 章全部在 360/1440px 检查加载、H1/main/目录和横向溢出；并检查键盘 Skip Link。
 
 ## 验证边界
 

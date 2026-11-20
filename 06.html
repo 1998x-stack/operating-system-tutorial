@@ -93,6 +93,7 @@
 }</code></pre>
 <p>写注释时优先解释不明显的设计原因、锁约束、生命周期和错误处理；避免重复代码已经清楚表达的内容。</p>
 
+<figure class="mechanism-figure"><img src="assets/diagrams/module-build.svg" width="800" height="260" alt="外部内核模块从源码和 Kbuild Makefile 编译成 hello.ko，再经内核加载器检查版本、符号和签名策略"><figcaption>外部模块构建依赖匹配的内核构建树；加载阶段还可能受导出符号、vermagic 和模块签名策略影响</figcaption></figure>
 <h2 id="section-03">三、第一个内核模块</h2>
 <p>外部模块是一个可独立构建的内核扩展。它在内核特权域运行，因此错误可能导致 Oops、死锁或系统崩溃。先在可回滚的虚拟机里实验，不要在生产主机上直接加载未经验证的模块。</p>
 <h3>1. hello.c</h3>

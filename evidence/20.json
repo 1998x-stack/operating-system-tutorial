@@ -1,0 +1,42 @@
+{
+  "chapter": "20",
+  "title": "eBPF可观测性",
+  "claims": [
+    {
+      "id": "bpf-20-01",
+      "claim": "eBPF 程序在加载时由 verifier 检查，以约束程序安全性与可终止性。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://docs.kernel.org/bpf/verifier.html",
+      "locator": "The verifier",
+      "status": "verified",
+      "notes": "验证器通过不等于程序逻辑正确或无性能成本。"
+    },
+    {
+      "id": "bpf-20-02",
+      "claim": "BPF maps 提供内核 BPF 程序与用户态之间共享数据的机制。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://docs.kernel.org/bpf/maps.html",
+      "locator": "BPF maps",
+      "status": "verified",
+      "notes": "map 类型、并发语义和内存成本各不相同。"
+    },
+    {
+      "id": "bpf-20-03",
+      "claim": "kprobe 与 tracepoint 是不同的跟踪挂接机制，稳定性和可移植性不同。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://docs.kernel.org/trace/kprobes.html",
+      "locator": "Kprobes",
+      "status": "verified",
+      "notes": "tracepoint 名称与字段也需核对目标内核版本。"
+    },
+    {
+      "id": "bpf-20-04",
+      "claim": "bpftrace 提供面向 Linux tracing/eBPF 的高级追踪语言。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://bpftrace.org/docs/",
+      "locator": "bpftrace documentation",
+      "status": "verified",
+      "notes": "探针可用性取决于内核配置、权限和工具版本。"
+    }
+  ]
+}

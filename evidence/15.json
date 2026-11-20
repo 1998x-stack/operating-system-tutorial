@@ -37,6 +37,33 @@
       "locator": "DESCRIPTION",
       "status": "verified",
       "notes": "实际优化依赖文件类型、协议、内核与驱动。"
+    },
+    {
+      "id": "io-15-05",
+      "claim": "IORING_SETUP_SQE_MIXED 允许在同一 ring 中混合 64-byte 与 128-byte SQE，不是取消/修改已提交请求的机制。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://man7.org/linux/man-pages/man7/io_uring_setup_flags.7.html",
+      "locator": "IORING_SETUP_SQE_MIXED",
+      "status": "verified",
+      "notes": "需要同时满足目标内核对 SQE128 等标志的约束。"
+    },
+    {
+      "id": "io-15-06",
+      "claim": "io_uring ZC Rx 仅在满足 NIC header/data split、flow steering、RSS 等硬件条件时，将 payload 直接接收至用户态区域；包头仍由内核 TCP 栈处理。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://docs.kernel.org/networking/iou-zcrx.html",
+      "locator": "Introduction; NIC HW Requirements",
+      "status": "verified",
+      "notes": "不是绕过整个内核网络栈的通用零拷贝方案。"
+    },
+    {
+      "id": "io-15-07",
+      "claim": "io_uring DMA-BUF-backed registered buffers 是按文件/设备能力 opt-in 的接口，不能推导为 GPU/NIC/NVMe 普遍 P2P 或 GPUDirect 集成。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://lists.openwall.net/linux-kernel/2026/10/07/94",
+      "locator": "DMA-BUF-backed registered buffers patch series",
+      "status": "derived",
+      "notes": "按目标内核合入状态和驱动支持矩阵确认。"
     }
   ]
 }

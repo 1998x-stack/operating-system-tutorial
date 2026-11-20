@@ -10,6 +10,7 @@
 
 - [实验可复现规范](docs/guides/experiment-standard.md) 与 [实验报告模板](labs/EXPERIMENT_TEMPLATE.md)
 - [第二轮质量审计记录](docs/reviews/round-2-platform-upgrade.md)
+- [第 01–07 章技术审计](docs/reviews/chapters-01-07.md) · [08–14 章](docs/reviews/chapters-08-14.md) · [15–21 章](docs/reviews/chapters-15-21.md) · [22–28 章](docs/reviews/chapters-22-28.md)
 - GitHub Actions 同时运行静态结构检查与 Playwright 浏览器冒烟测试（360 / 390 / 1440 px）。
 
 ## 如何阅读

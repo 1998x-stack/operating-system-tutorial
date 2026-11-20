@@ -1,5 +1,7 @@
 # 第 07 章实验：QEMU + GDB 调试 Linux 内核
 
+## 环境
+
 本实验假设你已有同一次构建产生的 `vmlinux`、`arch/x86/boot/bzImage` 和一个含有可执行 `/init` 的 initramfs。
 
 ## QEMU 启动命令

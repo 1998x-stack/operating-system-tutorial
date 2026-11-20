@@ -1,0 +1,42 @@
+{
+  "chapter": "26",
+  "title": "现代OS前沿趋势",
+  "claims": [
+    {
+      "id": "trend-26-01",
+      "claim": "Rust for Linux provides infrastructure for writing selected Linux kernel components in Rust; supported abstractions evolve over time.",
+      "kind": "kernel behavior, API or project documentation",
+      "source_url": "https://docs.kernel.org/rust/index.html",
+      "locator": "Rust",
+      "status": "verified",
+      "notes": "Availability depends on kernel release, configuration and subsystem support."
+    },
+    {
+      "id": "trend-26-02",
+      "claim": "seL4 is a formally verified microkernel with published proof and system documentation.",
+      "kind": "kernel behavior, API or project documentation",
+      "source_url": "https://sel4.systems/",
+      "locator": "seL4 project",
+      "status": "verified",
+      "notes": "Formal guarantees apply to specified models, configurations and assumptions."
+    },
+    {
+      "id": "trend-26-03",
+      "claim": "RISC-V is an open standard instruction set architecture with a growing operating-system ecosystem.",
+      "kind": "kernel behavior, API or project documentation",
+      "source_url": "https://riscv.org/technical/specifications/",
+      "locator": "RISC-V specifications",
+      "status": "verified",
+      "notes": "ISA openness does not imply every implementation or platform is equivalent."
+    },
+    {
+      "id": "trend-26-04",
+      "claim": "Confidential computing technologies such as AMD SEV-SNP and Intel TDX aim to protect guest workloads from some host-level threats.",
+      "kind": "kernel behavior, API or project documentation",
+      "source_url": "https://www.amd.com/en/developer/sev.html",
+      "locator": "AMD SEV documentation",
+      "status": "verified",
+      "notes": "Threat models, attestation, firmware and I/O paths impose important limitations."
+    }
+  ]
+}

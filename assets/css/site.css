@@ -214,3 +214,11 @@ button, input, select, textarea { font: inherit; }
   .route-card, .course-card, .home-actions a { transition: none; }
   .route-card:hover, .course-card:hover, .home-actions a:hover { transform: none; }
 }
+
+
+/* Prevent long technical tokens/tables from expanding the reading column on phones. */
+.chapter-article, .content-column, .article-body { min-width: 0; max-width: 100%; }
+.chapter-article { overflow-x: clip; }
+.article-body pre { box-sizing: border-box; width: 100%; max-width: 100%; }
+.article-body table { box-sizing: border-box; max-width: 100%; }
+.article-body th, .article-body td { overflow-wrap: anywhere; }

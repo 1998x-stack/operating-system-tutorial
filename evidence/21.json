@@ -37,6 +37,15 @@
       "locator": "KVM documentation",
       "status": "derived",
       "notes": "具体瓶颈需结合宿主机观测与工作负载分析。"
+    },
+    {
+      "id": "virt-21-05",
+      "claim": "KVM API 通过 /dev/kvm、VM fd、vCPU fd 与 ioctl 管理虚拟机；KVM_RUN 是 vCPU ioctl，执行/退出细节受架构影响。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://docs.kernel.org/virt/kvm/api.html",
+      "locator": "File descriptors; KVM_RUN",
+      "status": "verified",
+      "notes": "VMX root/non-root 仅是 Intel VT-x 术语，不可推广到 AMD/Arm。"
     }
   ]
 }

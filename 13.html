@@ -54,15 +54,15 @@
 
         <p>物理内存管理可以粗分为两个层级——页面级的分配（Buddy System负责）和对象级的分配（Slab负责）。前者管理4KB物理页面的分配和回收，后者在内核中为各种小对象（inode、task_struct、dentry等）提供缓存。两者配合，构成了Linux物理内存管理的骨架。而页面回收、swap、MGLRU则是当内存紧张时的应急机制。最后，memcg让多租户场景下的内存隔离成为可能。</p>
 
-        <p>分享一个让我后悔莫及的调优经历。有次在数据库服务器上，我把 <code>vm.swappiness</code> 设置为0（尽量少用swap），以为这样能提升性能。结果到了内存紧张的时候，内核直接触发了OOM Killer，把数据库进程给杀了——比用swap慢10倍还要糟糕！后来才明白，swappiness=0并不意味着"永远不swap"——在真正的内存压力下，内核依然可以swap，但因为没有提前做页面回收，触发OOM的概率反而更高。适度的swap（swappiness=10左右）让内核有缓冲空间，反而更安全。</p>
+        <p>物理内存管理可以通过只读观测开始：查看 /proc/buddyinfo、/proc/vmstat、/proc/slabinfo 和 PSI。它们分别提供不同层次的线索，但单个计数器不能独立证明“内存泄漏”或“回收算法失效”。</p>
 
         <h2 id="section-01">Buddy System伙伴分配器</h2>
 
-        <p>内核管理物理内存的基本单位是"页帧"（Page Frame），即4KB大小的物理内存块（如果配置了大页就是2MB或1GB）。Buddy System 是Linux内核中用于管理物理页分配和回收的核心算法。</p>
+        <p>内核按基础页（base page）管理物理页帧，基础页大小由架构与配置决定，常见系统是 4 KiB，但不能视为所有架构的常数。Buddy allocator 用 order 表示连续块大小：order N 对应 <code>2^N × PAGE_SIZE</code> 字节；更大的硬件页映射与伙伴分配 order 不是同一个概念。</p>
 
         <h3>算法的核心思想</h3>
 
-        <p>Buddy System把物理页按照2的幂次方分组——每种大小的块形成一个链表（freelist）。分配时，如果请求n页，内核会找到大于等于n的最小2的幂次方大小的块。如果那个大小的链表里没有空闲块，就向更大一级的链表借一个块，然后一分为二（称为"分裂"），把分裂后的一半放回小一级的链表，另一半用于分配。</p>
+        <p>Buddy allocator 按 order 管理 2 的幂次连续页块。分配 order N 时，若该 order 无可用块，分配器会寻找更高 order 的块并逐级拆分；释放时，若同一 zone 中对应伙伴也满足合并条件，则可以合并回更高 order。高阶连续分配比单页分配更容易受到外部碎片影响。</p>
 
         <p>回收时刚好相反——释放的块会检查它的"伙伴"（即与它大小相同、物理地址相邻的块）是否也是空闲的。如果是，就把两个块合并成一个大块，放回大一级的链表。合并过程可以递归进行。</p>
 
@@ -85,7 +85,7 @@ order 2 (4页):  [页I-K页] [页L-O页]
   释放 [页L-M页] → 检查伙伴 [页N-O页] 是否空闲
   → 是！合并成 [页L-O页] → 放回 order 2</code></pre>
 
-        <p>Buddy System的优点在于它通过分裂和合并有效地减少了外部碎片（external fragmentation）。但它的缺点是内部碎片（internal fragmentation）——比如你只需要1页，但系统最小的分配单位是1页，没问题；但如果你需要3页，系统会分配4页（order 2），其中1页就浪费了。</p>
+        <p>伙伴分配器便于管理连续的 2 的幂次页块，但高阶块可能因外部碎片而难以获得。它的 order 接口本身请求的是 2 的幂次页数；若上层确实需要非幂次大小，通常要由更高层分配器拆分、组合或选择其他分配路径，不能简单说“请求 3 页必然由 buddy 直接分配 4 页”。</p>
 
         <table>
             <tr><th>Order</th><th>连续页数</th><th>大小</th><th>常见用途</th></tr>
@@ -107,7 +107,7 @@ order 2 (4页):  [页I-K页] [页L-O页]
 
         <p>内核中频繁创建和销毁大量小对象——task_struct、inode、dentry、mm_struct等。如果每次创建都通过Buddy System分配一个或多个物理页，效率太低了。一方面，4KB以下的分配造成严重的内部碎片；另一方面，对象的初始化和销毁需要额外开销。</p>
 
-        <p>Slab分配器（以及它的后继者Slub和Slob）正是为了解决这个问题而生的。它们为每种内核对象类型维护一个对象缓存池。</p>
+        <p>Slab 分配器家族为固定大小或相近大小的内核对象提供缓存。Linux 历史上有 SLAB、SLUB 和 SLOB 等实现；SLOB 已从主线移除，当前内核的可选实现与默认选择应以目标版本的 Kconfig 为准。SLUB 是现代主线中广泛使用的实现。</p>
 
         <h3>Slub的工作方式</h3>
 
@@ -156,7 +156,7 @@ void kmem_cache_free(struct kmem_cache *cachep, void *object)
 
         <h3>Sheaves和Barns：Linux 6.x的新机制</h3>
 
-        <p>Linux 6.x在Slub中引入了一个名为Sheaves和Barns的新分配路径。传统的Slub在per-CPU缓存耗尽时，需要获取全局锁去slab页面中搬运对象，这在多核高并发下可能成为瓶颈。Sheaves/Barns机制用batch-alloc的方式，在新对象分配时预先从伙伴系统获取整页，减少了全局锁的竞争。</p>
+        <p>Sheaves/Barns 是 SLUB 的对象缓存层改进：sheaf 在 CPU 本地缓存一批对象，barn 在 NUMA 节点层面管理 sheaf，以降低部分分配/释放路径的共享锁竞争。该改动于 2026 年进入 Linux 7.0 开发线；不要把它说成所有 Linux 6.x 内核都具备的机制。是否启用及其行为应检查目标内核版本与对应实现。</p>
 
         <div class="tip">
             <p><strong>观察方法</strong>：在Linux上运行 <code>cat /proc/slabinfo</code> 可以看到所有Slab缓存的当前使用情况。输出中的 <code>active_objs</code> 和 <code>num_objs</code> 分别表示当前已分配对象数和缓存中的总对象数。高频的内核对象（如 dentry、inode）通常有非常大的缓存池。</p>
@@ -168,9 +168,9 @@ void kmem_cache_free(struct kmem_cache *cachep, void *object)
 
         <h3>kSwapd守护进程</h3>
 
-        <p>Linux有一个内核线程叫 <code>kswapd</code>，它负责在后台监控内存使用情况。当某个内存区域的空闲页数低于 <code>watermark[WMARK_LOW]</code> 时，kswapd被唤醒，开始回收页面，直到空闲页数恢复到 <code>watermark[WMARK_HIGH]</code>。</p>
+        <p>Linux有一个内核线程叫 <code>kswapd</code>，它负责在后台监控内存使用情况。当节点/区域的空闲页水位触发相应条件时，<code>kswapd</code> 可被唤醒进行后台回收，目标通常是把空闲页恢复到更高水位。实际行为还受 zone、NUMA 节点、分配约束、watermark boost 与内核版本影响。</p>
 
-        <p>如果kswapd回收速度跟不上分配速度，空闲页数跌到 <code>watermark[WMARK_MIN]</code> 以下，那么分配路径会进入<strong>直接回收</strong>（Direct Reclaim）——分配者直接参与页面回收，同步等待。这在极端情况下会导致线程阻塞在内存分配上，形成严重的性能抖动。如果直接回收还是不够，最终的保底方案是OOM Killer——选择一个进程杀掉。</p>
+        <p>当分配路径无法立即满足请求时，调用者可能进入<strong>直接回收</strong>（Direct Reclaim），在当前任务上下文中尝试回收内存；这会增加分配延迟。若回收、重试与其他后备路径仍无法满足请求，内核在适用条件下可能触发 OOM 处理。并非每次 direct reclaim 都会导致 OOM，也不是所有内存压力都只由 swap 解决。</p>
 
         <h3>页面回收流程</h3>
 
@@ -215,7 +215,7 @@ pgsteal_direct 318</code></pre>
 
         <h3>核心设计</h3>
 
-        <p>MGLRU的核心思想是把页面按访问频率分成多代（Generations），每一代代表一个"最近是否被访问过"的等级。页面只在代之间移动，而不是在全局链表中移动：</p>
+        <p>MGLRU 把可回收 folio 按近期访问情况组织成多个 generation，并结合 anon/file 类型与 tier 等信息估计冷热程度。generation 是时间/访问新近性的分组，不是简单的“固定四级热度表”；具体代数与内部结构由内核实现决定：</p>
 
         <ul>
             <li><strong>Gen 0（最新代）</strong>：近期被频繁访问的页面</li>
@@ -224,9 +224,9 @@ pgsteal_direct 318</code></pre>
             <li><strong>Gen 3（最旧代）</strong>：可以优先回收的页面</li>
         </ul>
 
-        <p>当需要回收页面时，MGLRU从最旧的代开始扫描，大大减少了扫描的范围。它不需要遍历整个LRU链表——只需检查最旧一代中的页面是否有资格被回收。</p>
+        <p>回收时，MGLRU 会优先评估较旧 generation 中的 folio，并结合 refault 反馈、匿名/文件页类别及访问信息选择回收对象。它不是简单地“只扫描最旧一代”，也不保证在所有工作负载下都减少相同幅度的扫描。</p>
 
-        <p>MGLRU还引入了"页表遍历"（page table walking）技术，通过直接扫描进程的页表来决定哪些页面应该被降代（aged），而不是依赖硬件访问位（Accessed bit）——这避免了访问位扫描导致的TLB抖动。</p>
+        <p>MGLRU 可结合页表遍历收集映射页的 accessed/young 信息，并利用空间局部性等策略改善 aging；它并不是“不依赖硬件访问位”，也不能据此断言完全避免 TLB 相关开销。</p>
 
         <table>
             <tr><th>维度</th><th>传统LRU</th><th>MGLRU</th></tr>
@@ -234,8 +234,8 @@ pgsteal_direct 318</code></pre>
             <tr><td>遍历范围</td><td>全部inactive页</td><td>仅最旧一代</td></tr>
             <tr><td>锁争用</td><td>高（全局LRU锁）</td><td>低（分代+per-node）</td></tr>
             <tr><td>扫描效率</td><td>低（大量无用遍历）</td><td>高（针对性扫描）</td></tr>
-            <tr><td>文件密集型负载</td><td>基准</td><td>提升约30%</td></tr>
-            <tr><td>内存压力大时</td><td>延迟抖动严重</td><td>更平滑的性能下降</td></tr>
+            <tr><td>设计目标</td><td>维护 active/inactive 近似 LRU 列表</td><td>用 generation 与 tier 表示访问新近性和频率</td></tr>
+            <tr><td>效果边界</td><td>受工作集与扫描成本影响</td><td>收益依工作负载、配置和内存压力而变</td></tr>
         </table>
 
         <div class="highlight">
@@ -252,32 +252,25 @@ pgsteal_direct 318</code></pre>
 
         <table>
             <tr><th>参数</th><th>含义</th><th>超额时的行为</th></tr>
-            <tr><td><code>memory.low</code></td><td>保证内存</td><td>此之内的内存不会被回收（即使系统整体内存紧张）</td></tr>
+            <tr><td><code>memory.low</code></td><td>尽力保护</td><td>在有未受保护的可回收内存时，尽量避免回收该 cgroup 的低于有效 low 边界的内存</td></tr>
             <tr><td><code>memory.high</code></td><td>软限制</td><td>超过时，触发内存回收节流（throttle），但可以继续超过</td></tr>
             <tr><td><code>memory.max</code></td><td>硬限制</td><td>超过时，触发OOM Killer（在cgroup内杀进程）</td></tr>
         </table>
 
-        <p>这三个参数构成了一个三级防护：low保证你一定能拿到多少，high提醒你开始收敛，max是你绝不能超过的上限。比如一个容器设置 <code>memory.low=1G memory.high=2G memory.max=4G</code>，意味着保底1GB、建议控制在2GB以内、坚决不能超过4GB。</p>
+        <p>这三个接口含义不同：<code>memory.low</code> 是尽力保护而非硬性保底；<code>memory.high</code> 超限后会施加回收压力并节流，但通常不直接触发 OOM；<code>memory.max</code> 是硬限制，无法回收时可能触发该 cgroup 内的 OOM。限制还会受祖先 cgroup 的有效边界与 overcommit 影响。</p>
 
-        <pre><code># 为容器设置内存cgroup
-# 创建cgroup并设置limits
-mkdir /sys/fs/cgroup/my_container
-echo 1G > /sys/fs/cgroup/my_container/memory.low
-echo 2G > /sys/fs/cgroup/my_container/memory.high
-echo 4G > /sys/fs/cgroup/my_container/memory.max
+        <pre><code># 只读观察当前 cgroup v2 内存状态（不修改宿主机限制）
+cat /proc/self/cgroup
+cat /sys/fs/cgroup/memory.current 2&gt;/dev/null || true
+cat /sys/fs/cgroup/memory.events 2&gt;/dev/null || true
+cat /sys/fs/cgroup/memory.pressure 2&gt;/dev/null || true
 
-# 把进程加入到cgroup
-echo $PID > /sys/fs/cgroup/my_container/cgroup.procs
-
-# 查看cgroup的内存使用
-cat /sys/fs/cgroup/my_container/memory.current
-# 输出: 1560281088  (约1.45GB)</code></pre>
+# 仅在专用、已委派的测试 cgroup 中按需设置 memory.high/max；
+# 不要直接在生产宿主机的根 cgroup 上执行写入命令。</code></pre>
 
         <p>在容器化部署中（Docker、Kubernetes），每个容器自动拥有自己的memcg。Docker的 <code>--memory</code> 参数实际上就是设置memory.max。Kubernetes的Pod resource limits同样是映射到cgroup的memory.max。</p>
 
-        <div class="tip">
-            <p><strong>生产实践</strong>：配置docker容器的memory limit时，建议不要设置得刚好等于应用的预期内存使用——留出10-20%的余量给page cache和内核开销。我曾经见过一个Java应用设置了 <code>-Xmx512m</code> 和Docker memory limit 512MB，结果JVM还没开始干活就被OOM Kill了——因为JVM本身和操作系统内核也需要额外内存。</p>
-        </div>
+        <div class="tip"><p><strong>配置提示</strong>：容器内存限制需要结合匿名内存、页缓存、内核内存、socket 缓冲、语言运行时与突发峰值一起评估。不要用统一的“预留百分比”替代压测和 <code>memory.current</code>、<code>memory.events</code>、PSI 等指标。</p></div>
 
         <p>物理内存管理是操作系统中最靠近硬件的部分之一——Buddy System管理物理页、Slub加速小对象分配、kswapd和MGLRU在内存压力下优雅降级、memcg实现多租户隔离。这些机制合在一起，让物理内存这个有限且复杂的资源变得易于使用而又高效可控。</p>
 

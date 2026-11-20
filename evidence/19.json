@@ -1,0 +1,42 @@
+{
+  "chapter": "19",
+  "title": "网络协议栈",
+  "claims": [
+    {
+      "id": "net-19-01",
+      "claim": "Linux NAPI 将网络接收处理组织为轮询机制，以协调中断与批量处理。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://docs.kernel.org/networking/napi.html",
+      "locator": "NAPI",
+      "status": "verified",
+      "notes": "驱动实现与中断模式可能不同。"
+    },
+    {
+      "id": "net-19-02",
+      "claim": "Netfilter 在网络协议栈的多个 hook 点提供数据包过滤与修改框架。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://www.netfilter.org/documentation/",
+      "locator": "Netfilter documentation",
+      "status": "verified",
+      "notes": "iptables/nftables 规则路径取决于配置和规则集。"
+    },
+    {
+      "id": "net-19-03",
+      "claim": "XDP 可在驱动接收路径较早阶段执行 eBPF 程序，具体能力依驱动支持模式。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://docs.kernel.org/bpf/prog_xdp.html",
+      "locator": "XDP",
+      "status": "verified",
+      "notes": "native、generic 与 offload 模式路径不同。"
+    },
+    {
+      "id": "net-19-04",
+      "claim": "DPDK 通过用户态轮询和用户态驱动等方式实现数据面加速，不等同于普通 Linux socket 路径。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://doc.dpdk.org/guides/prog_guide/poll_mode_drv.html",
+      "locator": "Poll Mode Driver",
+      "status": "verified",
+      "notes": "资源绑定、隔离与内存管理配置会影响系统其余部分。"
+    }
+  ]
+}

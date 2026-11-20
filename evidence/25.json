@@ -37,6 +37,24 @@
       "locator": "6.1810 course materials",
       "status": "verified",
       "notes": "The course version and target architecture can change between years."
+    },
+    {
+      "id": "boot-25-05",
+      "claim": "BIOS E820 内存映射需要检查 SMAP 返回签名、carry flag、返回长度和扩展属性；可用内存区域还必须排除内核、固件、MMIO 与引导数据占用。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://wiki.osdev.org/Detecting_Memory_(x86)",
+      "locator": "E820 memory map",
+      "status": "derived",
+      "notes": "本章代码标注为流程示意，不是完整 BIOS 兼容实现。"
+    },
+    {
+      "id": "boot-25-06",
+      "claim": "0x7C00 启动扇区、INT 0x10/INT 0x15 和 E820 属于传统 BIOS 启动路径；UEFI 启动不执行相同的 16-bit BIOS boot-sector 流程。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://uefi.org/specifications",
+      "locator": "UEFI Specification",
+      "status": "verified",
+      "notes": "实验需明确使用 SeaBIOS/BIOS 固件还是 UEFI。"
     }
   ]
 }

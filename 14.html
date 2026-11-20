@@ -68,23 +68,13 @@
 
         <p>这种设计起到了"适配器"的作用：你可以在同一个系统上同时挂载ext4（传统磁盘文件系统）、Btrfs（COW文件系统）、tmpfs（内存文件系统）、procfs（进程信息文件系统）、sysfs（内核对象文件系统）。它们各自的实现天差地别，但通过VFS提供的统一接口，用户态看到的都是"文件"。</p>
 
-        <pre><code>// 用户态调用 read() 的完整路径
-read(fd, buf, 1024);
-
-  ↓ sys_read()  // 系统调用入口
-  ↓ vfs_read()  // VFS公共层（权限检查、锁等）
-  ↓ file->f_op->read_iter()  // 具体的文件系统回调
-    ↓ ext4_file_read_iter()  // ext4的实现
-      ↓ generic_file_read_iter()
-        ↓ filemap_read()      // 通过页缓存读取
-          ↓ address_space_operations.readpage()
-            ↓ ext4_readpage()  // 从磁盘读取到页缓存
-
-// 如果是 procfs 的文件（如 /proc/cpuinfo），路径完全不同：
-read(fd, buf, 1024);
-  ↓ sys_read() → vfs_read()
-  ↓ proc_reg_read()  // procfs 的实现
-    ↓ ...直接从内核数据结构中获取信息</code></pre>
+        <pre><code>// 概念路径：read(fd, buf, n)
+// VFS 根据 struct file 的操作回调进入具体文件系统。
+// 对使用页缓存的常见路径，内核会查找/获取 folio，
+// 并在需要时通过 address_space_operations 的 readahead()
+// 或 read_folio() 从后备存储填充页缓存。
+// 实际调用链会因内核版本、文件系统、缓存命中与 I/O 类型变化。
+// 当前接口参考：Documentation/filesystems/vfs.rst</code></pre>
 
         <div class="highlight">
             <p><strong>设计哲学</strong>：VFS是UNIX"一切皆文件"理念的工程实现。通过分层抽象：系统调用层→VFS层→具体文件系统层→块设备层→物理设备层——每一层的职责清晰，替换任意一层都不影响其他层。你更换了硬盘，应用程序代码不需要改一行。</p>

@@ -96,7 +96,7 @@ $ cat /proc/softirqs
         <p>tasklet基于softirq实现，但加了一个关键限制：同类型的tasklet在任何时刻最多只能在一个CPU上执行。tasklet 同类型实例不会在多个 CPU 上并发执行，但仍可能与其他上下文访问共享数据；这不等于整个驱动不需要锁。但代价就是不能利用多核并行加速同一个tasklet。tasklet 是基于 softirq 的历史机制，仍需按目标内核版本检查其状态与维护方向。新驱动通常应优先评估 workqueue、threaded IRQ 或其他适合的机制；选择取决于是否允许睡眠、并发要求和延迟目标。</p>
 
         <h3>workqueue：能睡觉的下半部</h3>
-        <p>工作队列（workqueue）将下半部的工作推迟到内核线程中执行。这意味着你可以在workqueue回调中调用任何可能阻塞的函数——<code>mutex_lock</code>、<code>kmalloc(GFP_KERNEL)</code>、<code>copy_to_user</code>，甚至文件系统操作。workqueue使用内核全局的工作者线程池（每个CPU一个"kworker"线程），但也支持创建专用的workqueue。</p>
+        <p>工作队列（workqueue）将下半部的工作推迟到内核线程中执行。这意味着你可以在workqueue回调中调用任何可能阻塞的函数——<code>mutex_lock</code>、<code>kmalloc(GFP_KERNEL)</code>、文件系统操作（但不能把任意用户态指针直接带入 worker 并调用 <code>copy_to_user</code>）。workqueue使用内核全局的工作者线程池（每个CPU一个"kworker"线程），但也支持创建专用的workqueue。</p>
 
         <pre><code>// 使用workqueue延迟执行下半部操作
 // 上半部（中断处理函数）

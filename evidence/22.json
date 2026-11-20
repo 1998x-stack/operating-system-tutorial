@@ -37,6 +37,33 @@
       "locator": "Docker security",
       "status": "derived",
       "notes": "No single namespace configuration guarantees isolation from all host resources."
+    },
+    {
+      "id": "container-22-05",
+      "claim": "Linux namespace 类型包括 mount、UTS、IPC、PID、network、user、cgroup 和 time；cgroup/time namespace 也需纳入全景。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://man7.org/linux/man-pages/man7/namespaces.7.html",
+      "locator": "Overview; namespaces list",
+      "status": "verified",
+      "notes": "namespace 作用是隔离资源视图，不等同于资源配额。"
+    },
+    {
+      "id": "container-22-06",
+      "claim": "cgroup v2 的 memory.low 为 best-effort protection，memory.high 超限会施加回收/节流压力，memory.max 为硬限制并可能在回收失败时触发 OOM。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://docs.kernel.org/admin-guide/cgroup-v2.html",
+      "locator": "Memory Interface Files",
+      "status": "verified",
+      "notes": "memory controller 需启用且层级需正确委派。"
+    },
+    {
+      "id": "container-22-07",
+      "claim": "OverlayFS lowerdir/upperdir/merged 提供联合挂载视图；upperdir 生命周期由容器运行时管理，停止容器并不自动等于删除写层。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://docs.kernel.org/filesystems/overlayfs.html",
+      "locator": "Overview; upper and lower",
+      "status": "verified",
+      "notes": "Copy-up、whiteout、metacopy 等行为受挂载选项和内核版本影响。"
     }
   ]
 }

@@ -93,6 +93,10 @@
 
         <h3>6. IPC Namespace（信号量/消息队列隔离）</h3>
         <p>隔离System V IPC和POSIX消息队列。容器之间无法通过共享内存、信号量等IPC机制通信（除非显式使用宿主机IPC Namespace）。对于大多数Web应用来说这不是关键限制，但对于需要进程间共享内存的高性能应用需要注意。</p>
+<h3>7. Cgroup Namespace（资源层级视图）</h3>
+<p>Cgroup namespace 虚拟化进程看到的 cgroup 路径视图；它本身不设置 CPU/内存限制。实际资源控制由 cgroup 层级和对应控制器完成。它与 PID namespace 一样，是对资源视图的隔离，而不是资源配额机制。</p>
+<h3>8. Time Namespace（部分时钟偏移）</h3>
+<p>Time namespace 可为 <code>CLOCK_MONOTONIC</code> 与 <code>CLOCK_BOOTTIME</code> 等时钟提供 namespace 级偏移，常用于容器/检查点恢复等场景；它不会为容器提供独立的硬件时钟，也不等同于隔离所有 wall-clock 时间接口。</p>
 
         <pre><code># 创建新Namespace的几种方式
 

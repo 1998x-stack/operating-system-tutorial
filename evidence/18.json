@@ -37,6 +37,15 @@
       "locator": "Clock sources",
       "status": "verified",
       "notes": "不能将某种硬件计时器称为所有机器的默认或最优选择。"
+    },
+    {
+      "id": "time-18-05",
+      "claim": "NO_HZ_IDLE 与 NO_HZ_FULL 可在空闲 CPU 或满足条件的 CPU 上抑制调度时钟 tick；HZ 不等于所有定时器接口的精度上限。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://docs.kernel.org/timers/no_hz.html",
+      "locator": "Reducing Scheduling-Clock Ticks",
+      "status": "verified",
+      "notes": "具体行为取决于 Kconfig 与 boot 参数。"
     }
   ]
 }

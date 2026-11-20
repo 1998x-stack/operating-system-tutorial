@@ -46,6 +46,15 @@
       "locator": "The Linux Kernel Driver Interface",
       "status": "verified",
       "notes": "外部模块不应假定跨版本稳定 ABI。"
+    },
+    {
+      "id": "design-27-07",
+      "claim": "SCHED_DEADLINE 采用 CBS 与 EDF，使用 runtime/deadline/period 参数；截止时间保证依赖 admission control 和负载假设。",
+      "kind": "scheduler policy semantics",
+      "source_url": "https://docs.kernel.org/scheduler/sched-deadline.html",
+      "locator": "Overview; Scheduling algorithm; Bandwidth management",
+      "status": "verified",
+      "notes": "不能描述为任何负载下都无条件保证截止时间。"
     }
   ]
 }

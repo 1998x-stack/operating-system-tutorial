@@ -1,0 +1,51 @@
+{
+  "chapter": "23",
+  "title": "内核调试技术",
+  "claims": [
+    {
+      "id": "dbg-23-01",
+      "claim": "printk supports log levels and kernel logging; dynamic debug can selectively enable pr_debug/dev_dbg callsites.",
+      "kind": "kernel behavior, API or project documentation",
+      "source_url": "https://docs.kernel.org/admin-guide/dynamic-debug-howto.html",
+      "locator": "Dynamic debug",
+      "status": "verified",
+      "notes": "Logging can perturb timing and increase overhead."
+    },
+    {
+      "id": "dbg-23-02",
+      "claim": "kdump uses a reserved capture kernel to preserve a crash dump for later analysis.",
+      "kind": "kernel behavior, API or project documentation",
+      "source_url": "https://docs.kernel.org/admin-guide/kdump/kdump.html",
+      "locator": "Kdump",
+      "status": "verified",
+      "notes": "Requires configuration, memory reservation, dump target and matching symbols."
+    },
+    {
+      "id": "dbg-23-03",
+      "claim": "KASAN detects classes of memory safety errors including out-of-bounds and use-after-free.",
+      "kind": "kernel behavior, API or project documentation",
+      "source_url": "https://docs.kernel.org/dev-tools/kasan.html",
+      "locator": "Kernel Address Sanitizer",
+      "status": "verified",
+      "notes": "Instrumentation changes memory layout and runtime overhead."
+    },
+    {
+      "id": "dbg-23-04",
+      "claim": "UBSAN detects selected undefined behavior conditions in instrumented kernel code.",
+      "kind": "kernel behavior, API or project documentation",
+      "source_url": "https://docs.kernel.org/dev-tools/ubsan.html",
+      "locator": "Undefined Behavior Sanitizer",
+      "status": "verified",
+      "notes": "Detection coverage depends on enabled checks and compiler support."
+    },
+    {
+      "id": "dbg-23-05",
+      "claim": "kgdb provides kernel source-level debugging through a GDB remote connection.",
+      "kind": "kernel behavior, API or project documentation",
+      "source_url": "https://docs.kernel.org/dev-tools/kgdb.html",
+      "locator": "kgdb",
+      "status": "verified",
+      "notes": "Requires suitable kernel configuration and a supported connection method."
+    }
+  ]
+}

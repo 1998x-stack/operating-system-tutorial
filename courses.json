@@ -322,7 +322,7 @@
       "num": "22",
       "title": "容器与命名空间",
       "topics": [
-        "六种Namespace",
+        "八种Namespace",
         "cgroup v2层级",
         "OverlayFS分层",
         "从chroot到Docker"

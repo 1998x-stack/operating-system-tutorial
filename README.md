@@ -2,7 +2,7 @@
 
 > 28 章从硬件基础、内核机制到 Linux 工具链与综合项目的中文学习资料。**这是独立教学项目，不是 Linux 内核官方文档。**
 
-**[阅读课程首页](index.html)** · **[从第 01 章开始](01.html)** · [学习路线](docs/guides/learning-path.md) · [内容规范](docs/guides/content-guide.md) · [08–14 章复核记录](docs/reviews/chapters-08-14.md) · [贡献指南](CONTRIBUTING.md)
+**[阅读课程首页](index.html)** · **[从第 01 章开始](01.html)** · [学习路线](docs/guides/learning-path.md) · [内容规范](docs/guides/content-guide.md) · [08–14 章复核记录](docs/reviews/chapters-08-14.md) · [15–21 章复核记录](docs/reviews/chapters-15-21.md) · [贡献指南](CONTRIBUTING.md)
 
 这套教程围绕三个问题组织每一章：**为什么需要这个机制 → 它如何工作 → 怎样观察或验证它**。网页采用静态 HTML，章节之间可直接前后跳转，保留原有 `01.html` 至 `28.html` 链接以便引用与分享。
 
@@ -82,11 +82,11 @@ operating-system-tutorial/
 ├── assets/
 │   ├── css/site.css              # 统一的阅读设计系统
 │   └── diagrams/                 # 原创操作系统机制图
-├── evidence/                      # 第 01–14 章逐条论断与来源证据
+├── evidence/                      # 第 01–21 章逐条论断与来源证据
 ├── labs/                          # 系统调用、模块与 QEMU/xv6 实验
 ├── docs/
 │   ├── guides/                   # 学习路线与内容规范
-│   └── reviews/                  # 分批技术复核记录（01–07、08–14）
+│   └── reviews/                  # 分批技术复核记录（01–07、08–14、15–21）
 ├── theme.css                      # 旧样式路径的兼容入口
 ├── scripts/check_site.py          # 静态 HTML、章节索引、证据和链接校验
 └── .github/workflows/ci.yml      # 提交与 PR 的静态质量检查
@@ -96,7 +96,7 @@ operating-system-tutorial/
 
 ## 技术复核与实验
 
-第 01–07 章已完成第一轮技术内容复核，修正了过时或过度绝对化的论断，并新增 35 条证据记录。查看 [本批复核报告](docs/reviews/chapters-01-07.md)、[证据清单目录](evidence/README.md) 和 [配套实验](labs/README.md)。
+第 01–21 章已完成分批技术内容复核，修正了过时或过度绝对化的论断，并新增 35 条证据记录。查看 [本批复核报告](docs/reviews/chapters-01-07.md)、[证据清单目录](evidence/README.md) 和 [配套实验](labs/README.md)。
 
 注意：本轮已按官方接口和文档校正示例，但没有在实际 Linux VM 中编译、加载模块或启动 xv6；也未完成浏览器多视口人工验收。请勿将源码级审阅等同于运行时验证。
 

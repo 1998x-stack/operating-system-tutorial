@@ -203,71 +203,34 @@ CONFIG_FRAME_POINTER=y</code></pre>
 
         <p>在被调试机的内核启动参数中添加 <code>kgdboc=ttyS0,115200</code>，表示通过串口进行kgdb通信。然后在需要调试的时机，执行 <code>echo g > /proc/sysrq-trigger</code>，内核就会停住，等待GDB连接。</p>
 
-        <h3>2. agent-proxy与GDB连接</h3>
-        <p>如果你用QEMU虚拟机做调试，不需要物理串口线。用QEMU的 <code>-serial tcp::1234,server,nowait</code> 参数启动虚拟机，然后在宿主机上用agent-proxy转发：</p>
+        <h3>2. QEMU 串口与 GDB 连接</h3>
+<p>QEMU 可以把 Guest 串口映射为 TCP 服务端。Guest 内核需启用 kgdboc 并使用对应串口；宿主机 GDB 连接该串口端点即可。端口应只绑定回环或可信隔离网络，不能暴露到公网。</p>
+<pre><code># QEMU：将第一个串口映射到本机 TCP 1234
+$ qemu-system-x86_64 ... -serial tcp:127.0.0.1:1234,server,nowait
 
-        <pre><code># 宿主机：启动 agent-proxy 转发串口
-$ agent-proxy 5550^5551 0 /dev/ttyUSB0,115200 &
-
-# 宿主机：启动 GDB 远程调试
+# 宿主机：使用与运行内核匹配的未剥离 vmlinux
 $ gdb vmlinux
-(gdb) target remote localhost:5551
-(gdb) hw-write 0xc0000000001a2b3c
+(gdb) target remote 127.0.0.1:1234
+(gdb) break do_sys_openat2
 (gdb) continue
-
-# 在被调试机上触发断点
-# 内核会在命中硬件断点时停下，GDB 显示源代码和变量</code></pre>
-
-        <p>GDB连接上之后，你可以做几乎所有用户态调试能做的事情：<code>b</code> 设置断点（注意kgdb只能使用硬件断点，数量有限）、<code>p</code> 打印变量、<code>s</code> 单步执行、<code>bt</code> 查看调用栈。区别是——你现在调试的是整个操作系统，每一个变量的变化都直接影响真实硬件状态。</p>
+# Guest 命中断点后，使用 bt / info registers / p 检查现场</code></pre>
+<p>GDB连接上之后，你可以做几乎所有用户态调试能做的事情：<code>b</code> 设置断点（注意kgdb只能使用硬件断点，数量有限）、<code>p</code> 打印变量、<code>s</code> 单步执行、<code>bt</code> 查看调用栈。区别是——你现在调试的是整个操作系统，每一个变量的变化都直接影响真实硬件状态。</p>
 
         <div class="tip">
             <p><strong>调试建议</strong>：kgdb更适合开发环境或虚拟机中使用。在真实生产服务器上使用kgdb风险较高——内核被停住的期间，系统完全不可用，硬件watchdog可能触发重启。如果只是为了读取内核数据结构，优先考虑 <code>/dev/mem</code> 配合 <code>crash</code> 或 <code>gdb</code> 的离线分析模式（不打断内核执行）。</p>
         </div>
 
-        <h2 id="section-05">五、真实panic排查案例</h2>
-
-        <p>前面讲了这么多工具，我们来串一个真实的案例。这是我去年在生产环境中遇到的一个内核OOPS排查过程，完整还原一遍，让你感受一下实际战场什么样。</p>
-
-        <h3>现象</h3>
-        <p>一台运行着4.19内核的NFS文件服务器，每两周左右panic一次，毫无规律。重启后恢复正常，但dmesg里留下了一段OOPS信息。业务团队抱怨NFS间歇性断连。</p>
-
-        <h3>第一步：收集OOPS信息</h3>
-        <p>翻看 <code>/var/log/kern.log</code>，找到panic时的日志。关键的堆栈回溯信息如下：</p>
-
-        <pre><code>BUG: unable to handle kernel NULL pointer dereference at 0x0000000000000018
-IP: nfsd_readpages+0x7a/0x120 [nfsd]
-PGD 0 P4D 0
-Oops: 0000 [#1] SMP PTI
-CPU: 3 PID: 12345 Comm: nfsd Tainted: P           O
-RIP: 0010:nfsd_readpages+0x7a/0x120 [nfsd]
-Call Trace:
-  read_pages+0x6b/0x180
-  __do_page_cache_readahead+0x1c6/0x2a0
-  ondemand_readahead+0x23a/0x2f0
-  page_cache_async_readahead+0xab/0xd0
-  nfsd_read+0xf2/0x1a0 [nfsd]
-  nfsd3_proc_read+0xc4/0x1c0 [nfsd]
-  nfsd_dispatch+0xe2/0x200 [nfsd]</code></pre>
-
-        <p>关键信息：<code>NULL pointer dereference</code>，在 <code>nfsd_readpages</code> 的 <code>+0x7a</code> 处试图访问地址 <code>0x18</code>（很可能是访问结构体成员的偏移量，结构体指针为NULL）。</p>
-
-        <h3>第二步：反汇编定位指令</h3>
-        <p>用 <code>objdump</code> 反汇编 <code>nfsd.ko</code> 模块，找到 <code>nfsd_readpages+0x7a</code> 处对应的源码行：</p>
-
-        <pre><code>$ objdump -dS /lib/modules/4.19.0/kernel/fs/nfsd/nfsd.ko | grep "readpages" -A 200
-...
-    // 在 nfsd_readpages() 中访问了 inode->i_mapping
-    // 而 inode 指针是 NULL
-    mov    0x0(%rbx),%rdi     # 这里 rbx 为 NULL，导致崩溃</code></pre>
-
-        <p>结合源码，发现 <code>nfsd_readpages</code> 函数中有一个从 <code>file->f_inode</code> 获取inode的路径，没有做NULL检查。在极罕见的情况下——文件被并发删除的同时又在被读取——<code>f_inode</code> 可能已经被置空。</p>
-
-        <h3>第三步：验证与修复</h3>
-        <p>确认根因后，修复方案很明确——在 <code>nfsd_readpages</code> 入口处加一个 <code>if (!file->f_inode) return -EBADF;</code> 的空指针检查。向上游提交补丁后，问题彻底解决，服务器再也没panic过。</p>
-
-        <div class="highlight">
-            <p><strong>关键复盘</strong>：这个bug的排查工具链是"dmesg定位OOPS → objdump反汇编定位代码行 → 源码审查确认根因"。全程没用kgdb，没加任何printk——OOPS信息本身已经足够精确。这也说明了一个道理：高质量的内核panic信息比堆砌调试手段更重要。如果生产环境没有开 <code>CONFIG_DEBUG_INFO</code> 和 <code>CONFIG_FRAME_POINTER</code>，你连准确的行号都拿不到，排查难度至少翻一倍。</p>
-        </div>
+        <h2 id="section-05">五、示例：一次 panic 排查流程（假设场景）</h2>
+<p class="warning"><strong>说明：</strong>以下日志、地址、函数名与根因是教学用合成案例，不是真实生产事故记录。真实分析必须使用同一构建的 vmcore、未剥离 vmlinux、模块符号和源码 commit。</p>
+<h3>现象</h3>
+<p>假设一台运行较旧 LTS 内核的 NFS 文件服务器间歇性触发 OOPS。第一步不是猜测根因，而是保存完整日志、内核版本、配置、模块列表、触发条件和崩溃转储。</p>
+<h3>第一步：保留证据</h3>
+<ul><li>确认 kdump/crash kernel 已预先配置，并验证 vmcore 能写入独立转储目标。</li><li>保存 <code>uname -a</code>、内核配置、发行版补丁版本、<code>vmlinux</code> 与模块调试符号。</li><li>记录 OOPS 的寄存器、调用栈、故障地址、CPU、PID 和 taint 状态；不要只复制单行 panic。</li></ul>
+<h3>第二步：离线分析</h3>
+<p>使用与 vmcore 完全匹配的符号文件运行 <code>crash vmlinux vmcore</code>，检查 <code>bt</code>、<code>log</code>、<code>ps</code>、相关任务和数据结构。若缺少符号或版本不匹配，必须把结论标记为不确定。</p>
+<h3>第三步：提出并验证假设</h3>
+<p>根据栈和对象生命周期建立最小复现，再选择 KASAN、UBSAN、lockdep 或 kgdb 等工具验证。每次只改变一个变量，记录补丁、配置和复测结果；修复后同时验证原始触发路径与相关回归测试。</p>
+</div>
 
         <p>这一章我们从printk的艺术到kdump+crash的离线和源码级分析，再到KASAN/UBSAN的自动检测和kgdb的交互式调试，最后用一个真实案例串起了整套工具链。内核调试的终极目标不是"会更多工具"，而是"用最少的工具快速锁定根因"。下一章我们将从"调试"转向"性能"——用perf、火焰图、blktrace等工具来分析和优化系统的性能瓶颈。性能调优的兴趣不比调试少，同样是硬功夫。</p>
 </div>

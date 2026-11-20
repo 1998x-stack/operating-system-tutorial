@@ -1,0 +1,51 @@
+{
+  "chapter": "05",
+  "title": "引导与初始化",
+  "claims": [
+    {
+      "id": "boot-01",
+      "claim": "UEFI Boot Manager 使用 LoadImage 与 StartImage 等 Boot Services 加载并启动 EFI image。",
+      "kind": "firmware specification",
+      "source_url": "https://uefi.org/specs/UEFI/2.10/03_Boot_Manager.html",
+      "locator": "Boot Manager; LoadImage/StartImage flow",
+      "status": "verified",
+      "notes": "不同平台固件实现与启动选项可能不同。"
+    },
+    {
+      "id": "boot-02",
+      "claim": "Linux/x86 Boot Protocol 规定 x86 引导加载器与内核之间的装载参数和启动约定。",
+      "kind": "architecture boot protocol",
+      "source_url": "https://docs.kernel.org/arch/x86/boot.html",
+      "locator": "The Linux/x86 Boot Protocol",
+      "status": "verified",
+      "notes": "不是所有架构共用的统一启动协议。"
+    },
+    {
+      "id": "boot-03",
+      "claim": "Linux initramfs 通常是 cpio 归档，解包到 rootfs；若存在 /init，内核会执行它作为早期用户空间入口。",
+      "kind": "kernel boot behavior",
+      "source_url": "https://docs.kernel.org/filesystems/ramfs-rootfs-initramfs.html",
+      "locator": "What is rootfs?; What is initramfs?",
+      "status": "verified",
+      "notes": "rootfs 是特殊根文件系统实例，可根据配置使用 ramfs 或 tmpfs。"
+    },
+    {
+      "id": "boot-04",
+      "claim": "systemd 在作为 PID 1 启动时充当 Linux 系统与服务管理器。",
+      "kind": "userspace init behavior",
+      "source_url": "https://www.freedesktop.org/software/systemd/man/latest/systemd.html",
+      "locator": "Description",
+      "status": "verified",
+      "notes": "并非所有 Linux 发行版都使用 systemd。"
+    },
+    {
+      "id": "boot-05",
+      "claim": "systemd-boot 是仅支持 UEFI 的启动管理器，并读取 ESP/XBOOTLDR 上的启动项与相关文件。",
+      "kind": "bootloader behavior",
+      "source_url": "https://www.freedesktop.org/software/systemd/man/latest/systemd-boot.html",
+      "locator": "Description",
+      "status": "verified",
+      "notes": "不据此推断其一定比 GRUB 更快。"
+    }
+  ]
+}

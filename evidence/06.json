@@ -1,0 +1,51 @@
+{
+  "chapter": "06",
+  "title": "OS内核源码初探",
+  "claims": [
+    {
+      "id": "src-01",
+      "claim": "Linux 内核编码规范使用 8 列宽 Tab 缩进，并建议单行长度优先控制在 80 列。",
+      "kind": "project coding standard",
+      "source_url": "https://docs.kernel.org/process/coding-style.html",
+      "locator": "Indentation; Breaking long lines and strings",
+      "status": "verified",
+      "notes": "这是项目维护规范，具体例外需结合上下文判断。"
+    },
+    {
+      "id": "src-02",
+      "claim": "scripts/checkpatch.pl 是补丁风格辅助工具，官方提交指南强调它不能替代人工判断。",
+      "kind": "contribution process",
+      "source_url": "https://github.com/torvalds/linux/blob/master/Documentation/process/submitting-patches.rst",
+      "locator": "Style-check your changes",
+      "status": "verified",
+      "notes": "不要描述为无条件机械验收门槛。"
+    },
+    {
+      "id": "src-03",
+      "claim": "外部模块使用 make -C <kernel-dir> M=$PWD 构建，内核构建树必须具备匹配配置和符号信息。",
+      "kind": "build procedure",
+      "source_url": "https://docs.kernel.org/kbuild/modules.html",
+      "locator": "Command Syntax; Symbols and External Modules",
+      "status": "verified",
+      "notes": "Linux 6.13 起还支持 -f 形式；示例保留广泛兼容的 -C。"
+    },
+    {
+      "id": "src-04",
+      "claim": "Kconfig 使用配置项类型、依赖和 help 块描述选项，Kbuild Makefile 描述构建目标。",
+      "kind": "build configuration",
+      "source_url": "https://github.com/torvalds/linux/blob/master/Documentation/kbuild/kconfig-language.rst",
+      "locator": "Introduction; Menu entries",
+      "status": "verified",
+      "notes": "本章 Kconfig 片段是语法示意，实际接入还需 source 与 Makefile 连接。"
+    },
+    {
+      "id": "src-05",
+      "claim": "启用强制模块签名策略时，内核只加载可由受信任密钥验证的签名模块。",
+      "kind": "kernel security policy",
+      "source_url": "https://docs.kernel.org/admin-guide/module-signing.html",
+      "locator": "Configuring module signing; Non-valid signatures and unsigned modules",
+      "status": "verified",
+      "notes": "是否强制签名取决于内核配置和启动参数。"
+    }
+  ]
+}

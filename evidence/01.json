@@ -1,0 +1,42 @@
+{
+  "chapter": "01",
+  "title": "什么是操作系统",
+  "claims": [
+    {
+      "id": "os-01",
+      "claim": "操作系统课程的核心主题可从 CPU 虚拟化、内存虚拟化、并发与持久化四个方向建立基本模型。",
+      "kind": "conceptual framework",
+      "source_url": "https://research.cs.wisc.edu/wind/OSTEP/",
+      "locator": "OSTEP online book contents",
+      "status": "verified",
+      "notes": "用于组织教学主题；本章的四职责表是面向读者的归纳，不是对所有 OS 的正式定义。"
+    },
+    {
+      "id": "os-02",
+      "claim": "FreeRTOS 默认单核调度策略是固定优先级抢占式调度，同优先级任务可按配置进行时间片轮转。",
+      "kind": "implementation behavior",
+      "source_url": "https://developer.freertos.org/Documentation/02-Kernel/02-Kernel-features/01-Tasks-and-co-routines/04-Task-scheduling",
+      "locator": "The default RTOS scheduling policy (single-core)",
+      "status": "verified",
+      "notes": "具体行为仍取决于 FreeRTOS 配置、端口与 SMP/AMP 模式。"
+    },
+    {
+      "id": "os-03",
+      "claim": "Apple 将 XNU 描述为结合 Mach、FreeBSD 组件和 IOKit 的混合内核。",
+      "kind": "implementation architecture",
+      "source_url": "https://github.com/apple-oss-distributions/xnu",
+      "locator": "README: What is XNU?",
+      "status": "verified",
+      "notes": "用于纠正将 Mach、BSD 和 IOKit 全部描述为用户态服务的说法。"
+    },
+    {
+      "id": "os-04",
+      "claim": "批处理、分时、实时、网络与分布式是按目标或使用方式划分的教学维度，不是互斥的操作系统产品标签。",
+      "kind": "taxonomy",
+      "source_url": "https://research.cs.wisc.edu/wind/OSTEP/",
+      "locator": "OSTEP overview and topic organization",
+      "status": "derived",
+      "notes": "这是对分类维度的综合解释；不同教材采用的分类边界可能不同。"
+    }
+  ]
+}

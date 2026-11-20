@@ -1,0 +1,11 @@
+#include <unistd.h>
+
+int main(void)
+{
+    static const char message[] = "hello\n";
+
+    ssize_t written = write(STDOUT_FILENO, message,
+                            sizeof(message) - 1);
+
+    return written == (ssize_t)(sizeof(message) - 1) ? 0 : 1;
+}

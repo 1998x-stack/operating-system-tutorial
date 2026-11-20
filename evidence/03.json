@@ -1,0 +1,51 @@
+{
+  "chapter": "03",
+  "title": "OS内核架构",
+  "claims": [
+    {
+      "id": "kernel-01",
+      "claim": "Linux 支持可加载外部内核模块，模块构建依赖匹配的内核构建目录和导出符号信息。",
+      "kind": "implementation architecture",
+      "source_url": "https://docs.kernel.org/kbuild/modules.html",
+      "locator": "Building External Modules; Symbols and External Modules",
+      "status": "verified",
+      "notes": "模块化不等于用户态故障隔离；模块仍在内核特权域运行。"
+    },
+    {
+      "id": "kernel-02",
+      "claim": "seL4 的代码级功能正确性证明针对其形式化规格，并依赖明确的硬件、配置和证明假设。",
+      "kind": "formal verification scope",
+      "source_url": "https://docs.sel4.systems/projects/sel4/frequently-asked-questions",
+      "locator": "What does seL4’s formal verification mean?; Does seL4 have zero bugs?",
+      "status": "verified",
+      "notes": "不应简化成“整个系统没有 bug”。"
+    },
+    {
+      "id": "kernel-03",
+      "claim": "Apple 将 XNU 描述为结合 Mach、FreeBSD 组件和 IOKit 的 hybrid kernel。",
+      "kind": "implementation architecture",
+      "source_url": "https://github.com/apple-oss-distributions/xnu",
+      "locator": "README: What is XNU?",
+      "status": "verified",
+      "notes": "该描述针对 Apple XNU，不应推广到其他系统。"
+    },
+    {
+      "id": "kernel-04",
+      "claim": "微内核服务拆分可能带来 IPC、调度和数据传递成本，但不存在适用于所有系统和负载的固定性能倍率。",
+      "kind": "architecture tradeoff",
+      "source_url": "https://docs.sel4.systems/projects/sel4/frequently-asked-questions",
+      "locator": "seL4 architecture and verification FAQ",
+      "status": "derived",
+      "notes": "需要在具体实现、硬件和工作负载上测量。"
+    },
+    {
+      "id": "kernel-05",
+      "claim": "Unikernel/Library OS 常将应用与选定 OS 服务组合成专用镜像，隔离与线程模型取决于具体实现。",
+      "kind": "architecture pattern",
+      "source_url": "https://research.cs.wisc.edu/wind/OSTEP/",
+      "locator": "OSTEP operating-system abstractions and virtualization overview",
+      "status": "illustrative",
+      "notes": "本章只介绍设计模式，不对所有 unikernel 项目作统一性能承诺。"
+    }
+  ]
+}

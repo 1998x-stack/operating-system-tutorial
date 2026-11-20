@@ -96,6 +96,38 @@ def main() -> int:
         svg = path.read_text(encoding="utf-8")
         check("<title" in svg and "<desc" in svg and "viewBox" in svg, f"{path.name}: accessible SVG metadata missing")
 
+    # Validate chapter evidence ledgers introduced in the technical review batches.
+    for number in range(1, 8):
+        chapter_id = f"{number:02d}"
+        evidence_path = ROOT / "evidence" / f"{chapter_id}.json"
+        check(evidence_path.exists(), f"missing evidence ledger: {chapter_id}.json")
+        if evidence_path.exists():
+            try:
+                ledger = json.loads(evidence_path.read_text(encoding="utf-8"))
+                check(ledger.get("chapter") == chapter_id, f"{chapter_id}.json: chapter id mismatch")
+                claims = ledger.get("claims", [])
+                check(bool(claims), f"{chapter_id}.json: no claims recorded")
+                for claim in claims:
+                    check(claim.get("status") in {"verified", "derived", "illustrative", "unverified"},
+                          f"{chapter_id}.json: invalid evidence status")
+                    check(str(claim.get("source_url", "")).startswith("https://"),
+                          f"{chapter_id}.json: claim needs an HTTPS source")
+            except (json.JSONDecodeError, OSError) as exc:
+                errors.append(f"{chapter_id}.json: cannot parse evidence ledger ({exc})")
+
+    for relative in [
+        "evidence/README.md",
+        "docs/reviews/chapters-01-07.md",
+        "labs/ch04-syscall/hello.c",
+        "labs/ch04-syscall/README.md",
+        "labs/ch06-hello-module/hello.c",
+        "labs/ch06-hello-module/Makefile",
+        "labs/ch06-hello-module/README.md",
+        "labs/ch07-qemu/README.md",
+        "labs/ch07-xv6/README.md",
+    ]:
+        check((ROOT / relative).exists(), f"missing reviewed resource: {relative}")
+
     if errors:
         print(f"FAILED ({len(errors)} problems):")
         for item in errors:

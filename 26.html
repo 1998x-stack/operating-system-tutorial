@@ -44,7 +44,7 @@
 <header class="article-header"><p class="kicker">OPERATING SYSTEMS · CHAPTER 26</p><h1 id="chapter-title">第 26 章 · 现代OS前沿趋势</h1><p class="article-dek">新语言、架构与安全机制怎样影响内核工程？</p></header>
 <section class="learning-map" aria-labelledby="learning-map-title"><h2 id="learning-map-title">先建立问题地图</h2><p>新的系统语言、开放指令集与隔离技术改变实现选择，但不会消除性能与兼容性约束。</p><div class="concept-steps" role="list"><div role="listitem"><strong>起点</strong><span>Rust for Linux</span></div><div role="listitem"><strong>机制</strong><span>LDOS AI驱动OS</span></div><div role="listitem"><strong>拓展</strong><span>seL4微内核复兴 / RISC-V+Rust生态</span></div></div><p class="map-note">这是帮助建立概念依赖的阅读地图，不表示内核内部的实际执行时序。</p></section>
 
-<nav class="page-toc" aria-label="本章小节"><details open><summary>本章目录 · 6 个部分</summary><ol><li><a href="#section-01">一、Rust for Linux — 从76个文件到242个文件的旅程</a></li>
+<nav class="page-toc" aria-label="本章小节"><details open><summary>本章目录 · 6 个部分</summary><ol><li><a href="#section-01">一、Rust for Linux：内核中的安全抽象与渐进式采用</a></li>
 <li><a href="#section-02">二、LDOS：AI驱动的操作系统</a></li>
 <li><a href="#section-03">三、微内核复兴：seL4与LionsOS</a></li>
 <li><a href="#section-04">四、RISC-V + Rust OS新生态</a></li>
@@ -113,9 +113,9 @@ impl Drop for HelloModule {
         <p>LDOS从三个核心维度同时引入ML：</p>
 
         <ul>
-            <li><strong>调度器+ML</strong>：模型根据进程的历史行为（CPU密集/IO密集、交互性强/弱、缓存亲和性）预测最优CPU亲和性和时间片分配，比CFS在混部场景下提升15-23%的吞吐量。</li>
-            <li><strong>内存管理+ML</strong>：预测页面的访问模式，决定哪些页面应该被换出、哪些页面应该被预取。在内存压力场景下，ML驱动的页面回收策略比传统的LRU算法减少了约30%的major page fault。</li>
-            <li><strong>网络拥堵控制+ML</strong>：训练模型实时识别网络状况（丢包是拥塞导致还是无线链路自然丢失），动态调整拥塞窗口。在5G高延迟抖动场景下，ML-CC比BBR算法快40%收敛到稳定带宽。</li>
+            <li><strong>调度器+ML</strong>：研究原型尝试利用历史行为预测任务特征或放置策略；收益必须在明确的工作负载、基线调度器和硬件平台上复现，不能给出通用提升比例。</li>
+            <li><strong>内存管理+ML</strong>：研究系统探索用预测模型估计页面访问与工作集变化；模型误差、训练数据漂移和推理成本可能抵消收益，需与实际内核回收策略比较。</li>
+            <li><strong>网络拥塞控制+ML</strong>：机器学习拥塞控制属于活跃研究方向，评估时应说明链路模型、丢包类型、训练/测试分布、公平性和与 BBR 等基线的比较方法。</li>
         </ul>
 
         <div class="tip">
@@ -128,13 +128,13 @@ impl Drop for HelloModule {
 
         <h3>seL4：形式化验证的微内核</h3>
 
-        <p>seL4是一个微内核，但它不是普通的微内核——它是世界上第一个通过了完整形式化验证（formal verification）的操作系统内核。所谓形式化验证，不是靠测试，而是用数学证明的方式证明了内核的实现完全符合其规范。这意味着：seL4在代码层面不存在缓冲区溢出、空指针解引用、use-after-free、信息泄露等整类安全漏洞。</p>
+        <p>seL4 是经过形式化验证的微内核代表。其证明覆盖特定实现、抽象规范、配置与假设，并不意味着整个系统（驱动、应用、硬件、编译器和部署配置）都自动获得同等保证。阅读验证结果时，应明确证明对象、威胁模型和适用配置。</p>
 
-        <p>seL4最惊人的成就之一是它的IPC性能：一次进程间通信（IPC）仅需要196个CPU周期。作为对比，Linux中一次基本的系统调用就需要100-300个周期，而一次进程间通信可能高达数千个周期。seL4通过精巧的设计——比如直接在寄存器中传递小消息、避免不必要的权限检查——将IPC开销压到了理论极限。</p>
+        <p>seL4 的 IPC 设计强调小消息快速路径与明确的能力检查。性能数字高度依赖 CPU、编译器、消息大小、缓存状态和测量方法；不能把某个论文或平台上的周期数直接与 Linux 系统调用作普遍比较。</p>
 
-        <h3>LionsOS：1000行代码打败100万行</h3>
+        <h3>LionsOS：以组件化方式构建系统服务</h3>
 
-        <p>LionsOS是构建在seL4之上的一个操作系统框架，它的故事非常有意思。LionsOS的网络栈只用了不到1000行代码，就实现了与Linux百万行级网络栈（包括协议解析、路由、套接字层、防火墙等）大致相当的网络吞吐能力。怎么做到的？秘密在于seL4的隔离模型——每个网络功能（TCP处理、IP路由、ARP缓存）都运行在自己的地址空间中，彼此严格隔离。即使某个组件被攻破，攻击者也无法影响其他组件。而Linux虽然功能更丰富，但其巨大的代码量意味着巨大的攻击面。</p>
+        <p>LionsOS 是围绕 seL4 构建的组件化系统软件项目，关注可组合服务、隔离边界与可验证性。不能仅凭某个组件的代码行数推断其与 Linux 完整网络栈功能等价，也不能在缺少同平台、同功能、同负载基准的情况下宣称吞吐能力相当。比较系统时，应同时列出功能覆盖、驱动支持、攻击面、性能测量和维护成本。</p>
 
         <div class="warning">
             <p><strong>现实考量</strong>：这里必须诚实地说——seL4和LionsOS虽然在安全性和确定性上完胜Linux，但Linux的驱动生态、硬件兼容性和社区规模是微内核们短期内无法企及的。seL4更适合的场景是：汽车自动驾驶系统、航天飞行控制、军事加密通信——"宁可停机，不可出错"的领域。但趋势很清楚：随着RISC-V和IoT设备的爆发，微内核的简洁、安全、可验证特性正在重新获得行业关注。</p>

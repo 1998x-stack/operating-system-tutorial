@@ -22,3 +22,17 @@ make qemu
 - `kernel/fs.c`：文件系统实现
 
 进入 shell 后可运行 `ls`、`cat README`、`echo hello`。具体输出与实验分支可能变化，以所检出的 MIT 源码版本为准。
+
+## 预期结果
+
+成功构建后，QEMU 窗口应进入 xv6 shell；可以运行 `ls`、`echo hello` 等内置命令。编译器缺失、QEMU 未包含 RISC-V system emulation 或工具链前缀不匹配时，`make` 会在构建阶段失败。以当前检出的 MIT 仓库版本为准，不要混用不同年份课程的补丁。
+
+## 清理
+
+在 xv6 shell 所在 QEMU 窗口按 `Ctrl-a`，再按 `x` 退出模拟器；回到源码目录后执行：
+
+```bash
+make clean
+```
+
+如需保留源码供后续实验，勿删除整个克隆目录。记录 `git rev-parse HEAD`、`riscv64-unknown-elf-gcc --version` 和 `qemu-system-riscv64 --version`。

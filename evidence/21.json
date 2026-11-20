@@ -1,0 +1,42 @@
+{
+  "chapter": "21",
+  "title": "虚拟化技术",
+  "claims": [
+    {
+      "id": "virt-21-01",
+      "claim": "KVM 将 Linux 内核转化为硬件虚拟化能力的管理层，并通过 /dev/kvm 暴露用户态 API。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://docs.kernel.org/virt/kvm/api.html",
+      "locator": "KVM API",
+      "status": "verified",
+      "notes": "需要 CPU 与固件启用相应虚拟化扩展。"
+    },
+    {
+      "id": "virt-21-02",
+      "claim": "QEMU 可通过 KVM 加速客户机 CPU 执行，并在用户态提供设备模型。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://www.qemu.org/docs/master/system/introduction.html",
+      "locator": "Introduction",
+      "status": "verified",
+      "notes": "QEMU 也支持其他加速后端和纯软件模拟。"
+    },
+    {
+      "id": "virt-21-03",
+      "claim": "virtio 定义虚拟设备与客户机驱动之间的半虚拟化接口。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://docs.oasis-open.org/virtio/virtio/v1.3/virtio-v1.3.html",
+      "locator": "Virtio specification",
+      "status": "verified",
+      "notes": "设备类型和传输方式影响实际实现。"
+    },
+    {
+      "id": "virt-21-04",
+      "claim": "vCPU 的宿主机调度、NUMA 放置和 I/O 资源争用会影响客户机性能。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://docs.kernel.org/virt/kvm/index.html",
+      "locator": "KVM documentation",
+      "status": "derived",
+      "notes": "具体瓶颈需结合宿主机观测与工作负载分析。"
+    }
+  ]
+}

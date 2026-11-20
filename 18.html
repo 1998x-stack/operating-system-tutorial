@@ -78,14 +78,14 @@ if (time_after_eq(jiffies, timeout)) {
             <tr><th>HZ值</th><th>Tick周期</th><th>jiffies精度</th><th>适用场景</th><th>优点</th><th>缺点</th></tr>
             <tr><td>100</td><td>10 ms</td><td>tick 计数粒度为 10 ms</td><td>仅代表配置 tick 周期</td><td>周期 tick 开销相对较低</td><td>不能据此推断 hrtimer/clock_gettime 精度</td></tr>
             <tr><td>250</td><td>4 ms</td><td>tick 计数粒度为 4 ms</td><td>仅代表配置 tick 周期</td><td>周期 tick 与调度行为依配置</td><td>不是所有定时器的精度上限</td></tr>
-            <tr><td>1000</td><td>1 ms</td><td>高</td><td>实时/交互式</td><td>时间精度最高</td><td>每秒1000次中断，CPU开销大</td></tr>
+            <tr><td>1000</td><td>1 ms</td><td>tick 计数粒度为 1 ms</td><td>仅代表配置 tick 周期</td><td>周期 tick 与调度行为依配置</td><td>不构成实时延迟保证</td></tr>
         </table>
 
         <div class="highlight">
-            <p><strong>关键认知</strong>：jiffies + HZ 方案本质上是"脉搏式"的时间计量——内核每 <code>1/HZ</code> 秒才更新一次系统时间。如果HZ=100，你调用 <code>sleep(1)</code>，实际睡眠时间可能是1000ms到1010ms之间的任意值——因为你"醒来"的时机取决于下一个tick的到来。这就是为什么高精度应用无法依赖传统的jiffies定时器。</p>
+            <p><strong>关键认知</strong>：jiffies 适合表达基于 tick 的内核超时与时间比较，但用户态 <code>sleep()</code>、<code>clock_nanosleep()</code> 等接口并不简单地被限制为 1/HZ 精度；在启用高精度定时器的系统上，内核可按更细粒度安排唤醒。实际唤醒时间仍受调度延迟、时钟事件设备、系统负载和 timer slack 影响。</p>
         </div>
 
-        <p>在x86架构上，你可以通过 <code>/proc/timer_list</code> 查看当前系统的HZ值和其他定时器信息。也可以通过 <code>getconfig</code> 或编译内核时的 <code>CONFIG_HZ</code> 选项确认实际配置。大多数发行版默认使用HZ=250或HZ=1000。</p>
+        <p>在x86架构上，你可以通过 <code>/proc/timer_list</code> 查看当前系统的HZ值和其他定时器信息。可优先检查发行版提供的 <code>/boot/config-$(uname -r)</code>，或在启用时读取 <code>/proc/config.gz</code> 中的 <code>CONFIG_HZ</code>。发行版默认值并不统一，应以当前运行内核配置为准。</p>
 
         <h2 id="section-02">二、高精度定时器hrtimer</h2>
 

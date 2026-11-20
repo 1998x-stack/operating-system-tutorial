@@ -89,7 +89,7 @@
         <p>每个MNT Namespace维护自己的挂载树。容器内的 <code>/</code> 根文件系统来自OverlayFS的合并层，容器内的 <code>/proc</code> 挂载的是该PID Namespace对应的procfs。用 <code>mount --bind</code> 可以在不同Namespace之间共享目录。</p>
 
         <h3>5. USER Namespace（用户/权限隔离）</h3>
-        <p>最强大的Namespace之一。容器内的root（UID 0）可以映射为宿主机的普通用户（UID 1000）。这意味着即使容器内进程被攻破获得root权限，它在宿主机上也没有任何特权。这是安全性最高的Namespace。可惜的是，很多容器运行时默认不开启USER Namespace（因为需要额外的配置和权限映射）。</p>
+        <p>最强大的Namespace之一。容器内的 UID 0 可映射为宿主机上的非特权 UID 范围。这样可限制容器进程在初始 user namespace 中获得的宿主机权限；但它并不意味着“没有任何特权”或自动构成完整安全边界。需结合 capability 所属 user namespace、映射范围、挂载、设备访问、setuid 程序与宿主机配置评估。可惜的是，很多容器运行时默认不开启USER Namespace（因为需要额外的配置和权限映射）。</p>
 
         <h3>6. IPC Namespace（信号量/消息队列隔离）</h3>
         <p>隔离System V IPC和POSIX消息队列。容器之间无法通过共享内存、信号量等IPC机制通信（除非显式使用宿主机IPC Namespace）。对于大多数Web应用来说这不是关键限制，但对于需要进程间共享内存的高性能应用需要注意。</p>

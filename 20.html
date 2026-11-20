@@ -70,7 +70,7 @@
         </div>
 
         <h3>BPF Map：用户态与内核态的数据通道</h3>
-        <p>BPF程序不能直接写日志文件，也不能打印到终端。它只能通过BPF Map与用户态交换数据。Map是一个键值存储，内核态的BPF程序写入数据，用户态程序通过 <code>bpf()</code> 系统调用的 <code>BPF_MAP_LOOKUP_ELEM</code> / <code>BPF_MAP_GET_NEXT_KEY</code> 等命令读取数据。常见的Map类型包括哈希表、数组、环形缓冲区（perf_event_array）、栈映射等。</p>
+        <p>BPF程序不能直接写日志文件，也不能打印到终端。它只能通过BPF Map与用户态交换数据。Map是一个键值存储，内核态的BPF程序写入数据，用户态程序通过 <code>bpf()</code> 系统调用的 <code>BPF_MAP_LOOKUP_ELEM</code> / <code>BPF_MAP_GET_NEXT_KEY</code> 等命令读取数据。常见的 Map 类型包括哈希表、数组、perf event array、BPF ring buffer 和 stack trace map；它们的用户态消费方式和并发语义不同。</p>
 
         <pre><code>// eBPF程序完整生命周期的简化示意
 //

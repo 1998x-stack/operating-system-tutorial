@@ -149,18 +149,9 @@ $ bpftool prog show</code></pre>
 
         <p>使用bpftool或更简单的方式——直接用bpftrace单行命令：</p>
 
-        <pre><code># 用bpftrace快速查看调度延迟分布（最简单方式）
-$ sudo bpftrace -e '
-  kprobe:finish_task_switch {
-    $ts = nsecs;
-    @start[pid] = $ts;
-  }
-  kretprobe:finish_task_switch /@start[pid]/ {
-    $delta = nsecs - @start[pid];
-    @runqlat_us = hist($delta / 1000);
-    delete(@start[pid]);
-  }
-'</code></pre>
+        <pre><code># 简化版：统计 wakeup/抢占后到下一次运行的等待时间；
+# 完整生产工具还需处理迁移、丢失事件、过滤与直方图边界。
+$ sudo bpftrace -e 'tracepoint:sched:sched_wakeup { @ts[args.pid] = nsecs; } tracepoint:sched:sched_wakeup_new { @ts[args.pid] = nsecs; } tracepoint:sched:sched_switch { if (args.prev_state == 0) { @ts[args.prev_pid] = nsecs; } if (@ts[args.next_pid]) { @runqlat_us = hist((nsecs - @ts[args.next_pid]) / 1000); delete(@ts[args.next_pid]); } }'</code></pre>>
 
         <div class="tip">
             <p><strong>验证方法</strong>：在运行上述bpftrace命令的另一个终端中，执行一个CPU密集型任务（如 <code>stress --cpu 4 --timeout 30</code>），观察直方图的变化。预期结果：大部分调度延迟应该在几微秒到几十微秒之间。如果出现大量超过1ms的延迟，说明系统存在调度延迟问题——可能是CPU核数不足、cgroup限制或内核抢占配置不当。</p>
@@ -313,13 +304,76 @@ static int memdevice_release(struct inode *inodep, struct file *filep)
 }
 
 static struct file_operations fops = {
-    .owner   = THIS_MODULE,
-    .open    = memdevice_open,
-    .read    = memdevice_read,
-    .write   = memdevice_write,
-    .llseek  = memdevice_llseek,
+    .owner = THIS_MODULE, .open = memdevice_open, .read = memdevice_read,
+    .write = memdevice_write, .llseek = memdevice_llseek,
     .release = memdevice_release,
-};</code></pre>
+};
+
+/* 注册骨架：Linux 6.4+ 使用 class_create(CLASS_NAME)；
+ * 较旧内核使用 class_create(THIS_MODULE, CLASS_NAME)。
+ * 完整实现还需为每个失败分支做逆序资源回收。 */
+static dev_t devt;
+
+static int __init memdevice_init(void)
+{
+    int ret;
+
+    dev_data = kzalloc(sizeof(*dev_data), GFP_KERNEL);
+    if (!dev_data)
+        return -ENOMEM;
+    dev_data->buffer = kzalloc(BUFFER_SIZE, GFP_KERNEL);
+    if (!dev_data->buffer) {
+        ret = -ENOMEM;
+        goto err_data;
+    }
+    mutex_init(&dev_data->lock);
+
+    ret = alloc_chrdev_region(&devt, 0, 1, DEVICE_NAME);
+    if (ret)
+        goto err_buffer;
+    cdev_init(&dev_data->cdev, &fops);
+    dev_data->cdev.owner = THIS_MODULE;
+    ret = cdev_add(&dev_data->cdev, devt, 1);
+    if (ret)
+        goto err_region;
+
+    memdev_class = class_create(CLASS_NAME);
+    if (IS_ERR(memdev_class)) {
+        ret = PTR_ERR(memdev_class);
+        goto err_cdev;
+    }
+    memdev_device = device_create(memdev_class, NULL, devt, NULL, DEVICE_NAME);
+    if (IS_ERR(memdev_device)) {
+        ret = PTR_ERR(memdev_device);
+        goto err_class;
+    }
+    return 0;
+
+err_class:
+    class_destroy(memdev_class);
+err_cdev:
+    cdev_del(&dev_data->cdev);
+err_region:
+    unregister_chrdev_region(devt, 1);
+err_buffer:
+    kfree(dev_data->buffer);
+err_data:
+    kfree(dev_data);
+    dev_data = NULL;
+    return ret;
+}
+
+static void __exit memdevice_exit(void)
+{
+    device_destroy(memdev_class, devt);
+    class_destroy(memdev_class);
+    cdev_del(&dev_data->cdev);
+    unregister_chrdev_region(devt, 1);
+    kfree(dev_data->buffer);
+    kfree(dev_data);
+}
+module_init(memdevice_init);
+module_exit(memdevice_exit);</code></pre>
 
         <h3>步骤二：注册sysfs属性</h3>
 

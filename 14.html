@@ -107,7 +107,7 @@
 
 3. 读取数据
    → page cache lookup:  inode 12345 offset 0 → cache hit？否
-   → ext4_readpage(): 根据inode中的extent tree找到磁盘块号
+   → 通过当前文件系统的 read_folio()/readahead() 路径按需填充 folio/page cache（具体回调随内核版本变化）
    → submit_bio(): 向块设备层提交I/O请求
    → 磁盘返回数据 → 放入页缓存 → copy_to_user() 给应用程序
 

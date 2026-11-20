@@ -51,178 +51,82 @@
 <li><a href="#section-05">五、systemd启动编排</a></li>
 <li><a href="#section-06">六、结语与下一章预告</a></li></ol></details></nav>
 <div class="article-body">
-<p>大家好，我是你们的讲师。上一章我们讲了用户态和内核态的隔离——理解了程序如何通过系统调用进入内核。但有个更根本的问题你可能已经想到了：内核自己是怎么"活"过来的？</p>
+<p>开机并不是“BIOS 把 Linux 直接读进内存”这么简单。固件先完成平台初始化并选择启动项；启动管理器或引导加载器再把内核镜像、initramfs 和启动参数交给内核；内核完成早期初始化后，才启动第一个用户态进程。不同机器、固件模式和发行版的细节并不完全相同。</p>
+<figure class="mechanism-figure"><img src="assets/diagrams/boot-chain.svg" width="800" height="300" alt="固件、启动管理器、Linux 内核、initramfs 中的 init 和真实根文件系统 PID 1 的交接流程"><figcaption>常见 Linux 启动路径的概念图；UEFI/BIOS、initramfs 和具体 init 系统的选择会因平台和发行版而异</figcaption></figure>
 
-        <p>当你按下笔记本电脑的电源键，到屏幕上出现熟悉的登录界面，这中间短短几秒钟的时间，经历了计算机启动史上最精密复杂的"接力赛"：固件进行最低级硬件初始化、Bootloader加载内核到内存、内核解压并初始化核心子系统、最后启动init进程完成用户态环境的搭建。每一步都是上一棒递交给下一棒——任何一个环节出问题，电脑都无法正常启动。</p>
+<h2 id="section-01">一、从按下电源键到内核启动</h2>
+<table><thead><tr><th>阶段</th><th>主要职责</th><th>交接给谁</th></tr></thead><tbody>
+<tr><td>CPU 复位与固件</td><td>执行平台固件代码、初始化必要硬件、建立启动环境</td><td>固件启动管理器</td></tr>
+<tr><td>启动管理器 / Bootloader</td><td>选择启动项，加载内核镜像和可选 initramfs，传递命令行与硬件信息</td><td>内核入口</td></tr>
+<tr><td>内核早期初始化</td><td>建立架构相关执行环境，初始化内存管理、中断和核心子系统</td><td>内核初始化流程</td></tr>
+<tr><td>initramfs（若使用）</td><td>加载必要模块、发现根设备、解锁/组装存储并挂载真实根文件系统</td><td>真实根文件系统中的 init</td></tr>
+<tr><td>用户空间 PID 1</td><td>启动和管理系统服务、登录环境及其他用户进程</td><td>完整用户空间</td></tr>
+</tbody></table>
+<p>在 x86 Linux 上，内核定义了与引导加载器之间的 <a href="https://docs.kernel.org/arch/x86/boot.html">Linux/x86 Boot Protocol</a>。这份协议描述了引导加载器如何提供启动参数、内存信息和镜像装载状态。它不是所有 CPU 架构通用的启动流程规范；ARM、RISC-V 和 EFI stub 等路径各有不同约定。</p>
 
-        <p>分享一个让我印象极深的故障。有一次给一台老服务器换了一块新SSD，装好系统后重启——黑屏，什么东西都没有。我反复检查硬件，全部正常。用启动U盘进Live CD环境，磁盘也能识别。百思不得其解。折腾了一晚上，最后发现新SSD是4K原生扇区（4KN），而老的BIOS无法从4K扇区的设备上引导启动，因为BIOS固件代码硬编码了512字节的扇区大小。换了一块512e模拟扇区的SSD就好了。这个教训非常惨痛：启动过程涉及多代技术的"接力"，任何一环的兼容性出问题，机器就变砖。</p>
+<h2 id="section-02">二、BIOS vs UEFI</h2>
+<p>Legacy BIOS 和 UEFI 是不同的固件接口模型。传统 PC BIOS 启动常从 MBR 引导代码开始，再由后续阶段加载更大的 Bootloader；UEFI 则提供启动变量、设备路径、文件系统和 EFI image 装载服务。UEFI Boot Manager 可通过 <code>LoadImage()</code> 与 <code>StartImage()</code> 加载并执行 EFI 应用。</p>
+<table><thead><tr><th>比较维度</th><th>Legacy BIOS 常见路径</th><th>UEFI 常见路径</th></tr></thead><tbody>
+<tr><td>启动接口</td><td>传统固件中断与引导扇区约定</td><td>EFI Boot Services、协议与启动变量</td></tr>
+<tr><td>常见启动组件</td><td>MBR/引导扇区、后续 Bootloader 阶段</td><td>EFI System Partition（ESP）中的 EFI 应用</td></tr>
+<tr><td>分区方案</td><td>常与 MBR 分区表配合</td><td>常与 GPT 配合，但 UEFI 与 GPT 不是同一个概念</td></tr>
+<tr><td>安全启动</td><td>没有与 UEFI Secure Boot 等价的标准化固件验证流程</td><td>可启用 Secure Boot，根据平台密钥数据库验证 EFI 镜像</td></tr>
+</tbody></table>
+<p>不要把 UEFI 描述成“一个完整的小型操作系统”：它提供固件服务和协议，但功能集由平台实现决定。也不要说 UEFI 必然使用 GPT、Legacy BIOS 必然只能处理 2TB 磁盘，或所有 UEFI 都自带图形界面和网络栈；这些结论依赖分区工具、固件实现和平台配置。</p>
+<h3>Secure Boot 的边界</h3>
+<p>Secure Boot 是可配置的信任链机制，验证哪些 EFI 镜像可以启动，取决于固件密钥和平台策略。Linux 发行版可能通过 shim、GRUB、签名内核和内核模块签名构建后续信任链；不能笼统声称“固件自动验证从 Bootloader 到所有内核模块的每一步”。模块签名策略是内核的独立配置与加载策略。</p>
+<p>参考 <a href="https://uefi.org/specs/UEFI/2.10/03_Boot_Manager.html">UEFI Boot Manager</a> 和 <a href="https://uefi.org/specs/UEFI/2.10/07_Services_Boot_Services.html">UEFI Boot Services</a>。</p>
 
-        <div class="highlight">
-            <p><strong>宏观流程</strong>：按下电源 → 固件（BIOS/UEFI）硬件初始化 → Bootloader加载内核镜像 → 内核解压并初始化 → 挂载initramfs → 切换rootfs → 启动init进程（通常是systemd）→ 启动服务进入用户登录界面。我们一步步拆解。</p>
-        </div>
+<h2 id="section-03">三、GRUB与systemd-boot</h2>
+<h3>1. GRUB</h3>
+<p>GRUB 2 是通用引导加载器，可用于 BIOS 和 UEFI 平台。它能够根据构建时启用的模块读取受支持的文件系统、加载内核与 initramfs，并传递内核命令行。实际支持的文件系统、加密能力和启动方式取决于 GRUB 构建配置与平台，不应把所有发行版的 GRUB 功能视为完全相同。</p>
+<h3>2. systemd-boot</h3>
+<p><a href="https://www.freedesktop.org/software/systemd/man/latest/systemd-boot.html">systemd-boot</a> 是仅面向 UEFI 系统的简洁启动管理器。它从 ESP 和可选的 XBOOTLDR 分区读取启动项、内核、initrd 和 EFI 镜像。它与 GRUB 的定位不同：systemd-boot 依赖 UEFI 固件提供的文件访问能力，不是一个在所有文件系统上都能工作的通用引导环境。</p>
+<p>不能在没有同一硬件、固件、配置和启动项的测量时，断言 systemd-boot 总是比 GRUB 快或更可靠。选择时考虑固件模式、磁盘布局、加密、文件系统、启动项管理和恢复方式。</p>
+<pre><code># 查看当前内核收到的启动参数
+cat /proc/cmdline
 
-        <h2 id="section-01">一、从按下电源键到内核启动</h2>
+# 在 Linux 中检查是否以 UEFI 模式启动
+test -d /sys/firmware/efi && echo UEFI || echo "Legacy/非 UEFI"</code></pre>
 
-        <h3>1. 电源上电与Reset</h3>
-        <p>按下电源键，主板上的电源管理单元（PMU）向各个组件供电，电源状态稳定后向CPU发送一个Power Good信号。CPU的Reset引脚被拉高，CPU进入复位状态——所有内部寄存器设置为默认值。x86 CPU复位后，CS寄存器被设置为 <code>0xF000</code>，IP设置为 <code>0xFFF0</code>，CPU开始在物理地址 <code>0xFFFFFFF0</code> 处执行第一条指令——这是固件（BIOS/UEFI）入口的映射地址。</p>
+<h2 id="section-04">四、initramfs与rootfs切换</h2>
+<p>内核可能需要先加载存储控制器、文件系统、加密或 RAID 相关模块，才能访问真实根文件系统。initramfs 提供一个早期用户空间来完成这些工作。Linux 内核文档说明，initramfs 通常是 cpio 归档，解包到 rootfs；如果其中存在 <code>/init</code>，内核会执行它作为早期用户空间入口。</p>
+<h3>启动过程</h3>
+<ol>
+<li>Bootloader 把内核镜像和可选的外部 initramfs 载入内存，并传递启动参数。</li>
+<li>内核解包 initramfs 到 rootfs；rootfs 是内核始终存在的特殊根文件系统实例，默认实现可使用 ramfs，启用 tmpfs 时也可使用 tmpfs。</li>
+<li>若存在 <code>/init</code>，它在用户态运行，按发行版脚本加载驱动、发现块设备、解锁加密卷并挂载真实根文件系统。</li>
+<li>早期用户空间通过 <code>switch_root</code> 等工具切换到真实根，并执行真正的 init 程序；PID 1 通常通过 exec 延续，而不是由内核重新创建一个“第二个 PID 1”。</li>
+</ol>
+<pre><code># Debian/Ubuntu 系统可用 initramfs-tools 查看归档内容
+lsinitramfs /boot/initrd.img-$(uname -r) | head -40
 
-        <h3>2. 固件阶段</h3>
-        <p>固件执行Power-On Self-Test（POST），检测CPU、内存、芯片组、存储设备等关键组件是否完好。然后枚举PCI总线，分配I/O和Memory资源，建立ACPI（Advanced Configuration and Power Interface）表和SMBIOS表，这些表格向OS描述硬件的拓扑结构和配置信息。最后固件在引导设备列表中找到可引导设备（根据Boot Order），读取引导扇区或引导管理器（Boot Manager）信息，将控制权移交给Bootloader。</p>
+# 查看当前根文件系统与启动参数
+findmnt /
+cat /proc/cmdline</code></pre>
+<p>initramfs 并不是所有系统都必须使用的独立“临时 Linux”。有的内核把内置 cpio 归档链接进镜像，有的引导加载器传入外部 initrd/initramfs；早期用户空间的内容由发行版工具生成。</p>
+<p>参考 <a href="https://docs.kernel.org/filesystems/ramfs-rootfs-initramfs.html">Linux 内核：ramfs、rootfs 与 initramfs</a>。</p>
 
-        <h3>3. Bootloader与内核启动</h3>
-        <p>Bootloader（如GRUB）从磁盘分区读取内核镜像（vmlinuz）和initramfs到内存中。Bootloader设置好内核启动参数（cmdline），准备页表结构，切换到保护模式或长模式，然后跳转到内核入口 <code>startup_64()</code>。从这一刻起，操作系统内核接管了机器的控制权。</p>
+<h2 id="section-05">五、systemd启动编排</h2>
+<p>当内核启动第一个用户态进程后，许多现代 Linux 发行版会以 systemd 作为 PID 1。systemd 不只是启动脚本执行器，它还管理服务、挂载点、socket、timer、target 和其他 unit 的生命周期。</p>
+<h3>1. Unit 与依赖语义</h3>
+<p><code>Requires=</code>、<code>Wants=</code> 等依赖关系会影响某个 unit 是否被拉入启动事务；<code>After=</code> 和 <code>Before=</code> 主要定义顺序，本身不会自动把另一个 unit 拉入事务。理解这一点可以避免把“排序关系”误读为“服务依赖”。</p>
+<h3>2. 网络就绪不是一个单一事件</h3>
+<p><code>network.target</code> 是网络栈相关的同步点，不等同于“已经拿到 IP 并能访问互联网”。需要等待网络配置完成的服务，可能还要与 <code>network-online.target</code> 及对应的 wait-online 服务协作；是否应该等待，取决于服务真正需要的网络条件。</p>
+<pre><code># 查看启动关键路径
+systemd-analyze critical-chain
 
-        <table>
-            <tr><th>阶段</th><th>主要任务</th><th>CPU模式</th><th>内存状况</th></tr>
-            <tr><td>上电/Reset</td><td>CPU复位，跳转到Reset Vector</td><td>实模式（16位）</td><td>仅有ROM映射，DRAM尚未初始化</td></tr>
-            <tr><td>固件（BIOS/UEFI）</td><td>POST、硬件枚举、ACPI表构建</td><td>实模式或32位保护模式</td><td>DRAM已初始化，通过E820图描述</td></tr>
-            <tr><td>Bootloader</td><td>加载内核和initramfs到内存</td><td>保护模式或长模式</td><td>内核镜像驻留在内存中</td></tr>
-            <tr><td>内核早期初始化</td><td>架构相关初始化、页表设置</td><td>长模式（64位）</td><td>页表建立，内核映射到高地址</td></tr>
-            <tr><td>内核子系统中后期</td><td>调度器、内存管理、驱动加载</td><td>长模式</td><td>伙伴系统就绪，虚拟内存启用</td></tr>
-            <tr><td>init进程启动</td><td>挂载rootfs、启动systemd</td><td>长模式，用户态</td><td>用户空间进程已建立</td></tr>
-        </table>
+# 查看各 unit 的启动耗时参考
+systemd-analyze blame
 
-        <h2 id="section-02">二、BIOS vs UEFI</h2>
+# 查看某个 unit 的依赖与排序信息
+systemctl show ssh.service -p Requires -p Wants -p After -p Before</code></pre>
+<p><code>systemd-analyze blame</code> 的耗时不能简单相加成总启动时间；并行启动和等待依赖会影响关键路径。不要用没有环境和测量方法的“systemd 2–5 秒、SysV 15–30 秒”作为普遍结论。</p>
+<p>参考 <a href="https://www.freedesktop.org/software/systemd/man/latest/systemd.html">systemd</a> 的 PID 1 说明和 <a href="https://www.freedesktop.org/software/systemd/man/latest/systemd-boot.html">systemd-boot</a> 文档。</p>
 
-        <p>固件是计算机启动的"第一口奶"。目前主流固件接口有两种：传统BIOS（Legacy BIOS）和现代UEFI（Unified Extensible Firmware Interface）。它们之间不仅仅是新旧关系，更是整个设计范式的一次革命。</p>
-
-        <h3>1. BIOS的16位实模式</h3>
-        <p>BIOS（Basic Input/Output System）诞生于1980年代，活在Intel 8088时代——16位实模式，只能访问1MB地址空间（0x00000–0xFFFFF）。BIOS加载硬盘第一个扇区（Master Boot Record, MBR，仅512字节）到地址 <code>0x7C00</code>，检查MBR末尾的签名 <code>0x55AA</code>，然后将控制权交给MBR里的代码。512字节显然放不下一个完整的Bootloader，所以MBR代码通常只是"Stage 1"，它的工作是从磁盘加载更大的"Stage 2"。这种"靴子套靴子"的设计极其精巧但也极其脆弱。</p>
-
-        <h3>2. UEFI的现代设计</h3>
-        <p>UEFI是Intel在2000年代推出（当时叫EFI），到2012年以后成为主流PC的标准。UEFI本质是一个微型OS：它有自己的驱动程序模型、协议接口、文件系统支持（FAT32）、网络栈和Shell。UEFI固件可以直接读取GPT分区的EFI System Partition（ESP）上的 <code>.efi</code> 引导文件。UEFI能同时运行32位和64位代码，不再受1MB地址空间限制，支持Secure Boot——利用数字签名验证引导加载程序的完整性，防止恶意代码篡改启动流程。</p>
-
-        <h3>3. Secure Boot机制</h3>
-        <p>Secure Boot是UEFI的安全扩展：固件内置了授权的公钥数据库（DB），引导加载程序和内核镜像必须经过对应私钥的签名。从固件→Bootloader→内核→内核模块，每一步都验证签名，形成了"信任链"（Chain of Trust）。如果签名的镜像被篡改，验证失败，固件拒绝启动。这有效阻止了Bootkit类型的Rootkit——但它也引发了Linux社区的一些争议（关于控制权归属）。</p>
-
-        <table>
-            <tr><th>特性</th><th>BIOS (Legacy)</th><th>UEFI</th></tr>
-            <tr><td>CPU模式</td><td>16位实模式</td><td>32/64位保护/长模式</td></tr>
-            <tr><td>可寻址空间</td><td>1MB</td><td>无限制</td></tr>
-            <tr><td>分区表</td><td>MBR（最大2TB）</td><td>GPT（最大9.4ZB）</td></tr>
-            <tr><td>引导加载</td><td>从MBR加载512字节Stage 1</td><td>直接从FAT32分区加载.efi文件</td></tr>
-            <tr><td>安全启动</td><td>无</td><td>Secure Boot签名验证</td></tr>
-            <tr><td>网络支持</td><td>无</td><td>内置UEFI网络栈（支持PXE）</td></tr>
-            <tr><td>可扩展性</td><td>差——依赖固定中断向量和硬件轮询</td><td>好——提供协议接口和驱动模型</td></tr>
-            <tr><td>用户界面</td><td>纯文本菜单</td><td>图形界面+鼠标支持</td></tr>
-        </table>
-
-        <div class="tip">
-            <p><strong>如何判断</strong>：在你的Linux终端运行 <code>ls /sys/firmware/efi</code>，如果目录存在且不为空，你的系统是从UEFI模式启动的。如果目录不存在，说明Legacy BIOS模式。2020年以后出厂的PC几乎全部预装UEFI。</p>
-        </div>
-
-        <h2 id="section-03">三、GRUB与systemd-boot</h2>
-
-        <h3>1. GRUB（GRand Unified Bootloader）</h3>
-        <p>GRUB是Linux世界最主流的Bootloader。GRUB 2是目前的标准版本，支持多引导、模块化驱动、配置文件驱动、从多种文件系统（ext4, Btrfs, XFS, ZFS）加载内核。GRUB的流程：BIOS/UEFI加载GRUB的引导镜像（boot.img/core.img）$\to$ GRUB读取 <code>/boot/grub/grub.cfg</code> 配置文件 $\to$ 显示启动菜单 $\to$ 用户选择内核或超时后自动选择 $\to$ GRUB根据配置加载内核（<code>vmlinuz-*</code>）和initramfs $\to$ 设置内核cmdline参数 $\to$ 跳转到内核入口。GRUB的强大在于它支持在启动时动态修改内核参数——比如你加一个 <code>single</code> 参数就可以进入单用户维护模式来修复系统。</p>
-
-        <pre><code># GRUB配置文件片段 (/boot/grub/grub.cfg)
-menuentry 'Ubuntu' --class ubuntu {
-    recordfail
-    load_video
-    gfxmode $linux_gfx_mode
-    insmod gzio
-    insmod ext2
-    search --no-floppy --fs-uuid --set=root 1234-5678
-    linux   /vmlinuz-6.2.0-39-generic root=UUID=abcd-efgh ro quiet splash
-    initrd  /initrd.img-6.2.0-39-generic
-}
-
-# 查看当前的内核命令行参数
-$ cat /proc/cmdline
-BOOT_IMAGE=/vmlinuz-6.2.0-39-generic root=UUID=abcd-efgh ro quiet splash</code></pre>
-
-        <h3>2. systemd-boot</h3>
-        <p>systemd-boot（曾用名gummiboot）是一个简约的UEFI Boot Manager，被集成进了systemd项目。它只适用于UEFI系统，配置非常简洁（每个启动项是一个简单的文本文件）。相比GRUB，systemd-boot不需要自己的驱动栈——它完全依赖UEFI固件提供的协议来读取磁盘和文件。它不会像GRUB那样从ext4文件系统上加载内核，而是直接利用UEFI的FAT32支持读取ESP分区上的内核镜像。由于简单，它的启动速度往往比GRUB更快，也更不容易出问题。</p>
-
-        <div class="highlight">
-            <p><strong>选择建议</strong>：你在开发自己的小OS或嵌入式系统时，首选UEFI+systemd-boot组合——配置简单、调试方便。但在传统服务器环境中，GRUB仍然是绝对主流，其成熟度和灵活度无可替代。</p>
-        </div>
-
-        <h2 id="section-04">四、initramfs与rootfs切换</h2>
-
-        <p>内核启动后需要挂载根文件系统（rootfs），但你有没有想过一个问题——根文件系统本身就存着所有驱动模块，而加载这些驱动又需要根文件系统？这就是"先有鸡还是先有蛋"的困境。initramfs（Initial RAM Filesystem）就是用来打破这个死循环的工具。</p>
-
-        <h3>1. 为什么需要initramfs</h3>
-        <p>内核需要访问根文件系统上的数据，但根文件系统可能位于一个需要驱动加载才能识别的设备上——LVM逻辑卷、加密的LUKS分区、Btrfs RAID阵列、网络NFS根等。如果没有initramfs，内核必须把所有这些驱动静态编译进内核——那内核镜像会变得非常大，且不灵活。initramfs是一个压缩的cpio归档，包含一个最小的用户空间：设备驱动模块、udev规则、文件系统工具、以及一个init脚本。内核启动时把initramfs解压到tmpfs上，然后以它为临时根文件系统运行，加载必要的驱动和工具，最后通过 <code>pivot_root</code> 或 <code>switch_root</code> 把真正的根文件系统挂载上来。</p>
-
-        <h3>2. 切换流程</h3>
-        <p>initramfs中的init脚本执行以下操作：加载存储控制器驱动（如NVMe、AHCI、virtio）$\to$ 检测并组装块设备（如mdadm RAID、LVM VG/LV）$\to$ 解密分区（如果需要）$\to$ 挂载真正的根文件系统到 <code>/newroot</code> $\to$ 执行 <code>switch_root /newroot /sbin/init</code> 或 <code>exec systemd</code> $\to$ 内核丢弃initramfs占用的内存，systemd成为新根下的首个用户态进程（PID 1）。</p>
-
-        <pre><code># 查看你的initramfs内容（Ubuntu/Debian）
-$ lsinitramfs /boot/initrd.img-6.2.0-39-generic | head -20
-.
-kernel
-kernel/x86
-kernel/x86/microcode
-kernel/x86/microcode/AuthenticAMD.bin
-main
-scripts
-scripts/init-premount
-scripts/init-bottom
-scripts/local
-scripts/local-premount
-scripts/local-bottom
-lib
-lib/modules
-lib/modules/6.2.0-39-generic
-lib/modules/6.2.0-39-generic/kernel
-lib/modules/6.2.0-39-generic/kernel/drivers
-...</code></pre>
-
-        <div class="warning">
-            <p><strong>踩坑经历</strong>：有一次我更新了内核，重启后系统卡在"Loading initial ramdisk"黑屏。检查后发现更新后的initramfs中没有包含我的NVMe SSD驱动模块，因为 <code>mkinitramfs</code> 的配置文件 <code>/etc/initramfs-tools/modules</code> 里没有列出它。解决方案是：使用Live CD进入系统，chroot进去手动添加并重新生成initramfs：<code>echo nvme >> /etc/initramfs-tools/modules && update-initramfs -u</code>。修复后系统顺利启动。这个坑告诉我：initramfs不是魔法——它里面的内容是被明确配置好的，少了任何关键模块都启动不了。</p>
-        </div>
-
-        <h2 id="section-05">五、systemd启动编排</h2>
-
-        <p>根文件系统就绪后，内核启动PID 1——在大多数现代Linux发行版中，这就是systemd。作为第一个用户进程，systemd负责启动所有其他用户态服务，管理它们的依赖关系和生命周期。</p>
-
-        <h3>1. Unit的概念</h3>
-        <p>systemd把系统上所有管理对象抽象为"单元"（Unit），主要有以下几种类型：<code>.service</code> 封装一个守护进程（如nginx.service）、<code>.socket</code> 封装一个监听套接字（可以延迟启动对应的service）、<code>.target</code> 是一组unit的逻辑分组（如multi-user.target）、<code>.timer</code> 替代cron的定时任务、<code>.mount</code> 和 <code>.automount</code> 管理文件系统挂载点、<code>.path</code> 监控文件路径变化。每个unit文件里定义了它的配置、依赖、行为和控制参数。</p>
-
-        <h3>2. 依赖关系与并行启动</h3>
-        <p>systemd的一大革新是并行启动。传统SysV init按顺序逐个启动脚本，即使两个服务之间没有依赖关系也要排队等待——启动时间等于所有服务启动时间之和。systemd分析unit之间的 <code>Requires</code>、<code>Wants</code>、<code>After</code>、<code>Before</code> 依赖关系，为没有相互依赖的unit建立并行执行计划。对于有依赖的unit——比如 <code>network.target</code> 必须在 <code>sshd.service</code> 之前就绪——systemd保证执行顺序。实际效果：一个典型服务器从内核启动到SSH可登录，systemd通常在2–5秒内完成所有初始化，而传统SysV需要15–30秒。</p>
-
-        <pre><code># systemd服务单元文件示例 (/etc/systemd/system/myapp.service)
-[Unit]
-Description=My Application Service
-After=network.target postgresql.service
-Wants=postgresql.service
-
-[Service]
-Type=simple
-ExecStart=/usr/local/bin/myapp --config /etc/myapp/config.yaml
-ExecReload=/bin/kill -HUP $MAINPID
-Restart=on-failure
-RestartSec=5
-User=myapp
-Group=myapp
-
-[Install]
-WantedBy=multi-user.target
-
-# 查看启动时间分析
-$ systemd-analyze blame
-5.234s NetworkManager-wait-online.service
-3.456s snapd.service
-1.234s postgresql.service
-0.876s sshd.service</code></pre>
-
-        <div class="highlight">
-            <p><strong>关键理解</strong>：systemd不仅仅是一个"启动管理器"，它是整个用户态环境的编排者。target是对SysV runlevel的进化——<code>multi-user.target</code> 对应runlevel 3（无图形界面的多用户模式），<code>graphical.target</code> 对应runlevel 5。如果你希望某个服务在系统启动后自动启动，正确的做法是创建一个 <code>.service</code> 文件然后执行 <code>systemctl enable myservice</code>——它会建立符号链接将服务加入对应target的依赖链中。</p>
-        </div>
-
-        <div class="tip">
-            <p><strong>调试技巧</strong>：如果你的系统启动变慢了，用 <code>systemd-analyze blame</code> 查看每个服务的启动时间，用 <code>systemd-analyze critical-chain</code> 查看关键路径，找到瓶颈服务。如果某个服务在等待网络超时（比如NetworkManager-wait-online），可以考虑减少等待时间或关闭该服务。</p>
-        </div>
-
-        <h2 id="section-06">六、结语与下一章预告</h2>
-
-        <p>本章我们完整走过了计算机启动的全流程：从按下电源键到CPU复位、固件初始化、Bootloader加载内核、initramfs解包与rootfs切换，再到systemd编排用户空间服务。每一步都是一次"权杖交接"——固件交给Bootloader、Bootloader交给内核、内核交给init，最终撑起了你熟悉的操作系统环境。</p>
-
-        <p>理解了启动过程，你对操作系统就有了一个"从零到一"的完整认知。下一章我们将真正打开内核的"黑盒子"——走进Linux内核源码，看看这个3000万行代码的庞然大物内部是怎么组织的，它的编码风格是什么样的，以及怎么亲手编写和编译第一个内核模块。</p>
-</div>
+<h2 id="section-06">六、结语与下一章预告</h2>
+<p>开机过程是多个独立接口之间的交接：固件选择 EFI 应用或传统引导代码，Bootloader 依照架构协议装载内核，内核建立基础执行环境，initramfs（若使用）准备真实根文件系统，PID 1 再组织用户空间。理解每一步的输入、输出和失败边界，比背一条看似统一的启动时间线更重要。</p>
+<p>下一章将进入 Linux 源码树，观察内核目录、构建系统和一个最小的可加载模块。</p>
 <section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>给 BIOS/UEFI、引导器、内核、init 排出合理顺序。</p><details><summary>查看思考提示</summary><p>固件负责平台初始化，引导器选择内核，内核再建立用户空间。</p></details></section>
 <aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://www.qemu.org/docs/master/">QEMU 文档</a><a href="https://pdos.csail.mit.edu/6.1810/">xv6 教学资源</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
 <nav class="footer-nav" aria-label="章节前后导航"><a href="04.html">← 上一章 · 用户态与内核态</a><a href="index.html">返回课程目录</a><a href="06.html">下一章 · OS内核源码初探 →</a></nav>

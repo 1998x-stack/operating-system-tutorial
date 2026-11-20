@@ -50,141 +50,78 @@
 <li><a href="#section-04">四、上下文切换的成本</a></li>
 <li><a href="#section-05">五、结语与下一章预告</a></li></ol></details></nav>
 <div class="article-body">
-<p>大家好，我是你们的讲师。上一章我们比较了几种内核架构的优劣，它们有一个共性前提：用户态和内核态是分离的。这个看似简单的划分，其实是整个操作系统安全模型的基石。</p>
+<p>用户程序为什么不能直接写任意物理地址、修改页表或关闭中断？因为处理器提供了特权级和受控的异常入口，操作系统利用它们建立保护边界。理解这条边界时，必须区分三件事：权限级别变化、系统调用本身，以及调度器是否切换到另一个任务。它们经常同时出现，但不是同一件事。</p>
+<figure class="mechanism-figure"><img src="assets/diagrams/privilege-modes.svg" width="800" height="300" alt="x86 Ring 3 到 Ring 0、Arm EL0 到 EL1、RISC-V U-mode 到 S-mode 的受控陷入路径"><figcaption>不同 ISA 使用不同的特权模型；图中只画出常见 OS 使用的用户态与内核态路径</figcaption></figure>
 
-        <p>想象一下：你写了一个程序，里面有一行 <code>*(int*)0 = 42;</code>，想往地址0写数据。如果没有用户态/内核态的隔离，这一行代码直接向物理地址0写入数据——那可能是中断向量表的位置，整个系统瞬间崩溃。但有了隔离，操作系统会优雅地给你一个"Segmentation Fault"信号，你的程序挂了，但机器安然无恙。这就是特权隔离在保护我们。</p>
+<h2 id="section-01">一、特权级别</h2>
+<h3>1. x86：Ring 与 CPL</h3>
+<p>传统 x86 保护模型定义 Ring 0–3，Ring 0 权限最高，Ring 3 通常运行应用程序。现代 x86-64 操作系统主要使用 Ring 0 和 Ring 3；CPL（Current Privilege Level）反映当前代码段的特权级。页表权限、段权限和特权指令共同参与保护，不能把“Ring 3 只能访问自己的虚拟地址”理解为单一寄存器就完成的隔离。</p>
+<h3>2. Arm：Exception Level</h3>
+<p>AArch64 使用 EL0–EL3 的异常级模型：EL0 常用于应用，EL1 常用于 OS 内核，EL2 可用于 Hypervisor，EL3 用于 Secure Monitor/安全状态管理。EL2 和 EL3 在实现中可以是可选的；TrustZone 的 Secure/Non-secure 安全状态与 Exception Level 是相关但不同的维度，不能把“安全世界”简单等同于 EL3。</p>
+<h3>3. RISC-V：U/S/M 模式</h3>
+<p>RISC-V 特权架构定义 U-mode、S-mode 和 M-mode。常见 Unix-like OS 在 S-mode 运行，应用在 U-mode 运行，M-mode 通常由更底层的固件或执行环境使用。Hypervisor 扩展还增加了虚拟化相关模式。具体平台可以只实现部分特权模式，因此不能把所有 RISC-V 芯片都假设成拥有完全相同的层级。</p>
+<table><thead><tr><th>架构</th><th>应用常用级别</th><th>OS 常用级别</th><th>额外说明</th></tr></thead><tbody>
+<tr><td>x86-64</td><td>Ring 3</td><td>Ring 0</td><td>VMX root/non-root 是虚拟化运行模式，不是额外的 Ring；SMM 也是独立的系统管理模式</td></tr>
+<tr><td>AArch64</td><td>EL0</td><td>EL1</td><td>EL2/EL3 可选；安全状态与 EL 组合</td></tr>
+<tr><td>RISC-V</td><td>U-mode</td><td>S-mode</td><td>M-mode 是最高特权级，具体平台实现可不同</td></tr>
+</tbody></table>
+<p>架构依据可查阅 <a href="https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html">Intel SDM</a>、Arm 的<a href="https://developer.arm.com/-/media/Arm%20Developer%20Community/PDF/Learn%20the%20Architecture/Exception%20model.pdf">AArch64 Exception Model</a> 和 <a href="https://docs.riscv.org/reference/isa/priv/priv-intro.html">RISC-V Privileged Architecture</a>。</p>
 
-        <p>我分享一个亲历的安全事故。以前我带的一个实习生写了一个C程序，不小心在循环里越界写了一个超大数组。程序跑起来以后，他惊讶地发现系统越来越卡，最后其他所有应用都打不开了。他以为把程序杀掉就好了——结果杀完后系统内存使用率依然高达90%。后来一查，这个程序疯狂分配匿名内存页，虽然进程本身被杀了，但内核在回收这些页面前，系统已经被"饿"了很长时间。更可怕的是，如果这个程序是在内核态运行的，它可能直接破坏核心数据结构，机器只能靠硬重启。从那以后，我每次做性能调优都会先确认：当前代码跑在用户态还是内核态？这决定了我的调试方法和风险等级。</p>
+<h2 id="section-02">二、系统调用全流程</h2>
+<p>系统调用是应用请求内核服务的受控入口。以 Linux x86-64 为例，C 库的 <code>write()</code> 包装函数按 ABI 约定放置系统调用号和参数，再执行 <code>syscall</code> 指令；处理器进入内核入口代码，内核检查参数、访问权限和文件对象，再执行对应服务并返回结果。不同架构的入口指令和参数寄存器不同。</p>
+<h3>1. x86-64 Linux 系统调用约定</h3>
+<table><thead><tr><th>寄存器</th><th>用途</th></tr></thead><tbody>
+<tr><td><code>rax</code></td><td>系统调用号；返回时保存结果</td></tr>
+<tr><td><code>rdi, rsi, rdx</code></td><td>第 1–3 个参数</td></tr>
+<tr><td><code>r10, r8, r9</code></td><td>第 4–6 个参数</td></tr>
+<tr><td><code>rcx, r11</code></td><td><code>syscall</code> 指令使用的返回相关状态寄存器</td></tr>
+</tbody></table>
+<p>内核内部的具体入口函数名和分派实现可能随内核版本变化；用户态程序依赖的是系统调用 ABI，而不是某个内部 C 函数名。对大多数系统调用，内核返回负错误码；C 库包装层通常把它转换为 <code>-1</code> 并设置 <code>errno</code>。</p>
+<h3>2. 用最小程序观察 write()</h3>
+<p>本章配套的 <a href="labs/ch04-syscall/hello.c">hello.c</a> 只调用一次 <code>write()</code>，减少动态链接和标准 I/O 缓冲对观察的干扰：</p>
+<pre><code>#include &lt;unistd.h&gt;
 
-        <div class="highlight">
-            <p><strong>核心概念</strong>：用户态（User Mode）是应用程序运行时的最低特权级别，不能直接访问硬件和内核数据结构。内核态（Kernel Mode）是操作系统内核运行时的最高特权级别，可以执行任何CPU指令和访问任何内存地址。二者之间的"门"是系统调用。</p>
-        </div>
+int main(void)
+{
+    static const char message[] = "hello\\n";
+    return write(STDOUT_FILENO, message,
+                 sizeof(message) - 1) &lt; 0;
+}</code></pre>
+<p>编译并观察：</p>
+<pre><code>cc -Wall -Wextra -O0 -g -o hello labs/ch04-syscall/hello.c
+strace -e trace=write ./hello</code></pre>
+<p>关键输出应包含一次对文件描述符 1 的 <code>write</code> 调用；时间戳、进程启动时的其他调用和具体格式会随环境变化。</p>
 
-        <h2 id="section-01">一、特权级别</h2>
+<h2 id="section-03">三、strace实战</h2>
+<p><code>strace</code> 记录目标程序执行的系统调用、参数、返回值和信号。Linux 上它主要利用 <code>ptrace</code> 等机制观察 tracee；因此跟踪本身会改变执行时序，不能把带有 strace 的运行时间当成无观测开销的真实性能。</p>
+<pre><code># 只观察文件描述符相关调用
+strace -e trace=read,write,openat,close ./hello
 
-        <h3>1. x86的Ring 0–3</h3>
-        <p>x86架构提供了4个特权级别（Privilege Level），编号Ring 0到Ring 3。Ring 0是最高特权级（内核态），Ring 3是最低特权级（用户态），Ring 1和Ring 2在主流OS中几乎不使用（部分虚拟化方案和OS/2用过）。当前CPU的特权级由CS寄存器的CPL（Current Privilege Level）字段标识。一条指令能否执行、一个内存段能否访问，由CPL和段描述符/页表项的DPL/RPL共同决定。关键的限制包括：用户态无法执行 <code>lgdt</code> / <code>lidt</code> 等特权指令、无法直接修改控制寄存器（CR0/CR3/CR4）、无法直接操作中断控制器和I/O端口（除非I/O位图特别允许）。</p>
+# 汇总系统调用次数与耗时
+strace -c ./hello
 
-        <h3>2. ARM的Exception Level</h3>
-        <p>ARMv8-A架构使用Exception Level（EL）来定义特权级别。EL0对应用户态（最不特权），EL1对应内核态（OS kernel），EL2对应Hypervisor（虚拟化管理程序），EL3对应Secure Monitor（安全监控）。ARM的设计更加"语义化"——EL编号越大特权越高，每个EL有独立的栈指针（SP_ELx）和异常向量表（VBAR_ELx）。当ARM CPU执行系统调用时，从EL0陷入EL1；当需要切换虚拟机时，EL1切换到EL2。ARM的安全扩展TrustZone引入了"安全世界"和"普通世界"的概念——即便在EL3之下，安全世界的内核（如Trusty）和普通世界的Linux完全隔离，安全世界可以访问普通世界不能访问的内存和外设。</p>
+# 把跟踪结果保存到文件
+strace -o /tmp/hello.strace ./hello</code></pre>
+<p>对于多线程程序，可以按需使用 <code>-f</code> 跟踪子进程/线程相关执行；对于权限受限的目标进程，可能需要相应权限。跟踪输出是诊断证据，不是完整的内核执行轨迹：它不会自动显示每一次内核函数调用，也不会解释所有异步设备事件。</p>
+<p>参考 <a href="https://man7.org/linux/man-pages/man1/strace.1.html">strace(1)</a> 与 <a href="https://man7.org/linux/man-pages/man2/ptrace.2.html">ptrace(2)</a>。</p>
 
-        <table>
-            <tr><th>角色</th><th>x86特权级</th><th>ARM特权级</th><th>访问权限</th></tr>
-            <tr><td>用户程序</td><td>Ring 3</td><td>EL0</td><td>只能访问自己的虚拟地址空间，不能执行特权指令</td></tr>
-            <tr><td>OS内核</td><td>Ring 0</td><td>EL1</td><td>完全访问硬件和所有内存</td></tr>
-            <tr><td>虚拟机监视器</td><td>VMX root (Ring 0)</td><td>EL2</td><td>控制虚拟化扩展和客户机切换</td></tr>
-            <tr><td>安全监控器</td><td>SMM</td><td>EL3</td><td>管理安全世界和普通世界的切换</td></tr>
-        </table>
+<h2 id="section-04">四、上下文切换的成本</h2>
+<h3>1. 系统调用不等于进程上下文切换</h3>
+<p>执行系统调用时，CPU 通常从用户态进入内核态，但内核仍然可以在发起调用的同一个任务上下文中执行。若系统调用很快完成并返回，调度器未必切换到另一个任务。只有任务阻塞、被抢占或调度策略选择了其他任务时，才会发生任务上下文切换。</p>
+<h3>2. 成本来自多个层面</h3>
+<p>系统调用路径可能涉及寄存器保存/恢复、特权级转换、参数校验和内核工作；任务上下文切换还可能涉及调度决策、内核栈切换、地址空间切换，以及缓存/TLB 工作集变化。是否刷新 TLB 取决于架构、地址空间标识和内核实现；向量寄存器状态也不一定在每次系统调用时全部保存。不能把这些成本概括成“每次 syscall 都刷新 TLB 并清空分支预测器”。</p>
+<p>“一次系统调用固定需要多少 CPU 周期”没有通用答案。处理器型号、内核版本、缓解措施、虚拟化、调用参数、缓存状态和测量方法都会影响结果。原文中没有来源的纳秒/周期表和未经引用的生产环境百分比已移除。</p>
+<h3>3. 自己测量，而不是背数字</h3>
+<pre><code># 观察一个程序的系统调用数量与总耗时
+strace -c ./your_program
 
-        <div class="tip">
-            <p><strong>为什么需要特权隔离</strong>：从安全角度看，这是"最小权限原则"（Principle of Least Privilege）在硬件层面的体现。应用程序永远不应该拥有它不需要的权限。从稳定角度看，一个用户程序的bug不应该能影响到其他程序，更不应该能破坏内核。</p>
-        </div>
+# 观察硬件和软件事件（权限及事件可用性依平台而定）
+perf stat -e cycles,instructions,context-switches \
+    -- ./your_program</code></pre>
+<p>比较优化前后时，固定输入、编译选项、CPU 频率策略和重复次数；分开报告 syscall 数量、任务上下文切换数和总执行时间。减少小块 I/O 调用有时有帮助，但不能把“减少系统调用次数”当成所有程序的首要优化目标。</p>
 
-        <h2 id="section-02">二、系统调用全流程</h2>
-
-        <p>理解了特权级别后，我们来看看"跨越鸿沟"的关键机制——系统调用。这是一个从用户态的 <code>printf()</code> 到内核态的 <code>sys_write()</code> 的完整旅程。</p>
-
-        <h3>1. 完整的调用链条</h3>
-        <p>以 <code>printf("hello\n");</code> 为例：应用程序的 <code>printf()</code> 函数来自glibc/C标准库 $\to$ glibc内部调用 <code>vfprintf()</code> $\to$ <code>vfprintf()</code> 在适当时候调用 <code>write()</code> 包装函数 $\to$ <code>write()</code> 包装函数将参数放入约定寄存器（x86-64为 <code>rdi</code>, <code>rsi</code>, <code>rdx</code>），系统调用号放入 <code>rax</code> $\to$ 执行 <code>syscall</code> 指令（x86-64）或 <code>svc #0</code>（ARM64）$\to$ CPU硬件自动保存返回地址并切换到EL1/Ring 0 $\to$ 跳转到内核的 <code>entry_SYSCALL_64</code> 入口 $\to$ 内核保存所有寄存器现场 $\to$ 根据 <code>rax</code> 中的系统调用号查找sys_call_table $\to$ 调用对应的 <code>sys_write()</code> 实现 $\to$ <code>sys_write()</code> 通过VFS层写入文件描述符 $\to$ 返回结果 $\to$ 内核恢复寄存器现场 $\to$ 执行 <code>sysret</code> / <code>eret</code> 切回用户态 $\to$ glibc处理返回值和可能的错误（<code>errno</code>）$\to$ <code>printf()</code> 完成后返回到你的代码。</p>
-
-        <h3>2. 参数传递与错误处理</h3>
-        <p>系统调用的参数传递不像普通函数调用那样通过栈传递——因为跨特权级时栈已经变了。x86-64架构约定前6个参数通过寄存器传递：<code>rdi</code>（arg1）、<code>rsi</code>（arg2）、<code>rdx</code>（arg3）、<code>r10</code>（arg4）、<code>r8</code>（arg5）、<code>r9</code>（arg6）。内核在返回时，返回值也放在 <code>rax</code> 中。如果返回值是负数，glibc会把它解释为负的errno值，取绝对值设置到 <code>errno</code> 全局变量中，然后返回-1给调用者。这就是为什么你的C程序判断系统调用失败时总是检查返回值是否为-1，然后查看 <code>errno</code>。</p>
-
-        <pre><code>; x86-64 系统调用的汇编代码示例
-; 调用 write(1, "hello\n", 6)
-mov    $1, %rdi        ; fd = 1 (stdout)
-lea    msg(%rip), %rsi ; buf = "hello\n"
-mov    $6, %rdx        ; count = 6
-mov    $1, %rax        ; syscall number = 1 (__NR_write)
-syscall                ; 陷入内核
-ret
-
-; 如果返回值 rax < 0，则是错误
-test   %rax, %rax
-js     handle_error    ; 跳转到错误处理</code></pre>
-
-        <div class="highlight">
-            <p><strong>重要理解</strong>：系统调用是用户态与内核态之间"协商的入口"——你不能任意跳转到内核中的任意地址去执行代码，只能通过预定义的系统调用号进入预定义的入口。这就是"门"的含义。系统调用表（sys_call_table）定义了哪些功能可以被用户态请求，内核利用这个"门"来控制所有对底层资源的访问。</p>
-        </div>
-
-        <h2 id="section-03">三、strace实战</h2>
-
-        <p>说一万遍不如动一次手。我们用 <code>strace</code> 这个工具来"窃听"程序与内核的对话——它会拦截并打印每一次系统调用的详细信息。</p>
-
-        <h3>1. 一个简单程序的系统调用追踪</h3>
-        <p>我们写一个最简单的 <code>hello</code> 程序，然后用strace看看它在底层做了什么：</p>
-
-        <pre><code>$ cat hello.c
-#include &lt;stdio.h&gt;
-int main() {
-    printf("Hello, OS!\n");
-    return 0;
-}
-
-$ gcc -o hello hello.c
-
-$ strace -c ./hello
-Hello, OS!
-% time     seconds  usecs/call     calls    errors syscall
------- ----------- ----------- --------- --------- ----------------
-  0.00    0.000000           0         1           write
-  0.00    0.000000           0         1         1 access
-  0.00    0.000000           0         4           mmap
-  0.00    0.000000           0         1           execve
-  0.00    0.000000           0         1           brk
-  0.00    0.000000           0         4           openat
-  0.00    0.000000           0        17           ... (省略部分)
------- ----------- ----------- --------- --------- ----------------
-100.00    0.000000                    33           total
-
-# 详细模式查看每次调用
-$ strace -e trace=write,mmap ./hello
-mmap(NULL, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7f...
-mmap(NULL, 413155, PROT_READ, MAP_PRIVATE, 3, 0) = 0x7f...
-write(1, "Hello, OS!\n", 11) = 11
-+++ exited with 0 +++</code></pre>
-
-        <h3>2. 读strace输出的要点</h3>
-        <p>从输出可以看到：一个简单的 <code>printf()</code> 需要 <code>mmap</code> 分配内存、<code>openat</code> 打开动态链接库、<code>brk</code> 调整堆空间，最后 <code>write(1, ...)</code> 才是真正把字符串写到标准输出。一个"Hello World"程序从进程启动到退出，前前后后调用了超过30次系统调用。这些系统调用的开销累积起来就是你程序的运行时成本。</p>
-
-        <div class="warning">
-            <p><strong>实战技巧</strong>：strace是你调试线上问题的最好朋友之一。当你的程序莫名其妙变慢时，先跑一个 <code>strace -c -p PID</code> 看看系统调用的统计。如果 <code>read</code>/<code>write</code> 的调用次数异常高或errno为EAGAIN特别多，那大概率是I/O模型的问题。我曾经用这个方法定位到一个Nginx worker疯狂进行 <code>epoll_wait</code> 返回超时的问题——根本不是业务代码的锅，而是内核网络栈的参数需要调优。</p>
-        </div>
-
-        <h2 id="section-04">四、上下文切换的成本</h2>
-
-        <p>用户态与内核态之间的切换不是免费的。每次 <code>syscall</code> / <code>sysret</code> 或中断时，CPU都有一整套状态保存和恢复的动作，这些动作消耗CPU周期。</p>
-
-        <h3>1. 一次系统调用的周期消耗</h3>
-        <p>在x86-64上，一次最小的系统调用（比如 <code>getpid()</code>）大约需要100–200个CPU周期（约30–50纳秒）。听起来不多对吧？但如果你的程序每秒进行100万次系统调用——比如用 <code>read()</code> 每次读1字节而不是一次读1MB——那么上下文切换的开销就会从3%膨胀到80%。这背后就是"系统调用放大效应"：单次系统调用看起来很快，但在高频场景下会吃掉你所有的CPU预算。</p>
-
-        <h3>2. 上下文切换到底在干什么</h3>
-        <p>一次完整的用户态$\to$内核态$\to$用户态切换包括以下操作：切换栈指针（从用户栈切换到内核栈，再切回来）；保存和恢复通用寄存器（约16–30个寄存器）；保存和恢复浮点/向量寄存器（XMM/YMM/ZMM，可能上百字节）；刷新TLB（取决于是否切换地址空间）；执行特权指令（syscall/sysret）；CPU分支预测器的状态清空和重建。此外，切换过程中Cache的行为也会受影响：内核代码和用户代码通常不在同一Cache行，频繁切换会导致I-Cache Miss率上升，这就是"间接成本"。</p>
-
-        <table>
-            <tr><th>操作</th><th>大约CPU周期</th><th>大约耗时（3GHz CPU）</th></tr>
-            <tr><td>普通函数调用（call/ret）</td><td>2–5</td><td>~1 ns</td></tr>
-            <tr><td>syscall指令切换（纯硬件）</td><td>~30</td><td>~10 ns</td></tr>
-            <tr><td>最小系统调用（getpid）</td><td>100–200</td><td>30–70 ns</td></tr>
-            <tr><td>简单系统调用（write小数据）</td><td>300–1000</td><td>100–330 ns</td></tr>
-            <tr><td>真实文件读写（含I/O等待）</td><td>10⁴–10⁶</td><td>3 µs – 330 µs</td></tr>
-            <tr><td>进程上下文切换（完整的两进程切换）</td><td>10⁴–10⁵</td><td>3–30 µs</td></tr>
-        </table>
-
-        <div class="highlight">
-            <p><strong>性能准则</strong>：在设计高性能系统时，减少系统调用次数是首要优化目标之一。具体手段包括：使用缓冲区批量读写（减少read/write次数）、使用 <code>mmap</code> 替代read/write避免数据拷贝、使用io_uring（新Linux内核I/O模型）将多次系统调用合并为一次、使用大页面减少TLB Miss。这些都是建立在"上下文切换有成本"这个认知之上的优化。</p>
-        </div>
-
-        <div class="tip">
-            <p><strong>经典数据</strong>：Google在2019年的一篇论文中报道，在其生产服务器上，Linux内核的"系统调用开销"占用了大约5–10%的总CPU时间。这意味着在所有服务器上，大约每10台就有一台在不停地处理用户态和内核态的切换开销。优化这部分就是实打实的成本节约。</p>
-        </div>
-
-        <h2 id="section-05">五、结语与下一章预告</h2>
-
-        <p>本章我们深入剖析了操作系统的"特区划界"——用户态与内核态的隔离机制。我们搞懂了x86 Ring 0-3和ARM EL0-3的硬件防御体系；从glibc的 <code>printf()</code> 一路追踪到了 <code>sys_write()</code>，完整走了一遍系统调用的旅程；用strace实战观察了程序与内核的每一次"对话"；最后量化了上下文切换的CPU周期消耗，为性能优化提供了数据支撑。</p>
-
-        <p>现在你已经了解了"内核长什么样"以及"怎么进内核"。下一个自然而然的疑问是：当我们按下电脑的电源键时，内核是怎么被加载到内存中并启动起来的？下一章我们将完整走一遍启动流程——从固件到Bootloader到内核到init进程，见证操作系统从无到有的全过程。</p>
-</div>
+<h2 id="section-05">五、结语与下一章预告</h2>
+<p>系统调用是受控的特权级入口；上下文切换是调度器在任务之间转移执行权。两者可能连续发生，但不能混为一谈。下一章我们把视角从“应用如何进入内核”转向“内核如何被装入并开始运行”，追踪固件、引导加载器、内核和 PID 1 的交接过程。</p>
 <section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>画出 read() 从用户态进入内核再返回的边界。</p><details><summary>查看思考提示</summary><p>区分权限转换、服务执行和返回用户态三个时刻。</p></details></section>
 <aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
 <nav class="footer-nav" aria-label="章节前后导航"><a href="03.html">← 上一章 · OS内核架构</a><a href="index.html">返回课程目录</a><a href="05.html">下一章 · 引导与初始化 →</a></nav>

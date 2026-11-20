@@ -63,7 +63,7 @@
             <tr><td>非阻塞I/O</td><td>轮询返回</td><td>阻塞</td><td>用户态轮询，浪费CPU</td><td>read with O_NONBLOCK</td></tr>
             <tr><td>I/O多路复用</td><td>阻塞在select/epoll上</td><td>阻塞（由应用调用read）</td><td>单线程管理海量连接</td><td>epoll_wait / select</td></tr>
             <tr><td>信号驱动I/O</td><td>信号通知，不阻塞</td><td>阻塞（在信号处理中调用read）</td><td>需信号处理上下文</td><td>fcntl F_SETOWN + sigaction</td></tr>
-            <tr><td>异步I/O（POSIX AIO / io_uring）</td><td>不阻塞</td><td>不阻塞（内核完成后通知）</td><td>真正的异步，无阻塞点</td><td>io_uring_enter / aio_read</td></tr>
+            <tr><td>异步I/O（POSIX AIO / io_uring）</td><td>不阻塞</td><td>不阻塞（内核完成后通知）</td><td>异步提交/完成接口；具体操作可能仍阻塞或使用 worker</td><td>io_uring_enter / aio_read</td></tr>
         </table>
 
         <div class="highlight">
@@ -74,7 +74,7 @@
         <p>这是最原始的I/O模型。当你调用 <code>read(fd, buf, len)</code>，如果数据还没准备好，进程就进入睡眠状态——CPU被白白浪费在等待上。早期服务器每个连接一个线程，当数千个连接同时阻塞时，线程切换的开销高得离谱。这就是C10K问题的根源之一。</p>
 
         <h3>非阻塞I/O：让出CPU但代价更高</h3>
-        <p>设置 <code>O_NONBLOCK</code> 后，read() 立即返回 <code>-1</code> 并设置 <code>errno = EAGAIN</code>。应用需要在循环中反复调用——这就是"忙等"。忙等不仅耗尽CPU，还让指令缓存在反复的syscall上下文中被污染。实际项目中几乎不会有人用纯非阻塞模型。</p>
+        <p>设置 <code>O_NONBLOCK</code> 后，如果当前无法完成操作，系统调用通常以 <code>EAGAIN</code>/<code>EWOULDBLOCK</code> 返回。应用可以结合 epoll 等就绪通知等待，而不必忙等；纯轮询只是其中一种可能的实现方式。</p>
 
         <h3>I/O多路复用：单线程管理千军万马</h3>
         <p>select/poll/epoll 让一个线程同时等待多个文件描述符。内核帮你筛选出哪些fd准备好了数据，你只需要处理"就绪"的fd即可。这极大地降低了线程开销，是过去15年高性能服务器的基石。</p>

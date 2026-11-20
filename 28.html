@@ -149,7 +149,7 @@ $ bpftool gen skeleton runqlat.bpf.o > runqlat.skel.h
 
         <pre><code># 简化版：统计 wakeup/抢占后到下一次运行的等待时间；
 # 完整生产工具还需处理迁移、丢失事件、过滤与直方图边界。
-$ sudo bpftrace -e 'tracepoint:sched:sched_wakeup { @ts[args.pid] = nsecs; } tracepoint:sched:sched_wakeup_new { @ts[args.pid] = nsecs; } tracepoint:sched:sched_switch { if (args.prev_state == 0) { @ts[args.prev_pid] = nsecs; } if (@ts[args.next_pid]) { @runqlat_us = hist((nsecs - @ts[args.next_pid]) / 1000); delete(@ts[args.next_pid]); } }'</code></pre>>
+$ sudo bpftrace -e 'tracepoint:sched:sched_wakeup { @ts[args.pid] = nsecs; } tracepoint:sched:sched_wakeup_new { @ts[args.pid] = nsecs; } tracepoint:sched:sched_switch { if (args.prev_state == 0) { @ts[args.prev_pid] = nsecs; } if (@ts[args.next_pid]) { @runqlat_us = hist((nsecs - @ts[args.next_pid]) / 1000); delete(@ts[args.next_pid]); } }'</code></pre>
 
         <div class="tip">
             <p><strong>验证方法</strong>：在运行上述bpftrace命令的另一个终端中，执行一个CPU密集型任务（如 <code>stress --cpu 4 --timeout 30</code>），观察直方图的变化。预期结果：大部分调度延迟应该在几微秒到几十微秒之间。如果出现大量超过1ms的延迟，说明系统存在调度延迟问题——可能是CPU核数不足、cgroup限制或内核抢占配置不当。</p>
@@ -418,7 +418,7 @@ if (ret)
 err_device:
     device_destroy(memdev_class, devt);
 /* exit 卸载前： */
-device_remove_file(memdev_device, &dev_attr_buffer_size);</code></pre>>
+device_remove_file(memdev_device, &dev_attr_buffer_size);</code></pre>
 
         <div class="warning">
             <p><strong>并发检查</strong>：字符设备的多个 file descriptor 可能并发调用 read/write/ioctl。是否需要互斥锁取决于共享状态与操作语义；锁的范围、睡眠能力、错误路径和生命周期都应明确设计。不能简单套用“先加锁再操作”，因为中断上下文、自旋锁与互斥锁有不同约束。</p>

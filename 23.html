@@ -232,7 +232,7 @@ $ gdb vmlinux
 <p>根据栈和对象生命周期建立最小复现，再选择 KASAN、UBSAN、lockdep 或 kgdb 等工具验证。每次只改变一个变量，记录补丁、配置和复测结果；修复后同时验证原始触发路径与相关回归测试。</p>
 </div>
 
-        <p>这一章我们从printk的艺术到kdump+crash的离线和源码级分析，再到KASAN/UBSAN的自动检测和kgdb的交互式调试，最后用一个真实案例串起了整套工具链。内核调试的终极目标不是"会更多工具"，而是"用最少的工具快速锁定根因"。下一章我们将从"调试"转向"性能"——用perf、火焰图、blktrace等工具来分析和优化系统的性能瓶颈。性能调优的兴趣不比调试少，同样是硬功夫。</p>
+        <p>这一章我们从printk的艺术到kdump+crash的离线和源码级分析，再到KASAN/UBSAN的自动检测和kgdb的交互式调试，最后用一个明确标注为假设场景的排查流程串起了整套工具链。内核调试的终极目标不是"会更多工具"，而是"用最少的工具快速锁定根因"。下一章我们将从"调试"转向"性能"——用perf、火焰图、blktrace等工具来分析和优化系统的性能瓶颈。性能调优的兴趣不比调试少，同样是硬功夫。</p>
 </div>
 <section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>设计一次 panic 分析的证据收集清单。</p><details><summary>查看思考提示</summary><p>至少记录内核版本、符号文件、触发条件与调用栈。</p></details></section>
 <aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>

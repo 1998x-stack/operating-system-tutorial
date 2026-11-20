@@ -1,0 +1,42 @@
+{
+  "chapter": "15",
+  "title": "I/O模型与io_uring",
+  "claims": [
+    {
+      "id": "io-15-01",
+      "claim": "select/poll/epoll 提供 I/O 就绪通知，应用仍需执行实际读写操作。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://man7.org/linux/man-pages/man7/epoll.7.html",
+      "locator": "DESCRIPTION",
+      "status": "verified",
+      "notes": "就绪通知不等于异步完成通知。"
+    },
+    {
+      "id": "io-15-02",
+      "claim": "epoll 支持 level-triggered 与 edge-triggered 两种触发语义。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://man7.org/linux/man-pages/man7/epoll.7.html",
+      "locator": "DESCRIPTION",
+      "status": "verified",
+      "notes": "ET 模式通常要求非阻塞 fd 并持续读写直到 EAGAIN。"
+    },
+    {
+      "id": "io-15-03",
+      "claim": "io_uring 通过共享提交队列与完成队列在用户态和内核间传递 I/O 请求与结果。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://docs.kernel.org/io_uring/index.html",
+      "locator": "Overview",
+      "status": "verified",
+      "notes": "不同操作的异步实现能力并不相同。"
+    },
+    {
+      "id": "io-15-04",
+      "claim": "sendfile、splice 等接口可减少特定数据路径中的用户态拷贝，但不意味着所有路径完全零拷贝。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://man7.org/linux/man-pages/man2/sendfile.2.html",
+      "locator": "DESCRIPTION",
+      "status": "verified",
+      "notes": "实际优化依赖文件类型、协议、内核与驱动。"
+    }
+  ]
+}

@@ -37,6 +37,42 @@
       "locator": "AMD SEV documentation",
       "status": "verified",
       "notes": "Threat models, attestation, firmware and I/O paths impose important limitations."
+    },
+    {
+      "id": "trend-26-05",
+      "claim": "Rust for Linux 的内核支持自 Linux 6.1 起进入主线；具体 Rust API、工具链版本和驱动使用者需按目标内核分支核验。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://rust-for-linux.com/",
+      "locator": "Rust for Linux project",
+      "status": "verified",
+      "notes": "主线支持不代表所有发行版内核都启用 Rust。"
+    },
+    {
+      "id": "trend-26-06",
+      "claim": "AMD SEV-SNP 与 Intel TDX 为机密虚拟机提供不同的硬件隔离与 attestation 机制；保护范围和平台要求不同，不能概括为 Hypervisor 完全无法观察所有 VM 元数据或 I/O。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://www.amd.com/en/developer/sev.html",
+      "locator": "SEV-SNP documentation",
+      "status": "verified",
+      "notes": "需结合 AMD/Intel 平台安全模型与云厂商部署文档。"
+    },
+    {
+      "id": "trend-26-07",
+      "claim": "PCIe IDE 是链路级数据保护机制，需要链路两端与平台密钥管理支持；不等于所有 DMA 流量自动加密或所有设备默认支持。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://pcisig.com/specifications",
+      "locator": "PCI Express specifications",
+      "status": "derived",
+      "notes": "实际部署应核对 PCIe IDE capable endpoint/root port 和平台固件。"
+    },
+    {
+      "id": "trend-26-08",
+      "claim": "Confidential Containers 通常基于 confidential VM 与 attestation/key broker 组件构建 Pod 级信任链；不是每个容器天然拥有独立硬件隔离环境。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://confidentialcontainers.org/",
+      "locator": "Architecture and deployment docs",
+      "status": "verified",
+      "notes": "runtime、TEE 类型和 key broker 方案决定具体信任边界。"
     }
   ]
 }

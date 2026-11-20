@@ -48,13 +48,13 @@
 <li><a href="#section-02">二、kdump与crash工具</a></li>
 <li><a href="#section-03">三、KASAN与UBSAN</a></li>
 <li><a href="#section-04">四、kgdb内核源码级调试</a></li>
-<li><a href="#section-05">五、真实panic排查案例</a></li></ol></details></nav>
+<li><a href="#section-05">五、示例：一次 panic 排查流程（假设场景）</a></li></ol></details></nav>
 <div class="article-body">
 <p>内核故障的诊断难点在于：出错现场可能已经破坏了内存、锁或调度状态，普通用户态调试器也无法直接控制正在运行的内核。可靠的排查需要先保留现场，再选择合适的观测工具：动态调试日志用于缩小范围，kdump/crash 用于分析崩溃转储，KASAN/UBSAN 用于发现特定错误，kgdb 则提供源码级调试能力。</p><p>本章按“复现与采集—定位类别—分析现场—验证修复”的顺序介绍工具。每种工具都有成本与限制：sanitizer 会改变内存布局并增加开销，vmcore 依赖预先配置的 crash kernel 与符号文件，printk 也可能改变时序。调试结论应结合内核版本、配置和可复现证据，而不是仅凭一段日志下定论。</p>
 
         <h2 id="section-01">一、printk的艺术</h2>
 
-        <p>printk 是内核自带的"日志printf"，用法和用户态的printf几乎一样，但它有一些独特的机制你必须要懂。用好 printk，能解决至少80%的日常调试需求。</p>
+        <p>printk 是内核日志接口，适合记录关键状态与错误信息；高频路径应考虑动态调试、tracepoint、ftrace 或其他结构化观测方式，避免日志量和时序扰动掩盖问题。</p>
 
         <h3>1. 日志等级</h3>
         <p>printk 的第一个参数是日志等级——从最高紧急到最低调试一共8级。你知道这些等级怎么用吗？</p>
@@ -170,10 +170,10 @@ CONFIG_KASAN_GENERIC=y
 # 开启栈溢出检测
 CONFIG_KASAN_STACK=y</code></pre>
 
-        <p>KASAN的代价是运行时开销——内存访问变慢约2-3倍，但效果极其显著。它不仅能检测出问题，还能报告"谁释放了这块内存"（调用栈）和"谁在释放后访问了它"（调用栈），这对于排查use-after-free来说简直是开挂。我个人经历过的最爽的一次调试：开启KASAN后系统直接panic，报告告诉我是在 <code>tcp_v4_rcv</code> 中访问了一个已经释放的socket缓冲区，释放地点在 <code>sk_stream_free</code>，前后相距2万行代码。没有KASAN，这种bug我可能排查一个月。</p>
+        <p>KASAN 会增加内存占用与运行时开销，具体幅度取决于 KASAN 模式（Generic、Software Tag-Based、Hardware Tag-Based）、架构、编译器和工作负载，不宜写成固定的 2–3 倍。报告通常可包含访问栈、分配栈和释放栈等线索，但可用信息取决于配置、对象分配路径和符号信息。</p>
 
         <div class="highlight">
-            <p><strong>核心洞见</strong>：KASAN 本质上是一种"编译插桩+运行时检测"的思路。它不依赖你对代码的预判——它监控每一次内存访问。很多内核开发者说"没有KASAN我都不敢写内核代码"，话虽然夸张了点，但这确实是现代内核调试的基石工具。</p>
+            <p><strong>核心洞见</strong>：KASAN 通过编译器插桩与影子内存/标签等机制检测特定内存访问错误；不同 KASAN 模式的检测范围、性能成本和架构支持并不相同。它是调试工具，不是对所有内存错误的完整证明。</p>
         </div>
 
         <h3>2. UBSAN：未定义行为消毒器</h3>
@@ -198,7 +198,7 @@ CONFIG_UBSAN_DIV_ZERO=y</code></pre>
 CONFIG_KGDB_SERIAL_CONSOLE=y
 CONFIG_KGDB_KDB=y
 CONFIG_DEBUG_INFO=y
-CONFIG_DEBUG_INFO_DWARF4=y
+CONFIG_DEBUG_INFO_DWARF5=y  # 若目标工具链/内核版本支持；否则使用该版本推荐的 DWARF 配置
 CONFIG_FRAME_POINTER=y</code></pre>
 
         <p>在被调试机的内核启动参数中添加 <code>kgdboc=ttyS0,115200</code>，表示通过串口进行kgdb通信。然后在需要调试的时机，执行 <code>echo g > /proc/sysrq-trigger</code>，内核就会停住，等待GDB连接。</p>

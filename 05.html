@@ -127,8 +127,13 @@ systemctl show ssh.service -p Requires -p Wants -p After -p Before</code></pre>
 <h2 id="section-06">六、结语与下一章预告</h2>
 <p>开机过程是多个独立接口之间的交接：固件选择 EFI 应用或传统引导代码，Bootloader 依照架构协议装载内核，内核建立基础执行环境，initramfs（若使用）准备真实根文件系统，PID 1 再组织用户空间。理解每一步的输入、输出和失败边界，比背一条看似统一的启动时间线更重要。</p>
 <p>下一章将进入 Linux 源码树，观察内核目录、构建系统和一个最小的可加载模块。</p>
-<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>给 BIOS/UEFI、引导器、内核、init 排出合理顺序。</p><details><summary>查看思考提示</summary><p>固件负责平台初始化，引导器选择内核，内核再建立用户空间。</p></details></section>
-<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://www.qemu.org/docs/master/">QEMU 文档</a><a href="https://pdos.csail.mit.edu/6.1810/">xv6 教学资源</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>描述 initramfs 中的 /init 如何准备真实根文件系统，以及 systemd 的 After= 与 Requires= 有何不同。</p><details><summary>查看思考提示</summary><p>注意 PID 1 通常通过 exec 延续；After= 只定义顺序，不会自动拉起被排序的 unit。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>固件、内核启动与用户空间：</strong>
+<a href="https://uefi.org/specs/UEFI/2.10/03_Boot_Manager.html">UEFI · Boot Manager</a>
+<a href="https://docs.kernel.org/arch/x86/boot.html">Linux · x86 Boot Protocol</a>
+<a href="https://docs.kernel.org/filesystems/ramfs-rootfs-initramfs.html">Linux · initramfs 与 rootfs</a>
+<a href="https://www.freedesktop.org/software/systemd/man/latest/systemd.html">systemd · PID 1</a>
+<p><a href="evidence/05.json">查看本章论断与来源证据清单（evidence/05.json）</a></p></aside>
 <nav class="footer-nav" aria-label="章节前后导航"><a href="04.html">← 上一章 · 用户态与内核态</a><a href="index.html">返回课程目录</a><a href="06.html">下一章 · OS内核源码初探 →</a></nav>
 </article></main>
 </div>

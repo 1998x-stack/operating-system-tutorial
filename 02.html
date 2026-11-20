@@ -99,8 +99,12 @@ perf stat -e cycles,instructions,cache-misses -- ./your_program</code></pre>
 <h2 id="section-05">五、结语与下一章预告</h2>
 <p>硬件知识最重要的作用，是帮助我们把抽象机制放回真实执行路径：ISA 决定软件可见的机器契约；缓存与内存层次影响数据访问成本；中断和异常为操作系统提供事件入口。具体性能数字必须在具体硬件和软件环境中测量，不能从一张通用表格直接推导。</p>
 <p>下一章讨论内核架构：相同的硬件能力，可以通过不同的内核/用户态边界组织成宏内核、微内核或其他系统结构。</p>
-<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>解释一次缓存未命中与一次外部中断有何不同。</p><details><summary>查看思考提示</summary><p>先分清主动访问数据和被动响应设备事件。</p></details></section>
-<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>区分 ISA 与微架构、CPU cache 与 page cache、外部中断与同步异常。哪些数字不能从通用存储金字塔表直接推导？</p><details><summary>查看思考提示</summary><p>从定义所在层次入手：软件可见契约、处理器内部实现、内核文件缓存和设备 I/O。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>架构规范与测量：</strong>
+<a href="https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html">Intel · 64/IA-32 架构手册</a>
+<a href="https://developer.arm.com/-/media/Arm%20Developer%20Community/PDF/Learn%20the%20Architecture/Exception%20model.pdf">Arm · Exception Model</a>
+<a href="https://docs.riscv.org/reference/isa/priv/priv-intro.html">RISC-V · Privileged Architecture</a>
+<p><a href="evidence/02.json">查看本章论断与来源证据清单（evidence/02.json）</a></p></aside>
 <nav class="footer-nav" aria-label="章节前后导航"><a href="01.html">← 上一章 · 什么是操作系统</a><a href="index.html">返回课程目录</a><a href="03.html">下一章 · OS内核架构 →</a></nav>
 </article></main>
 </div>

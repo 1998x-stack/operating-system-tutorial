@@ -94,8 +94,12 @@
 
 <h2 id="section-05">五、结语与下一章预告</h2>
 <p>宏内核、微内核、混合内核和 Unikernel 并不是“性能、速度、安全”的简单排行榜。它们把代码放进不同的保护域，并在调用成本、故障隔离、验证难度和运维复杂度之间做权衡。下一章将聚焦这个设计决策的硬件基础：用户态和内核态如何通过特权级与系统调用入口隔开。</p>
-<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>比较宏内核与微内核中的一次文件服务请求路径。</p><details><summary>查看思考提示</summary><p>先标出服务运行在哪个地址空间，再讨论通信与故障。</p></details></section>
-<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>对一次文件读取画出宏内核与微内核的服务路径，并标注保护域、通信方式和可能的故障边界。</p><details><summary>查看思考提示</summary><p>不要预设每次 IPC 固定触发几次上下文切换；说明具体实现依赖哪些假设。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>内核架构与形式化验证：</strong>
+<a href="https://docs.sel4.systems/projects/sel4/frequently-asked-questions">seL4 · 形式化验证 FAQ</a>
+<a href="https://github.com/apple-oss-distributions/xnu">Apple · XNU 源码说明</a>
+<a href="https://docs.kernel.org/kbuild/modules.html">Linux · 外部模块构建</a>
+<p><a href="evidence/03.json">查看本章论断与来源证据清单（evidence/03.json）</a></p></aside>
 <nav class="footer-nav" aria-label="章节前后导航"><a href="02.html">← 上一章 · 硬件架构基础</a><a href="index.html">返回课程目录</a><a href="04.html">下一章 · 用户态与内核态 →</a></nav>
 </article></main>
 </div>

@@ -163,8 +163,13 @@ obj-$(CONFIG_OS_TUTORIAL_HELLO) += hello.o</code></pre>
 
 <h2 id="section-05">五、结语与下一章预告</h2>
 <p>读内核源码的路线是：先识别子系统，再追踪数据结构和调用链；构建模块时要匹配内核构建树、理解 Kbuild 目标并尊重签名策略。下一章将用 QEMU、GDB 和 xv6 建立一个可重复的实验环境，让我们在虚拟机器里观察内核的执行过程。</p>
-<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>为一个字符设备模块列出源码、Kconfig 与 Makefile 的作用。</p><details><summary>查看思考提示</summary><p>先回答哪些代码需要编译，再找到编译选择如何被表达。</p></details></section>
-<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>解释 Kconfig 和 Kbuild 的分工，并列出外部模块构建和加载失败时至少三项检查。</p><details><summary>查看思考提示</summary><p>检查目标内核构建目录、vermagic/导出符号、模块签名策略与内核日志。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>源码规范与构建系统：</strong>
+<a href="https://docs.kernel.org/process/coding-style.html">Linux · Coding Style</a>
+<a href="https://docs.kernel.org/kbuild/modules.html">Linux · Building External Modules</a>
+<a href="https://github.com/torvalds/linux/blob/master/Documentation/kbuild/kconfig-language.rst">Linux · Kconfig Language</a>
+<a href="https://docs.kernel.org/admin-guide/module-signing.html">Linux · Module Signing</a>
+<p><a href="evidence/06.json">查看本章论断与来源证据清单（evidence/06.json）</a></p><p><a href="labs/ch06-hello-module/README.md">配套实验：构建并加载最小外部模块</a></p></aside>
 <nav class="footer-nav" aria-label="章节前后导航"><a href="05.html">← 上一章 · 引导与初始化</a><a href="index.html">返回课程目录</a><a href="07.html">下一章 · OS实验环境搭建 →</a></nav>
 </article></main>
 </div>

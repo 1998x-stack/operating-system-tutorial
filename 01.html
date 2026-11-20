@@ -109,8 +109,12 @@ ps -eo pid,ppid,stat,comm --sort=pid | head
 cat /proc/meminfo | head</code></pre>
 <p>输出会随发行版、内核版本和当前负载变化。可选地安装 <code>strace</code> 后，运行 <code>strace -e trace=openat,read,write -o /tmp/ls.trace ls</code>，再检查跟踪文件，观察应用如何通过系统调用请求内核服务。</p>
 <p>下一章转向硬件：指令集、存储层级和中断机制，解释操作系统依赖哪些处理器能力。</p>
-<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>用打开文件的例子，分别指出资源管理、硬件抽象和安全隔离。</p><details><summary>查看思考提示</summary><p>把进程、系统调用和文件接口放在同一张图上。</p></details></section>
-<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>用 read() 说明应用、系统调用、内核子系统和设备驱动之间的关系。再解释为什么 read() 不一定访问物理磁盘。</p><details><summary>查看思考提示</summary><p>从文件描述符开始，区分页缓存命中、普通文件、管道和设备文件。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读与证据：</strong>
+<a href="https://research.cs.wisc.edu/wind/OSTEP/">OSTEP · 操作系统基础</a>
+<a href="https://developer.freertos.org/Documentation/02-Kernel/02-Kernel-features/01-Tasks-and-co-routines/04-Task-scheduling">FreeRTOS · 调度策略</a>
+<a href="https://github.com/apple-oss-distributions/xnu">Apple · XNU 源码说明</a>
+<p><a href="evidence/01.json">查看本章论断与来源证据清单（evidence/01.json）</a></p></aside>
 <nav class="footer-nav" aria-label="章节前后导航"><span class="unavailable" aria-disabled="true">← 已是第一章</span><a href="index.html">返回课程目录</a><a href="02.html">下一章 · 硬件架构基础 →</a></nav>
 </article></main>
 </div>

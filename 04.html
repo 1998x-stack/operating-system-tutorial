@@ -122,8 +122,12 @@ perf stat -e cycles,instructions,context-switches \
 
 <h2 id="section-05">五、结语与下一章预告</h2>
 <p>系统调用是受控的特权级入口；上下文切换是调度器在任务之间转移执行权。两者可能连续发生，但不能混为一谈。下一章我们把视角从“应用如何进入内核”转向“内核如何被装入并开始运行”，追踪固件、引导加载器、内核和 PID 1 的交接过程。</p>
-<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>画出 read() 从用户态进入内核再返回的边界。</p><details><summary>查看思考提示</summary><p>区分权限转换、服务执行和返回用户态三个时刻。</p></details></section>
-<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>用 strace 观察 write()，并解释系统调用进入内核态为什么不必然意味着进程上下文切换。</p><details><summary>查看思考提示</summary><p>分别标记权限级转换、内核服务执行、任务阻塞/唤醒和调度器选择。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>系统调用与追踪工具：</strong>
+<a href="https://man7.org/linux/man-pages/man2/syscall.2.html">Linux · syscall(2)</a>
+<a href="https://man7.org/linux/man-pages/man2/ptrace.2.html">Linux · ptrace(2)</a>
+<a href="https://man7.org/linux/man-pages/man1/strace.1.html">Linux · strace(1)</a>
+<p><a href="evidence/04.json">查看本章论断与来源证据清单（evidence/04.json）</a></p><p><a href="labs/ch04-syscall/README.md">配套实验：观察一次 write() 系统调用</a></p></aside>
 <nav class="footer-nav" aria-label="章节前后导航"><a href="03.html">← 上一章 · OS内核架构</a><a href="index.html">返回课程目录</a><a href="05.html">下一章 · 引导与初始化 →</a></nav>
 </article></main>
 </div>

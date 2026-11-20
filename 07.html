@@ -152,8 +152,15 @@ sudo trace-cmd report</code></pre>
 <h2 id="section-05">五、结语与下一章预告</h2>
 <p>QEMU 提供可重置的 Guest 环境，GDB stub 提供虚拟 CPU 调试入口，xv6 帮助我们在小型代码库里理解内核机制，perf/ftrace/eBPF 则让运行中的系统变得可观测。实验结果必须附带环境、内核版本、权限和测量方法；工具能运行，不等于实验结论已经被验证。</p>
 <p>下一章从进程开始，把这些工具用于观察一个程序如何变成进程、如何获得 CPU 时间，以及它如何与其他任务共享资源。</p>
-<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>写一份最小实验计划：启动目标、设置断点、观察寄存器。</p><details><summary>查看思考提示</summary><p>记录 QEMU 架构、GDB 连接方式与内核镜像版本。</p></details></section>
-<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://www.qemu.org/docs/master/">QEMU 文档</a><a href="https://pdos.csail.mit.edu/6.1810/">xv6 教学资源</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>解释 QEMU 的 -S 与 -gdb 如何配合，并说明为什么调试端口应绑定本机回环地址。</p><details><summary>查看思考提示</summary><p>区分 QEMU GDB stub 与 Linux KGDB；vmlinux 符号必须匹配正在启动的内核镜像。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>QEMU、xv6 与内核可观测性：</strong>
+<a href="https://www.qemu.org/docs/master/system/gdb.html">QEMU · GDB stub</a>
+<a href="https://www.qemu.org/docs/master/system/devices/net.html">QEMU · User-mode networking</a>
+<a href="https://github.com/mit-pdos/xv6-riscv">MIT · xv6-RISC-V</a>
+<a href="https://docs.kernel.org/trace/ftrace.html">Linux · ftrace</a>
+<a href="https://docs.kernel.org/admin-guide/perf-security.html">Linux · perf security</a>
+<a href="https://github.com/bpftrace/bpftrace/blob/master/docs/language.md">bpftrace · Language</a>
+<p><a href="evidence/07.json">查看本章论断与来源证据清单（evidence/07.json）</a></p><p><a href="labs/ch07-qemu/README.md">QEMU + GDB</a> · <a href="labs/ch07-xv6/README.md">MIT xv6-RISC-V</a></p></aside>
 <nav class="footer-nav" aria-label="章节前后导航"><a href="06.html">← 上一章 · OS内核源码初探</a><a href="index.html">返回课程目录</a><a href="08.html">下一章 · 进程管理 →</a></nav>
 </article></main>
 </div>

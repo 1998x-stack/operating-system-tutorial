@@ -50,6 +50,7 @@
 <li><a href="#section-04">MGLRU多代LRU</a></li>
 <li><a href="#section-05">内存cgroup</a></li></ol></details></nav>
 <div class="article-body
+<div class="article-body">
 <p>虚拟地址最终要落到物理页框上。内核既要快速满足页面分配请求，也要在内存压力下回收可回收页面；大块连续内存、零散小对象和文件页缓存的生命周期并不相同，因此 Linux 使用多层机制协同管理。</p><p>本章先看 Buddy 分配器如何按 order 管理连续页框，再看 SLUB 如何服务内核小对象，最后分析回收、swap、memcg 与 MGLRU。参数调优不能脱离工作负载：例如 <code>vm.swappiness</code> 是匿名页与文件页回收成本权衡的控制量，不是“是否允许 swap”的简单开关；OOM 也不能仅凭一个参数推断。</p>
 
         <h2 id="section-01">Buddy System伙伴分配器</h2>

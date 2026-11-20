@@ -105,18 +105,11 @@
 
         <p>内核代码中经常看到 <code>current</code> 这个宏，它返回当前正在执行的进程的 task_struct 指针。这是个极其高频使用的宏——内核需要频繁读取当前进程的uid、pid、内存描述符等信息。</p>
 
-        <pre><code>// 在 x86-64 上，current 通过 per-CPU 变量实现
-// 每个 CPU 核心维护一个指向当前进程 task_struct 的指针
-// 每次进程切换时更新这个指针
-
-static __always_inline struct task_struct *get_current(void)
-{
-    return this_cpu_read_stable(pcpu_hot.current_task);
-}
-
-// 使用示例
-printk("Current PID: %d, State: %ld\n",
-       current->pid, current->__state);</code></pre>
+        <pre><code>// current 是 Linux 内核提供的当前任务访问宏。
+// 其底层实现依赖体系结构与内核版本；不要将某个版本
+// 的 per-CPU 内部字段复制到外部模块。
+// 内核代码中的常见用法：
+printk("Current PID: %d\n", current->pid);</code></pre>
 
         <div class="highlight">
             <p><strong>核心洞见</strong>：task_struct之所以如此庞大，是因为Linux奉行"一切皆进程"的设计哲学。甚至是内核自己的工作——比如内存回收、刷脏页、处理中断下半部——也包装成"内核线程"，用task_struct来表示。在Linux里，几乎任何执行上下文都能归结为一个task_struct。</p>
@@ -193,10 +186,10 @@ static __latent_entropy struct task_struct *copy_process(...)
     // copy_signal() — 复制信号处理相关结构
 }</code></pre>
 
-        <p>内核开发者在优化fork的性能上下了大功夫。在Linux 5.x之后，即使是内核栈也用了vmalloc，进一步减少了fork时必须拷贝的部分。当你在Linux上启动一个进程时，fork的延迟主要花在复制task_struct和页表结构上——物理内存的复制被推迟到了必须的时刻。</p>
+        <p>fork() 通常需要创建新的任务描述符、建立子进程的内存管理结构并复制必要的页表元数据；用户页的数据通常通过写时复制（COW）延迟复制。内核栈是否使用 vmalloc/vmap 分配取决于架构、配置（例如 VMAP_STACK）和内核版本，不能概括成“Linux 5.x 以后统一如此”。fork 的实际成本还受页表规模、VMA 数量、内存映射类型和安全缓解措施影响，应在目标工作负载上测量。</p>
 
         <div class="tip">
-            <p><strong>性能洞见</strong>：COW把fork操作的时间复杂度从O(进程地址空间大小)降到了O(页表大小)。对于一个大进程（比如占用数GB内存的数据库），fork的性能提升是数量级的。这也是为什么Redis的RDB持久化可以用fork + COW来创建内存快照——子进程共享主进程的物理页，只有在主进程修改数据时才复制。</p>
+            <p><strong>性能洞见</strong>：COW 避免在 fork 时立即复制所有用户态物理页，但 fork 仍需处理内存映射和页表等元数据，因此不能简单地把复杂度写成固定的 O(页表大小)，更不能保证数量级加速。Redis 等程序可利用 fork 创建快照视图：父子进程起初共享只读映射，任一方写入相关页面时可能触发私有副本；大量写入会增加内存压力和延迟。</p>
         </div>
 
         <h2 id="section-05">execve()：一个程序的诞生</h2>

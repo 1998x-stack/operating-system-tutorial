@@ -1,0 +1,42 @@
+{
+  "chapter": "17",
+  "title": "中断与异常处理",
+  "claims": [
+    {
+      "id": "irq-17-01",
+      "claim": "Linux IRQ 子系统区分硬中断处理与可延后处理机制。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://docs.kernel.org/core-api/genericirq.html",
+      "locator": "Overview",
+      "status": "verified",
+      "notes": "处理时序与上下文受 IRQ 类型及驱动实现影响。"
+    },
+    {
+      "id": "irq-17-02",
+      "claim": "softirq、tasklet、workqueue 的执行上下文和可睡眠能力不同。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://docs.kernel.org/core-api/softirq.html",
+      "locator": "Softirqs and Tasklets",
+      "status": "verified",
+      "notes": "tasklet 已处于逐步弃用/替代的历史阶段，建议新代码评估其他机制。"
+    },
+    {
+      "id": "irq-17-03",
+      "claim": "线程化中断允许将主要处理逻辑放到内核线程上下文执行。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://docs.kernel.org/core-api/genericirq.html",
+      "locator": "Threaded IRQs",
+      "status": "verified",
+      "notes": "并非所有 IRQ 都可无条件线程化。"
+    },
+    {
+      "id": "irq-17-04",
+      "claim": "PREEMPT_RT 改变部分锁与中断处理语义，以降低不可抢占区间并改善实时响应。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://docs.kernel.org/core-api/real-time/index.html",
+      "locator": "Real-time Linux",
+      "status": "verified",
+      "notes": "实时性仍依赖平台、驱动和系统配置。"
+    }
+  ]
+}

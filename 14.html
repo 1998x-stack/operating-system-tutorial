@@ -63,7 +63,7 @@
             <tr><th>操作表</th><th>作用</th><th>包含的核心回调</th></tr>
             <tr><td><code>file_operations</code></td><td>对"已打开的文件"的操作</td><td>read, write, mmap, poll, ioctl, llseek</td></tr>
             <tr><td><code>inode_operations</code></td><td>对"文件/目录元数据"的操作</td><td>create, lookup, link, unlink, mkdir, rmdir, rename</td></tr>
-            <tr><td><code>address_space_operations</code></td><td>对"文件数据页缓存"的操作</td><td>readpage, writepage, writepages, dirty_folio, migrate_folio</td></tr>
+            <tr><td><code>address_space_operations</code></td><td>对"文件数据页缓存"的操作</td><td>read_folio, readahead, writepages, dirty_folio（具体成员随内核版本演进）</td></tr>
         </table>
 
         <p>这种设计起到了"适配器"的作用：你可以在同一个系统上同时挂载ext4（传统磁盘文件系统）、Btrfs（COW文件系统）、tmpfs（内存文件系统）、procfs（进程信息文件系统）、sysfs（内核对象文件系统）。它们各自的实现天差地别，但通过VFS提供的统一接口，用户态看到的都是"文件"。</p>
@@ -124,7 +124,7 @@ read(fd, buf, 1024);
 完成！下次读取同一文件直接从page cache返回，无需磁盘I/O。</code></pre>
 
         <div class="tip">
-            <p><strong>性能观察</strong>：通过 <code>cat /proc/meminfo</code> 查看 <code>Cached</code> 和 <code>Dirty</code> 两行。Cached就是页缓存的总大小，Dirty是需要写回磁盘的脏页数量。如果Dirty持续增长，说明系统在大量写文件，writeback可能跟不上。可以用 <code>sysctl vm.dirty_ratio</code> 和 <code>sysctl vm.dirty_background_ratio</code> 调整writeback的触发时机。</p>
+            <p><strong>性能观察</strong>：通过 <code>cat /proc/meminfo</code> 查看 <code>Cached</code> 和 <code>Dirty</code> 两行。Cached 是内核报告的缓存内存统计项（包括文件页缓存等，不应直接等同于某个挂载点的文件数据量）；Dirty 是当前被标记为脏的内存量。持续增长可能提示写回压力，但需结合 Writeback、I/O 统计、脏页阈值与工作负载判断，不能单凭 Dirty 推断写回已失速。可以用 <code>sysctl vm.dirty_ratio</code> 和 <code>sysctl vm.dirty_background_ratio</code> 调整writeback的触发时机。</p>
         </div>
 
         <h2 id="section-03">ext4的设计</h2>
@@ -222,13 +222,13 @@ btrfs filesystem df /mnt/data</code></pre>
         <p>XFS是高性能64位日志文件系统，最初由SGI为IRIX开发，2000年移植到Linux。它的设计核心是大规模并发——使用分配组（Allocation Group）对磁盘进行分区管理，每个组有独立的inode和空闲空间管理，支持多线程并行分配。XFS在元数据操作密集的场景下（大量文件的创建/删除）通常比ext4表现更好。目前Red Hat Enterprise Linux的默认文件系统就是XFS。</p>
 
         <h3>Bcachefs</h3>
-        <p>Bcachefs是一个较新的文件系统，由Kent Overstreet（也是Bcache的作者）历经多年开发。它的目标是提供一个"一劳永逸"的通用文件系统——同时具备ext4的可靠性、Btrfs的快照/校验和功能、ZFS的池化存储管理、以及XFS的扩展性。Bcachefs还特别优化了海量小文件的场景（数百万个文件在单目录中）。经过多年开发，Bcachefs在Linux 6.7中正式合入主线。</p>
+        <p>Bcachefs 是 Kent Overstreet 主导开发的写时复制文件系统，曾在 Linux 6.7 合入主线；但其维护状态后来发生重大变化：Linux 6.17 将其标记为 externally maintained，随后主线移除了内置实现（Linux 6.18）。当前使用需按发行版与项目文档部署外部维护的 DKMS/内核模块，不能再将其描述为当前主线内置文件系统。功能、稳定性和支持矩阵应以项目当前文档为准。</p>
 
         <h3>F2FS</h3>
-        <p>F2FS（Flash-Friendly File System）由三星开发，专门为NAND闪存设计。传统文件系统（如ext4）的碎片整理、写放大等问题在SSD上非常突出。F2FS在日志结构（Log-structured）的基础上引入了几个闪存友好的设计：用多级日志区域组织数据、冷热数据分离、自适应的GC（垃圾回收）策略。它在消费级SSD和SD卡上的表现通常优于ext4。</p>
+        <p>F2FS（Flash-Friendly File System）由三星开发，专门为NAND闪存设计。传统文件系统（如ext4）的碎片整理、写放大等问题在SSD上非常突出。F2FS在日志结构（Log-structured）的基础上引入了几个闪存友好的设计：用多级日志区域组织数据、冷热数据分离、自适应的GC（垃圾回收）策略。它针对 NAND 闪存的写入与垃圾回收特征设计；与 ext4 的性能比较必须指定设备、内核、挂载选项和工作负载，不能概括为普遍更快。</p>
 
         <h3>EROFS</h3>
-        <p>EROFS（Enhanced Read-Only File System）是华为开发的高性能只读文件系统，Linux 5.4合入主线。它的设计核心是极致压缩和解压性能——使用了固定输出大小的压缩策略（fixed-sized output compression），解压速度比传统压缩文件系统快数倍。EROFS在容器镜像分发场景中表现出色——Docker和CRI-O已经支持直接使用EROFS格式的镜像层，显著减少了容器的启动时间。</p>
+        <p>EROFS（Enhanced Read-Only File System）是华为开发的高性能只读文件系统，Linux 5.4合入主线。它的设计核心是极致压缩和解压性能——使用了固定输出大小的压缩策略（fixed-sized output compression），解压速度比传统压缩文件系统快数倍。EROFS 可用于只读镜像层等场景，但运行时集成需要明确的 snapshotter/差异应用链路。containerd 提供 EROFS snapshotter，并说明需要 EROFS differ 才能直接将 OCI 镜像转换为 EROFS blob；不能笼统说 Docker 和 CRI-O 原生都直接支持 EROFS 镜像层，也不能保证固定启动时间收益。</p>
 
         <div class="highlight">
             <p><strong>生态视野</strong>：文件系统的选择不是"谁最好"的问题，而是"哪个最适合我的场景"的问题。你不可能用一个文件系统覆盖所有需求——ext4的成熟稳定适合通用服务器，Btrfs的快照适合开发和备份，XFS的大规模并发适合数据仓库，F2FS的闪存优化适合移动设备，EROFS的只读压缩适合容器镜像。在系统设计中，根据场景选对文件系统，能省去很多运维层面的烦恼。</p>

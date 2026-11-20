@@ -64,6 +64,15 @@
       "locator": "Program loading and attachment",
       "status": "verified",
       "notes": "应显式验证程序是否已附加并采集到事件。"
+    },
+    {
+      "id": "project-28-08",
+      "claim": "字符设备驱动需将 struct cdev 嵌入设备状态并按 alloc_chrdev_region/cdev_init/cdev_add/class_create/device_create 的生命周期注册与逆序销毁；class_create() 参数签名在 Linux 6.4 发生变化。",
+      "kind": "kernel driver API/version",
+      "source_url": "https://github.com/torvalds/linux/blob/master/include/linux/device/class.h",
+      "locator": "class_create() declaration; class lifecycle",
+      "status": "verified",
+      "notes": "示例明确按 Linux 6.4+ 使用 class_create(name)；旧版本需适配旧签名，并在目标内核构建树中编译验证。"
     }
   ]
 }

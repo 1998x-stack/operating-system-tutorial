@@ -37,6 +37,24 @@
       "locator": "kmemleak",
       "status": "verified",
       "notes": "False positives and untracked allocation paths are possible."
+    },
+    {
+      "id": "perf-24-05",
+      "claim": "perf record/report/script/stat 是 Linux perf 工具集的常用数据采集与分析命令；采样与 PMU 事件可用性受硬件、权限和内核配置影响。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://perf.wiki.kernel.org/index.php/Main_Page",
+      "locator": "perf tool overview",
+      "status": "verified",
+      "notes": "采样结果需记录频率、事件、符号和工作负载。"
+    },
+    {
+      "id": "perf-24-06",
+      "claim": "火焰图宽度表示采样栈中该栈帧的聚合占比，不应简单解释为函数自身 exclusive CPU 时间。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://www.brendangregg.com/flamegraphs.html",
+      "locator": "Flame Graphs",
+      "status": "verified",
+      "notes": "使用 off-CPU flame graph 时含义与采样方法不同。"
     }
   ]
 }

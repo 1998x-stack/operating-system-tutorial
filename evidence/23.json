@@ -46,6 +46,33 @@
       "locator": "kgdb",
       "status": "verified",
       "notes": "Requires suitable kernel configuration and a supported connection method."
+    },
+    {
+      "id": "debug-23-05",
+      "claim": "KASAN 有 Generic、Software Tag-Based、Hardware Tag-Based 等实现；支持范围与开销依赖架构、编译器和内核配置，不能用固定 2–3 倍描述。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://docs.kernel.org/dev-tools/kasan.html",
+      "locator": "Overview; Usage",
+      "status": "verified",
+      "notes": "需检查目标架构的 Kconfig 依赖。"
+    },
+    {
+      "id": "debug-23-06",
+      "claim": "kdump 依赖预留 crash kernel、转储目标和匹配的调试符号；crash 分析必须使用与 vmcore 对应的 vmlinux。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://docs.kernel.org/admin-guide/kdump/kdump.html",
+      "locator": "Overview; Setup",
+      "status": "verified",
+      "notes": "转储采集应先在测试环境验证。"
+    },
+    {
+      "id": "debug-23-07",
+      "claim": "kgdboc 使用串口作为 KGDB I/O 通道；QEMU 串口 TCP 后端可用于隔离环境中的远程调试，但端口不应暴露到不可信网络。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://docs.kernel.org/dev-tools/kgdb.html",
+      "locator": "kgdboc",
+      "status": "verified",
+      "notes": "Guest 串口、启动参数和 GDB 符号必须匹配。"
     }
   ]
 }

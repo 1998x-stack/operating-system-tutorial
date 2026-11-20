@@ -211,29 +211,35 @@ protected_mode:
         <h3>1. 用E820获取内存布局</h3>
         <p>在进入保护模式之前（实模式下），调用BIOS中断获取系统内存映射：</p>
 
-        <pre><code>; 实模式下获取 E820 内存映射
+        <pre><code>; E820 调用流程示意（不是完整的 BIOS 兼容实现）
+; 在实模式下为每次调用设置 EAX/EDX/ECX，并保留 EBX continuation token
 detect_memory:
-    mov di, 0x8000           ; 存储内存映射信息的目标地址
-    xor ebx, ebx             ; 第一次调用 ebx=0
-    mov edx, 0x534D4150      ; 'SMAP' 签名
-    mov eax, 0xe820
-    mov ecx, 24              ; 每个条目24字节
-
+    xor ebx, ebx
+    mov di, 0x8000
+    mov dword [mmap_entries], 0
 .loop:
-    int 0x15                 ; 调用 BIOS E820
-    jc .error                ; CF=1 表示出错
-    add di, 24               ; 移动指针到下一个条目
-    inc dword [mmap_entries] ; 条目计数+1
-    test ebx, ebx            ; ebx=0 表示枚举完成
+    mov eax, 0xe820
+    mov edx, 0x534D4150       ; 'SMAP'
+    mov ecx, 24               ; 请求 24-byte entry
+    int 0x15
+    jc .done                  ; CF 表示 BIOS 调用失败/无更多条目
+    cmp eax, 0x534D4150       ; 校验返回签名
+    jne .error
+    cmp ecx, 20               ; 至少需要 20-byte 基本字段
+    jb .error
+    inc dword [mmap_entries]
+    add di, 24                ; 实际代码还需按 BIOS 返回长度处理 20/24-byte entry
+    test ebx, ebx             ; EBX=0 表示枚举完成
     jnz .loop
+.done:
     ret
-
 .error:
-    ; 处理错误：至少可以使用低端1MB内存
-    mov dword [mmap_entries], 1
-    ret</code></pre>
+    ; 真实 bootloader 应报告错误并停止使用不完整内存图，
+    ; 不应把“只剩低端 1MB”当作通用安全回退策略。
+    stc
+    ret</code></pre>>
 
-        <p>E820返回的每个条目包含：起始地址（8字节）、长度（8字节）、类型（4字节）。类型1表示可用内存，类型2表示保留区域，类型3表示ACPI回收内存，类型4表示ACPI NVS内存。我们只使用类型1的可用内存区域。</p>
+        <p>E820返回的每个条目包含：起始地址（8字节）、长度（8字节）、类型（4字节）。类型1表示可用内存，类型2表示保留区域，类型3表示ACPI回收内存，类型4表示ACPI NVS内存。我们只使用类型1的可用内存区域。 真实实现还必须检查返回的条目长度、24-byte 扩展属性有效位（若提供）、地址范围溢出和条目数量上限；仅凭 Type=1 就直接加入空闲页分配器是不安全的。应保留内核、引导数据、MMIO、固件保留区和低端内存等区域。</p>
 
         <h3>2. 位图分配器</h3>
         <p>最简单的物理页分配器是基于位图（bitmap）的。我们把物理内存分成4KB大小的页面（page），每个页面在位图中占1个bit：0表示空闲，1表示已分配。</p>

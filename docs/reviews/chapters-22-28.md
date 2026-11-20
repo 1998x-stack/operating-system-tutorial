@@ -61,3 +61,6 @@
 - 没有在真实 x86 BIOS VM 上执行本章 bootloader，也没有加载 KASAN/UBSAN 内核、配置 kdump 或实际连接 kgdb。
 - 没有在真实设备上验证 PCIe IDE、SEV-SNP/TDX、CoCo、OverlayFS 性能或 perf 硬件事件。
 - 第 28 章 BPF loader 和 xv6 COW 是明确的实现骨架/检查清单；不能把静态审阅误报为已通过编译与运行测试。
+
+
+追加核验：第 27 章公平调度类已更新为 Linux 6.6 起的 EEVDF，并将 SCHED_DEADLINE 的预算/截止时间保证限定在 CBS、admission control 与负载假设满足时；相关证据见 `evidence/27.json`。

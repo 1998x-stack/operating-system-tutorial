@@ -42,11 +42,11 @@
 | --- | --- |
 | [08 · 进程管理](08.html) | task_struct、进程五状态模型、fork写时拷贝、execve加载程序 |
 | [09 · 线程与协程](09.html) | 内核线程、1:1 vs M:N模型、clone系统调用、协程与async/await |
-| [10 · CPU调度](10.html) | O(n)→CFS→EEVDF、vruntime红黑树、sched_ext用户态调度、PREEMPT_RT实时 |
-| [11 · 同步与互斥](11.html) | 自旋锁vs互斥锁、信号量PV操作、RCU读多写少、死锁与lockdep |
-| [12 · 虚拟内存](12.html) | 四级页表遍历、TLB加速器、缺页中断全流程、大页与mTHP |
-| [13 · 物理内存管理](13.html) | Buddy System、Slab/Slub分配器、页面回收与swap、MGLRU多代LRU |
-| [14 · 文件系统](14.html) | VFS统一接口、inode与dentry、ext4区段树、Btrfs写时复制 |
+| [10 · CPU调度](10.html) | O(n)→CFS→EEVDF、lag与虚拟截止时间、sched_ext eBPF 调度、PREEMPT_RT |
+| [11 · 同步与互斥](11.html) | 自旋锁与互斥锁、信号量、RCU 宽限期、死锁与 lockdep |
+| [12 · 虚拟内存](12.html) | 多级页表、TLB 与 page fault、LA57、THP 与 mTHP |
+| [13 · 物理内存管理](13.html) | Buddy allocator、SLUB、页面回收、MGLRU 与 memory cgroup |
+| [14 · 文件系统](14.html) | VFS、dentry/inode、ext4 日志与持久性、Btrfs COW |
 
 ### 三 · I/O 与系统可观测性
 
@@ -82,8 +82,8 @@ operating-system-tutorial/
 ├── assets/
 │   ├── css/site.css              # 统一的阅读设计系统
 │   └── diagrams/                 # 原创操作系统机制图
-├── evidence/                      # 第 01–07 章逐条论断与来源证据
-├── labs/                          # 系统调用、模块与 QEMU/xv6 实验
+├── evidence/                      # 第 01–14 章逐条论断与来源证据
+├── labs/                          # 系统调用、模块、QEMU/xv6、进程/调度/内存/文件系统实验
 ├── docs/
 │   ├── guides/                   # 学习路线与内容规范
 │   └── reviews/                  # 分批技术复核记录
@@ -96,9 +96,9 @@ operating-system-tutorial/
 
 ## 技术复核与实验
 
-第 01–07 章已完成第一轮技术内容复核，修正了过时或过度绝对化的论断，并新增 35 条证据记录。查看 [本批复核报告](docs/reviews/chapters-01-07.md)、[证据清单目录](evidence/README.md) 和 [配套实验](labs/README.md)。
+第 01–14 章已完成两轮技术内容复核：累计记录 71 条关键论断证据，并为第 01–14 章提供分章机制图与实验入口。查看 [第 01–07 章复核报告](docs/reviews/chapters-01-07.md)、[第 08–14 章复核报告](docs/reviews/chapters-08-14.md)、[证据清单目录](evidence/README.md) 和 [配套实验](labs/README.md)。
 
-注意：本轮已按官方接口和文档校正示例，但没有在实际 Linux VM 中编译、加载模块或启动 xv6；也未完成浏览器多视口人工验收。请勿将源码级审阅等同于运行时验证。
+注意：章节与示例已按官方接口和文档进行源码级复核，但第 08–14 章新增 C 程序、ThreadSanitizer、调度观测与 fsync 实验尚未在实际 Linux VM 中全部运行；第 01–07 章的模块加载/xv6 运行也未在本轮复测。浏览器多视口人工验收仍需单独完成。请勿将源码级审阅等同于运行时验证。
 
 ## 静态校验
 

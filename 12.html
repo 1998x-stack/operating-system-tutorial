@@ -1,58 +1,62 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第12章 虚拟内存</title>
-    <link rel="stylesheet" href="theme.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="MMU、TLB 和页表共同支持地址翻译；映射缺失时可能进入缺页异常处理。">
+  <title>第 12 章 · 虚拟内存 | 操作系统中文实践教程</title>
+  <link rel="stylesheet" href="assets/css/site.css">
 </head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>🖥️ 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 什么是操作系统</a></li>
-            <li><a href="02.html">第2章 硬件架构基础</a></li>
-            <li><a href="03.html">第3章 OS内核架构</a></li>
-            <li><a href="04.html">第4章 用户态与内核态</a></li>
-            <li><a href="05.html">第5章 引导与初始化</a></li>
-            <li><a href="06.html">第6章 OS内核源码初探</a></li>
-            <li><a href="07.html">第7章 OS实验环境搭建</a></li>
-            <li><a href="08.html">第8章 进程管理</a></li>
-            <li><a href="09.html">第9章 线程与协程</a></li>
-            <li><a href="10.html">第10章 CPU调度</a></li>
-            <li><a href="11.html">第11章 同步与互斥</a></li>
-            <li><a href="12.html" class="active">第12章 虚拟内存</a></li>
-            <li><a href="13.html">第13章 物理内存管理</a></li>
-            <li><a href="14.html">第14章 文件系统</a></li>
-            <li><a href="15.html">第15章 I/O模型与io_uring</a></li>
-            <li><a href="16.html">第16章 设备驱动</a></li>
-            <li><a href="17.html">第17章 中断与异常处理</a></li>
-            <li><a href="18.html">第18章 时间管理</a></li>
-            <li><a href="19.html">第19章 网络协议栈</a></li>
-            <li><a href="20.html">第20章 eBPF可观测性</a></li>
-            <li><a href="21.html">第21章 虚拟化技术</a></li>
-            <li><a href="22.html">第22章 容器与命名空间</a></li>
-            <li><a href="23.html">第23章 内核调试技术</a></li>
-            <li><a href="24.html">第24章 性能分析与调优</a></li>
-            <li><a href="25.html">第25章 动手写一个小OS</a></li>
-            <li><a href="26.html">第26章 现代OS前沿趋势</a></li>
-            <li><a href="27.html">第27章 OS内核设计决策</a></li>
-            <li><a href="28.html">第28章 综合项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
-
-        <h2>第12章 虚拟内存</h2>
-
-        <p>大家好，我是你们的讲师。想象一下：你在一台只有8GB物理内存的笔记本电脑上打开了——一个4GB的游戏、一个2GB的浏览器（没错，Chrome就是这么吃内存）、一个1GB的IDE、再加一个Docker虚拟机。总共需要的内存已经远远超过了8GB。但你的电脑居然还在运行！这是怎么做到的？这就是虚拟内存（Virtual Memory）的魔力——它让每个程序都以为自己拥有整个地址空间。</p>
+<body class="chapter-page">
+<a class="skip-link" href="#content">跳转至正文</a>
+<div class="site-shell">
+<header class="site-masthead"><a href="index.html">操作系统 · 中文实践教程</a><span class="section-mark">CHAPTER 12 / 28</span></header>
+<div class="reading-layout">
+<nav class="sidebar" aria-label="课程章节"><details class="chapter-drawer" open><summary>全部 28 章</summary><ol><li><a href="01.html">01 · 什么是操作系统</a></li>
+<li><a href="02.html">02 · 硬件架构基础</a></li>
+<li><a href="03.html">03 · OS内核架构</a></li>
+<li><a href="04.html">04 · 用户态与内核态</a></li>
+<li><a href="05.html">05 · 引导与初始化</a></li>
+<li><a href="06.html">06 · OS内核源码初探</a></li>
+<li><a href="07.html">07 · OS实验环境搭建</a></li>
+<li><a href="08.html">08 · 进程管理</a></li>
+<li><a href="09.html">09 · 线程与协程</a></li>
+<li><a href="10.html">10 · CPU调度</a></li>
+<li><a href="11.html">11 · 同步与互斥</a></li>
+<li><a href="12.html" aria-current="page">12 · 虚拟内存</a></li>
+<li><a href="13.html">13 · 物理内存管理</a></li>
+<li><a href="14.html">14 · 文件系统</a></li>
+<li><a href="15.html">15 · I/O模型与io_uring</a></li>
+<li><a href="16.html">16 · 设备驱动</a></li>
+<li><a href="17.html">17 · 中断与异常处理</a></li>
+<li><a href="18.html">18 · 时间管理</a></li>
+<li><a href="19.html">19 · 网络协议栈</a></li>
+<li><a href="20.html">20 · eBPF可观测性</a></li>
+<li><a href="21.html">21 · 虚拟化技术</a></li>
+<li><a href="22.html">22 · 容器与命名空间</a></li>
+<li><a href="23.html">23 · 内核调试技术</a></li>
+<li><a href="24.html">24 · 性能分析与调优</a></li>
+<li><a href="25.html">25 · 动手写一个小OS</a></li>
+<li><a href="26.html">26 · 现代OS前沿趋势</a></li>
+<li><a href="27.html">27 · OS内核设计决策</a></li>
+<li><a href="28.html">28 · 综合项目</a></li></ol></details></nav>
+<main id="content" class="content-column"><article class="chapter-article" aria-labelledby="chapter-title">
+<header class="article-header"><p class="kicker">OPERATING SYSTEMS · CHAPTER 12</p><h1 id="chapter-title">第 12 章 · 虚拟内存</h1><p class="article-dek">进程看到的虚拟地址为什么不等于物理地址？</p></header>
+<section class="learning-map" aria-labelledby="learning-map-title"><h2 id="learning-map-title">先建立问题地图</h2><p>MMU、TLB 和页表共同支持地址翻译；映射缺失时可能进入缺页异常处理。</p><div class="concept-steps" role="list"><div role="listitem"><strong>起点</strong><span>四级页表遍历</span></div><div role="listitem"><strong>机制</strong><span>TLB加速器</span></div><div role="listitem"><strong>拓展</strong><span>缺页中断全流程 / 大页与mTHP</span></div></div><p class="map-note">这是帮助建立概念依赖的阅读地图，不表示内核内部的实际执行时序。</p></section>
+<figure class="mechanism-figure"><img src="assets/diagrams/virtual-memory.svg" width="800" height="275" alt="虚拟地址翻译涉及 TLB、页表与缺页异常"><figcaption>TLB 命中可复用已有映射；未命中时需要页表查询，映射缺失可能触发缺页异常。</figcaption></figure>
+<nav class="page-toc" aria-label="本章小节"><details open><summary>本章目录 · 5 个部分</summary><ol><li><a href="#section-01">为什么需要虚拟内存</a></li>
+<li><a href="#section-02">四级页表遍历</a></li>
+<li><a href="#section-03">TLB：CPU里的地址翻译加速器</a></li>
+<li><a href="#section-04">缺页中断处理全流程</a></li>
+<li><a href="#section-05">大页的威力</a></li></ol></details></nav>
+<div class="article-body">
+<p>大家好，我是你们的讲师。想象一下：你在一台只有8GB物理内存的笔记本电脑上打开了——一个4GB的游戏、一个2GB的浏览器（没错，Chrome就是这么吃内存）、一个1GB的IDE、再加一个Docker虚拟机。总共需要的内存已经远远超过了8GB。但你的电脑居然还在运行！这是怎么做到的？这就是虚拟内存（Virtual Memory）的魔力——它让每个程序都以为自己拥有整个地址空间。</p>
 
         <p>虚拟内存是现代操作系统最重要的抽象之一。它彻底改变了程序员和内存的关系——你不需要关心物理内存有多大，不需要关心内存碎片，不需要关心其他程序占用在哪里。你只需分配和使用，剩下的操作系统搞定。但"搞定"背后的机制极其精密——四级页表遍历、TLB加速、缺页异常处理、大页优化——每个环节都是计算机体系结构和操作系统设计的精华。</p>
 
         <p>分享一个我早年犯的错。当时写一个高性能的服务器程序，为了"优化"把所有的数据放在一个巨大的静态数组里，心想"这样访问最快，没有malloc开销"。结果上线后性能比预期差了一大截。perf stat告诉我，程序的IPC（每时钟周期指令数）低得可怜。原因是什么呢？单个巨大的数组导致TLB覆盖不了整个工作集，几乎每次内存访问都触发TLB miss，需要硬件遍历四级页表来翻译地址。换成2MB大页后，IPC直接翻了一倍。这次经历让我深刻理解了——内存管理的性能瓶颈往往不在内存本身，而在地址翻译的加速器（TLB）上。</p>
 
-        <h2>为什么需要虚拟内存</h2>
+        <h2 id="section-01">为什么需要虚拟内存</h2>
 
         <p>虚拟内存不是一个可有可无的"优化"，而是现代计算机系统的基石。它的核心价值体现在三个方面：</p>
 
@@ -78,7 +82,7 @@
             <p><strong>根本认知</strong>：虚拟内存的三大功能——隔离、扩容、简化——本质上都是"增加中间层"（the classic computer science principle: any problem can be solved by adding an extra level of indirection）。物理内存是硬件，太丑太复杂，虚拟内存就是那个"中间层"。</p>
         </div>
 
-        <h2>四级页表遍历</h2>
+        <h2 id="section-02">四级页表遍历</h2>
 
         <p>虚拟内存的核心机制是地址翻译（Address Translation）：把CPU发出的虚拟地址（Virtual Address, VA）转换为物理地址（Physical Address, PA）。x86-64架构上使用多级页表来实现这个翻译。</p>
 
@@ -111,7 +115,7 @@
             <p><strong>实验命令</strong>：在Linux上执行 <code>lscpu | grep "地址大小"</code> 或 <code>getconf LEVEL1_DCACHE_LINESIZE</code> 查看你的CPU的地址位数。如果看到 "57位" 而不是 "48位"，说明你的机器支持5级页表。目前大多数消费级CPU仍然是48位。</p>
         </div>
 
-        <h2>TLB：CPU里的地址翻译加速器</h2>
+        <h2 id="section-03">TLB：CPU里的地址翻译加速器</h2>
 
         <p>每次内存访问都要遍历四级页表——这意味着一次简单的内存读取需要至少4次额外的内存访问（每级页表一次）。这开销太大了！CPU硬件用TLB（Translation Lookaside Buffer）来解决这个问题。</p>
 
@@ -139,7 +143,7 @@ TLB miss:  ~100-200 时钟周期 (硬件遍历四级页表)
             <p><strong>性能洞察</strong>：很多所谓的"内存优化"，本质上都是"TLB优化"。比如使用大页、减少指针追逐（pointer chasing）、优化数据结构局部性——这些技巧背后共同的原理都是提高TLB的命中率。理解TLB，你就理解了内存性能优化的底层逻辑。</p>
         </div>
 
-        <h2>缺页中断处理全流程</h2>
+        <h2 id="section-04">缺页中断处理全流程</h2>
 
         <p>当CPU访问一个虚拟地址，而对应的页表项标记为"not present"时，CPU触发缺页异常（Page Fault）。这时操作系统介入，执行缺页处理程序。缺页的种类有几种：</p>
 
@@ -177,7 +181,7 @@ TLB miss:  ~100-200 时钟周期 (硬件遍历四级页表)
             <p><strong>踩坑经验</strong>：在生产环境中，<code>major fault</code> 是性能杀手。如果系统频繁报告major fault（用 <code>ps -o majflt</code> 或在 <code>/proc/&lt;pid&gt;/status</code> 中查看），说明物理内存严重不足，系统在频繁地换入换出。这时加内存或优化内存使用才是正道，而不是去微调内核参数。我曾经见过一个Redis实例因为内存不足导致每秒钟触发数百次major fault，延迟从微秒级飙升到秒级。</p>
         </div>
 
-        <h2>大页的威力</h2>
+        <h2 id="section-05">大页的威力</h2>
 
         <p>我们讲到TLB条目数量是有限的。x86-64 CPU中，每个核心通常有几十到几百个TLB条目。如果页大小是4KB，那么TLB能覆盖的总地址范围也就几百MB到几MB。但如果页大小是2MB呢？每个TLB条目覆盖2MB，几百个条目就能覆盖数GB的地址范围。</p>
 
@@ -203,14 +207,13 @@ TLB miss:  ~100-200 时钟周期 (硬件遍历四级页表)
         <p>虚拟内存是操作系统中最精妙的设计之一。它通过多级页表实现了进程间的地址空间隔离，通过TLB加速了地址翻译，通过缺页机制实现了按需分配和内存超用，通过大页优化了TLB覆盖范围。配合下一章要讲的物理内存管理，构成了操作系统内存管理的完整图景。</p>
 
         <p>下一章，我们深入到物理内存层面——Buddy System如何分配物理页、Slab分配器如何管理内核对象、页面回收和swap的算法、以及MGLRU（多代LRU）如何让内存回收效率大幅提升。</p>
-
-        <div class="footer-nav">
-            <a href="11.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="13.html">下一章 →</a>
-        </div>
-    </div>
 </div>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>画出一次 TLB 未命中后可能发生的两条路径。</p><details><summary>查看思考提示</summary><p>区分页表中有有效映射和没有有效映射两种情况。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<nav class="footer-nav" aria-label="章节前后导航"><a href="11.html">← 上一章 · 同步与互斥</a><a href="index.html">返回课程目录</a><a href="13.html">下一章 · 物理内存管理 →</a></nav>
+</article></main>
+</div>
+<footer class="site-footer">操作系统中文实践教程 · <a href="docs/guides/learning-path.md">学习路线</a> · <a href="docs/guides/content-guide.md">内容规范</a></footer>
 </div>
 </body>
 </html>

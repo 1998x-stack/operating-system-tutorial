@@ -1,58 +1,62 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第14章 文件系统</title>
-    <link rel="stylesheet" href="theme.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="VFS 将文件操作抽象为统一接口，目录项、inode 与具体文件系统协作。">
+  <title>第 14 章 · 文件系统 | 操作系统中文实践教程</title>
+  <link rel="stylesheet" href="assets/css/site.css">
 </head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>🖥️ 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 什么是操作系统</a></li>
-            <li><a href="02.html">第2章 硬件架构基础</a></li>
-            <li><a href="03.html">第3章 OS内核架构</a></li>
-            <li><a href="04.html">第4章 用户态与内核态</a></li>
-            <li><a href="05.html">第5章 引导与初始化</a></li>
-            <li><a href="06.html">第6章 OS内核源码初探</a></li>
-            <li><a href="07.html">第7章 OS实验环境搭建</a></li>
-            <li><a href="08.html">第8章 进程管理</a></li>
-            <li><a href="09.html">第9章 线程与协程</a></li>
-            <li><a href="10.html">第10章 CPU调度</a></li>
-            <li><a href="11.html">第11章 同步与互斥</a></li>
-            <li><a href="12.html">第12章 虚拟内存</a></li>
-            <li><a href="13.html">第13章 物理内存管理</a></li>
-            <li><a href="14.html" class="active">第14章 文件系统</a></li>
-            <li><a href="15.html">第15章 I/O模型与io_uring</a></li>
-            <li><a href="16.html">第16章 设备驱动</a></li>
-            <li><a href="17.html">第17章 中断与异常处理</a></li>
-            <li><a href="18.html">第18章 时间管理</a></li>
-            <li><a href="19.html">第19章 网络协议栈</a></li>
-            <li><a href="20.html">第20章 eBPF可观测性</a></li>
-            <li><a href="21.html">第21章 虚拟化技术</a></li>
-            <li><a href="22.html">第22章 容器与命名空间</a></li>
-            <li><a href="23.html">第23章 内核调试技术</a></li>
-            <li><a href="24.html">第24章 性能分析与调优</a></li>
-            <li><a href="25.html">第25章 动手写一个小OS</a></li>
-            <li><a href="26.html">第26章 现代OS前沿趋势</a></li>
-            <li><a href="27.html">第27章 OS内核设计决策</a></li>
-            <li><a href="28.html">第28章 综合项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
+<body class="chapter-page">
+<a class="skip-link" href="#content">跳转至正文</a>
+<div class="site-shell">
+<header class="site-masthead"><a href="index.html">操作系统 · 中文实践教程</a><span class="section-mark">CHAPTER 14 / 28</span></header>
+<div class="reading-layout">
+<nav class="sidebar" aria-label="课程章节"><details class="chapter-drawer" open><summary>全部 28 章</summary><ol><li><a href="01.html">01 · 什么是操作系统</a></li>
+<li><a href="02.html">02 · 硬件架构基础</a></li>
+<li><a href="03.html">03 · OS内核架构</a></li>
+<li><a href="04.html">04 · 用户态与内核态</a></li>
+<li><a href="05.html">05 · 引导与初始化</a></li>
+<li><a href="06.html">06 · OS内核源码初探</a></li>
+<li><a href="07.html">07 · OS实验环境搭建</a></li>
+<li><a href="08.html">08 · 进程管理</a></li>
+<li><a href="09.html">09 · 线程与协程</a></li>
+<li><a href="10.html">10 · CPU调度</a></li>
+<li><a href="11.html">11 · 同步与互斥</a></li>
+<li><a href="12.html">12 · 虚拟内存</a></li>
+<li><a href="13.html">13 · 物理内存管理</a></li>
+<li><a href="14.html" aria-current="page">14 · 文件系统</a></li>
+<li><a href="15.html">15 · I/O模型与io_uring</a></li>
+<li><a href="16.html">16 · 设备驱动</a></li>
+<li><a href="17.html">17 · 中断与异常处理</a></li>
+<li><a href="18.html">18 · 时间管理</a></li>
+<li><a href="19.html">19 · 网络协议栈</a></li>
+<li><a href="20.html">20 · eBPF可观测性</a></li>
+<li><a href="21.html">21 · 虚拟化技术</a></li>
+<li><a href="22.html">22 · 容器与命名空间</a></li>
+<li><a href="23.html">23 · 内核调试技术</a></li>
+<li><a href="24.html">24 · 性能分析与调优</a></li>
+<li><a href="25.html">25 · 动手写一个小OS</a></li>
+<li><a href="26.html">26 · 现代OS前沿趋势</a></li>
+<li><a href="27.html">27 · OS内核设计决策</a></li>
+<li><a href="28.html">28 · 综合项目</a></li></ol></details></nav>
+<main id="content" class="content-column"><article class="chapter-article" aria-labelledby="chapter-title">
+<header class="article-header"><p class="kicker">OPERATING SYSTEMS · CHAPTER 14</p><h1 id="chapter-title">第 14 章 · 文件系统</h1><p class="article-dek">路径名如何最终定位到文件内容？</p></header>
+<section class="learning-map" aria-labelledby="learning-map-title"><h2 id="learning-map-title">先建立问题地图</h2><p>VFS 将文件操作抽象为统一接口，目录项、inode 与具体文件系统协作。</p><div class="concept-steps" role="list"><div role="listitem"><strong>起点</strong><span>VFS统一接口</span></div><div role="listitem"><strong>机制</strong><span>inode与dentry</span></div><div role="listitem"><strong>拓展</strong><span>ext4区段树 / Btrfs写时复制</span></div></div><p class="map-note">这是帮助建立概念依赖的阅读地图，不表示内核内部的实际执行时序。</p></section>
 
-        <h2>第14章 文件系统</h2>
-
-        <p>大家好，我是你们的讲师。前面几章我们讲了CPU怎么调度进程、内存怎么管理虚拟地址和物理页。但你有没有想过——你双击一个Word文档，编辑后按Ctrl+S保存，整个过程中内核都做了哪些事？文档的内容是如何在磁盘上"持久化"存储的？下次开机怎么还能读到？</p>
+<nav class="page-toc" aria-label="本章小节"><details open><summary>本章目录 · 5 个部分</summary><ol><li><a href="#section-01">VFS：一切皆文件的基石</a></li>
+<li><a href="#section-02">inode与dentry</a></li>
+<li><a href="#section-03">ext4的设计</a></li>
+<li><a href="#section-04">Btrfs与写时复制</a></li>
+<li><a href="#section-05">现代文件系统生态</a></li></ol></details></nav>
+<div class="article-body">
+<p>大家好，我是你们的讲师。前面几章我们讲了CPU怎么调度进程、内存怎么管理虚拟地址和物理页。但你有没有想过——你双击一个Word文档，编辑后按Ctrl+S保存，整个过程中内核都做了哪些事？文档的内容是如何在磁盘上"持久化"存储的？下次开机怎么还能读到？</p>
 
         <p>文件系统（File System）是操作系统在存储方面提供的核心抽象。它的作用可以概括为一句话——把磁盘上原始的、无结构的扇区组织成有层次的、用户友好的文件和目录结构。从你的视角看，就是一个"文件"和"文件夹"（或者叫"目录"）；但从内核的视角看，这背后涉及从VFS统一模型、到inode和dentry的结构设计、再到具体文件系统（ext4、Btrfs、XFS）的不同实现策略。</p>
 
         <p>说一个我早年犯的低级错误。有次帮客户做数据恢复，客户说他误删了一个重要文件，但在ext4文件系统上立即umount了分区，问我能不能恢复。我信心满满地说没问题——ext4删除文件只是删除了inode的链接，数据块还在磁盘上。结果用ext4恢复工具一跑，发现文件内容全部是零。为什么？因为ext4的"延迟分配"（delayed allocation）特性——在文件被删除时，那些被延迟分配的数据块还没来得及写入磁盘，就直接被丢弃了。这个案例告诉我：文件系统的很多"优化"特性，在数据恢复场景下可能是噩梦。</p>
 
-        <h2>VFS：一切皆文件的基石</h2>
+        <h2 id="section-01">VFS：一切皆文件的基石</h2>
 
         <p>VFS（Virtual File System，虚拟文件系统）是Linux文件系统架构的灵魂。它的核心思想是：<strong>所有对象无论是文件、目录、设备、socket、管道——都统一用文件操作接口来访问</strong>。你在用户态看到的 <code>read()</code> / <code>write()</code> / <code>open()</code> / <code>close()</code>，到了VFS层被派发给不同底层文件系统的具体实现。</p>
 
@@ -89,7 +93,7 @@ read(fd, buf, 1024);
             <p><strong>设计哲学</strong>：VFS是UNIX"一切皆文件"理念的工程实现。通过分层抽象：系统调用层→VFS层→具体文件系统层→块设备层→物理设备层——每一层的职责清晰，替换任意一层都不影响其他层。你更换了硬盘，应用程序代码不需要改一行。</p>
         </div>
 
-        <h2>inode与dentry</h2>
+        <h2 id="section-02">inode与dentry</h2>
 
         <p>当你访问一个文件如 <code>/home/user/doc.txt</code> 时，文件系统需要完成"从文件路径到磁盘块"的映射。这条映射链上有三个关键数据结构：dentry、inode和page cache。</p>
 
@@ -126,7 +130,7 @@ read(fd, buf, 1024);
             <p><strong>性能观察</strong>：通过 <code>cat /proc/meminfo</code> 查看 <code>Cached</code> 和 <code>Dirty</code> 两行。Cached就是页缓存的总大小，Dirty是需要写回磁盘的脏页数量。如果Dirty持续增长，说明系统在大量写文件，writeback可能跟不上。可以用 <code>sysctl vm.dirty_ratio</code> 和 <code>sysctl vm.dirty_background_ratio</code> 调整writeback的触发时机。</p>
         </div>
 
-        <h2>ext4的设计</h2>
+        <h2 id="section-03">ext4的设计</h2>
 
         <p>ext4是当前Linux上最广泛使用的文件系统（没有之一），也是ext家族的最新成员。它在ext3的基础上引入了三个重要的设计革新：区段树、日志、延迟分配。</p>
 
@@ -169,7 +173,7 @@ struct ext4_extent {
             <p><strong>权衡思考</strong>：ext4的延迟分配是一把双刃剑。它提升了性能、减少了碎片，但降低了数据安全性——如果系统在延迟窗口内崩溃，那些已被应用程序"确认写入"（write()返回成功）但实际还在页缓存中的数据会丢失。所以在数据库场景下，通常会打开O_DIRECT或使用O_SYNC标志，绕过页缓存直接写入磁盘。</p>
         </div>
 
-        <h2>Btrfs与写时复制</h2>
+        <h2 id="section-04">Btrfs与写时复制</h2>
 
         <p>如果说ext4是在ext3基础上的渐进式改进，那Btrfs（B-tree File System）则是一次革命性的重新设计。它的核心设计思想是：写时复制（Copy-on-Write, COW）——写入新数据时，不覆盖原有数据块，而是在新的位置写入，然后通过B树的原子指针更新来实现"瞬间切换"。</p>
 
@@ -205,7 +209,7 @@ btrfs filesystem df /mnt/data</code></pre>
             <p><strong>场景推荐</strong>：Btrfs非常适合快照和回滚需求频繁的桌面系统和开发环境（搭配snapper自动快照特别方便），也适合需要数据完整性保护的场景（带校验和的NAS存储）。但对于高并发的OLTP数据库，建议使用ext4或XFS——它们的无COW设计和成熟的fsync语义更适合这类负载。</p>
         </div>
 
-        <h2>现代文件系统生态</h2>
+        <h2 id="section-05">现代文件系统生态</h2>
 
         <p>文件系统的世界远不止ext4和Btrfs。下面几个文件系统各有专长，了解它们能帮你在不同场景下做出更合适的选择。</p>
 
@@ -236,14 +240,13 @@ btrfs filesystem df /mnt/data</code></pre>
         <p>文件系统是操作系统中"离用户最近"的子系统和"离硬件最近"的子系统之间的桥梁。从VFS的抽象、到inode和dentry的数据结构、到ext4的工程优化、到Btrfs的COW革命、再到现代文件系统的多元化生态——每层设计都在回答同一个问题：如何高效、安全、可靠地把数据存储在磁盘上，并让应用程序方便地访问。</p>
 
         <p>下一章，我们进入I/O模型的世界——从阻塞I/O到非阻塞I/O、从select/poll到epoll、从传统的BIO块层到革命性的io_uring。你会发现，I/O性能的终极瓶颈往往不在磁盘本身，而在于数据从磁盘到达应用程序的路径上。下一章见。</p>
-
-        <div class="footer-nav">
-            <a href="13.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="15.html">下一章 →</a>
-        </div>
-    </div>
 </div>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>说明一次 open() 可能涉及 dentry、inode 与文件描述符的哪些关系。</p><details><summary>查看思考提示</summary><p>文件名与 inode 不是同一个对象。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<nav class="footer-nav" aria-label="章节前后导航"><a href="13.html">← 上一章 · 物理内存管理</a><a href="index.html">返回课程目录</a><a href="15.html">下一章 · I/O模型与io_uring →</a></nav>
+</article></main>
+</div>
+<footer class="site-footer">操作系统中文实践教程 · <a href="docs/guides/learning-path.md">学习路线</a> · <a href="docs/guides/content-guide.md">内容规范</a></footer>
 </div>
 </body>
 </html>

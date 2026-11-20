@@ -1,58 +1,63 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第17章 中断与异常处理</title>
-    <link rel="stylesheet" href="theme.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="中断处理将时延敏感的立即响应与可延后的工作拆开。">
+  <title>第 17 章 · 中断与异常处理 | 操作系统中文实践教程</title>
+  <link rel="stylesheet" href="assets/css/site.css">
 </head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>🖥️ 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 什么是操作系统</a></li>
-            <li><a href="02.html">第2章 硬件架构基础</a></li>
-            <li><a href="03.html">第3章 OS内核架构</a></li>
-            <li><a href="04.html">第4章 用户态与内核态</a></li>
-            <li><a href="05.html">第5章 引导与初始化</a></li>
-            <li><a href="06.html">第6章 OS内核源码初探</a></li>
-            <li><a href="07.html">第7章 OS实验环境搭建</a></li>
-            <li><a href="08.html">第8章 进程管理</a></li>
-            <li><a href="09.html">第9章 线程与协程</a></li>
-            <li><a href="10.html">第10章 CPU调度</a></li>
-            <li><a href="11.html">第11章 同步与互斥</a></li>
-            <li><a href="12.html">第12章 虚拟内存</a></li>
-            <li><a href="13.html">第13章 物理内存管理</a></li>
-            <li><a href="14.html">第14章 文件系统</a></li>
-            <li><a href="15.html">第15章 I/O模型与io_uring</a></li>
-            <li><a href="16.html">第16章 设备驱动</a></li>
-            <li><a href="17.html" class="active">第17章 中断与异常处理</a></li>
-            <li><a href="18.html">第18章 时间管理</a></li>
-            <li><a href="19.html">第19章 网络协议栈</a></li>
-            <li><a href="20.html">第20章 eBPF可观测性</a></li>
-            <li><a href="21.html">第21章 虚拟化技术</a></li>
-            <li><a href="22.html">第22章 容器与命名空间</a></li>
-            <li><a href="23.html">第23章 内核调试技术</a></li>
-            <li><a href="24.html">第24章 性能分析与调优</a></li>
-            <li><a href="25.html">第25章 动手写一个小OS</a></li>
-            <li><a href="26.html">第26章 现代OS前沿趋势</a></li>
-            <li><a href="27.html">第27章 OS内核设计决策</a></li>
-            <li><a href="28.html">第28章 综合项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
+<body class="chapter-page">
+<a class="skip-link" href="#content">跳转至正文</a>
+<div class="site-shell">
+<header class="site-masthead"><a href="index.html">操作系统 · 中文实践教程</a><span class="section-mark">CHAPTER 17 / 28</span></header>
+<div class="reading-layout">
+<nav class="sidebar" aria-label="课程章节"><details class="chapter-drawer" open><summary>全部 28 章</summary><ol><li><a href="01.html">01 · 什么是操作系统</a></li>
+<li><a href="02.html">02 · 硬件架构基础</a></li>
+<li><a href="03.html">03 · OS内核架构</a></li>
+<li><a href="04.html">04 · 用户态与内核态</a></li>
+<li><a href="05.html">05 · 引导与初始化</a></li>
+<li><a href="06.html">06 · OS内核源码初探</a></li>
+<li><a href="07.html">07 · OS实验环境搭建</a></li>
+<li><a href="08.html">08 · 进程管理</a></li>
+<li><a href="09.html">09 · 线程与协程</a></li>
+<li><a href="10.html">10 · CPU调度</a></li>
+<li><a href="11.html">11 · 同步与互斥</a></li>
+<li><a href="12.html">12 · 虚拟内存</a></li>
+<li><a href="13.html">13 · 物理内存管理</a></li>
+<li><a href="14.html">14 · 文件系统</a></li>
+<li><a href="15.html">15 · I/O模型与io_uring</a></li>
+<li><a href="16.html">16 · 设备驱动</a></li>
+<li><a href="17.html" aria-current="page">17 · 中断与异常处理</a></li>
+<li><a href="18.html">18 · 时间管理</a></li>
+<li><a href="19.html">19 · 网络协议栈</a></li>
+<li><a href="20.html">20 · eBPF可观测性</a></li>
+<li><a href="21.html">21 · 虚拟化技术</a></li>
+<li><a href="22.html">22 · 容器与命名空间</a></li>
+<li><a href="23.html">23 · 内核调试技术</a></li>
+<li><a href="24.html">24 · 性能分析与调优</a></li>
+<li><a href="25.html">25 · 动手写一个小OS</a></li>
+<li><a href="26.html">26 · 现代OS前沿趋势</a></li>
+<li><a href="27.html">27 · OS内核设计决策</a></li>
+<li><a href="28.html">28 · 综合项目</a></li></ol></details></nav>
+<main id="content" class="content-column"><article class="chapter-article" aria-labelledby="chapter-title">
+<header class="article-header"><p class="kicker">OPERATING SYSTEMS · CHAPTER 17</p><h1 id="chapter-title">第 17 章 · 中断与异常处理</h1><p class="article-dek">设备中断后，为什么不能把所有工作都留在最紧急路径？</p></header>
+<section class="learning-map" aria-labelledby="learning-map-title"><h2 id="learning-map-title">先建立问题地图</h2><p>中断处理将时延敏感的立即响应与可延后的工作拆开。</p><div class="concept-steps" role="list"><div role="listitem"><strong>起点</strong><span>上半部/下半部</span></div><div role="listitem"><strong>机制</strong><span>软中断→tasklet→workqueue</span></div><div role="listitem"><strong>拓展</strong><span>中断亲和性 / PREEMPT_RT中断线程化</span></div></div><p class="map-note">这是帮助建立概念依赖的阅读地图，不表示内核内部的实际执行时序。</p></section>
 
-        <h2>第17章 中断与异常处理</h2>
-
-        <p>大家好，我是你们的讲师。想象一下你正在写一封重要的邮件，然后有人每隔几秒就来拍你肩膀问问题——你肯定写不下去。CPU面临的正是同样的困境。在CPU全速执行指令的过程中，网卡突然说"包到了"，磁盘说"数据读好了"，定时器说"时间片到了"。如果CPU要停下来一一处理这些请求，那正常的程序执行就被完全打乱了。</p>
+<nav class="page-toc" aria-label="本章小节"><details open><summary>本章目录 · 6 个部分</summary><ol><li><a href="#section-01">一、中断处理的挑战</a></li>
+<li><a href="#section-02">二、下半部机制全景</a></li>
+<li><a href="#section-03">三、中断亲和性与CPU绑定</a></li>
+<li><a href="#section-04">四、/proc/interrupts 解读</a></li>
+<li><a href="#section-05">五、实时性与PREEMPT_RT</a></li>
+<li><a href="#section-06">六、结语与下一章预告</a></li></ol></details></nav>
+<div class="article-body">
+<p>大家好，我是你们的讲师。想象一下你正在写一封重要的邮件，然后有人每隔几秒就来拍你肩膀问问题——你肯定写不下去。CPU面临的正是同样的困境。在CPU全速执行指令的过程中，网卡突然说"包到了"，磁盘说"数据读好了"，定时器说"时间片到了"。如果CPU要停下来一一处理这些请求，那正常的程序执行就被完全打乱了。</p>
 
         <p>这就是中断处理（Interrupt Handling）存在的意义和挑战。中断是现代操作系统的"事件驱动引擎"——没有中断，CPU就不知道I/O何时完成，就无法公平调度，就无法响应键盘鼠标。但中断也带来了一个核心矛盾：处理中断要快（否则系统响应变慢），但中断要做的事情往往很多（数据拷贝、协议解析、唤醒进程）。操作系统如何权衡这对矛盾？本章将逐一拆解。</p>
 
         <p>讲一个真实案例。2019年某云厂商的物理机频繁出现"软锁死"（soft lockup）告警，CPU的"watchdog"检测到某个CPU核心连续20秒没有调度。排查发现罪魁祸首是一个网卡驱动的中断处理函数中调用了 <code>printk</code>——在中断上下文中打印日志。串口驱动在打印时关闭了中断，而printk的速率正好匹配了网卡的接收速率，导致CPU永远无法退出中断上下文。从此我学到一个铁律：不要在中断上下文里做任何可能阻塞或耗时过长的操作。</p>
 
-        <h2>一、中断处理的挑战</h2>
+        <h2 id="section-01">一、中断处理的挑战</h2>
 
         <p>当中断发生时，CPU硬件自动完成以下动作：保存当前指令地址（PC/CSR）、关闭中断使能、跳转到中断向量表指定的入口。然后内核的中断处理程序开始执行。问题来了——在中断处理期间，CPU不能响应其他中断（或者说，如果允许嵌套中断，复杂度将呈指数级增长）。这意味着中断处理函数必须极快地完成，否则其他设备的中断就会被延迟。</p>
 
@@ -62,7 +67,7 @@
             <p><strong>核心思想</strong>：中断处理被拆分为两半——上半部（Top Half）只做最紧急、最少量的工作（保存硬件状态、清除中断标志、发起DMA传输），然后立即返回；下半部（Bottom Half）在更宽松的环境中完成剩余的大量处理。这就像急诊室的分类流程——护士先做紧急止血（上半部），然后把病人转移到普通病房做进一步治疗（下半部）。</p>
         </div>
 
-        <h2>二、下半部机制全景</h2>
+        <h2 id="section-02">二、下半部机制全景</h2>
 
         <p>Linux内核提供了四种下半部机制，每一种都是在前一种的基础上演进而来。理解它们的设计选择和适用场景，能帮你写出更健壮的驱动代码。</p>
 
@@ -126,7 +131,7 @@ void my_work_handler(struct work_struct *work) {
 
         <p>线程化中断已成为新驱动开发的首选方案，因为它在不牺牲太多性能的前提下极大地简化了驱动逻辑。事实上，PREEMPT_RT实时内核将所有中断都强制线程化了——这引出了我们后面的话题。</p>
 
-        <h2>三、中断亲和性与CPU绑定</h2>
+        <h2 id="section-03">三、中断亲和性与CPU绑定</h2>
 
         <p>在多核系统中，中断应该发往哪个CPU？这是中断控制器（如x86的APIC）需要处理的问题。Linux允许你通过 <code>/proc/irq/</code> 系统接口精细控制每个中断的CPU亲和性（affinity）。</p>
 
@@ -149,7 +154,7 @@ $ cat /proc/interrupts | grep nvme
 
         <p>内核还包含一个 <code>irqbalance</code> 守护进程，它会自动在CPU之间分散中断负载。在大多数通用服务器上，irqbalance是默认启动的。但在追求极致性能的场景（如高频交易、高性能数据库）中，通常关闭irqbalance，手动设置每个中断的亲和性以获得确定性。</p>
 
-        <h2>四、/proc/interrupts 解读</h2>
+        <h2 id="section-04">四、/proc/interrupts 解读</h2>
 
         <p><code>/proc/interrupts</code> 是诊断中断相关性能问题的第一站。我们来逐列解读它的含义：</p>
 
@@ -177,7 +182,7 @@ $ cat /proc/interrupts | grep nvme
             <p><strong>中断风暴案例</strong>：某次线上排查让我亲身体验了什么是"中断风暴"。一台服务器的 <code>/proc/interrupts</code> 中一个USB控制器在1分钟内触发了超过10亿次中断——另一个 <code>cat /proc/interrupts</code> 命令还没打完，计数又涨了数千万。原因是劣质USB键盘的控制器在电气噪声下反复触发中断，而该USB驱动的上半部只清除了一个中断源而未清除另一个。结果CPU被这个中断完全吞噬，所有用户态进程都被饿死了。修复方法是在驱动中增加对所有待处理中断位的全面清除。</p>
         </div>
 
-        <h2>五、实时性与PREEMPT_RT</h2>
+        <h2 id="section-05">五、实时性与PREEMPT_RT</h2>
 
         <p>标准Linux内核是一个"尽力交付"的分时系统——它保证进程最终会得到CPU时间，但不保证在特定时间窗口内一定得到。这对大多数应用来说足够了，但对工业控制、机器人、音频处理等实时场景来说，远远不够。</p>
 
@@ -193,19 +198,18 @@ $ cat /proc/interrupts | grep nvme
 
         <p>除了中断线程化，PREEMPT_RT还做了几项关键改造：将大部分自旋锁替换为可睡眠的 <code>rt_mutex</code>（避免优先级反转）、将临界区通过 <code>local_lock</code> 保护而非全局锁、增加更多的抢占点。这些改造让Linux从一个"尽量公平"的系统变成了一个"保证可预测"的系统——这是从"软实时"迈向"硬实时"的关键一步。</p>
 
-        <h2>六、结语与下一章预告</h2>
+        <h2 id="section-06">六、结语与下一章预告</h2>
 
         <p>本章我们从中断处理的核心矛盾出发，逐层深入了下半部的四种机制（softirq、tasklet、workqueue、线程化中断），学习了通过 <code>/proc/irq/smp_affinity</code> 和 <code>/proc/interrupts</code> 诊断和优化中断性能的方法，最后探讨了PREEMPT_RT如何将中断线程化以实现硬实时能力。中断是OS响应外部世界的"触发机制"，没有中断，操作系统就像没有传感器的人——对外界一无所知。</p>
 
         <p>中断的触发离不开时间——定时器中断是操作系统一切时间相关功能的"心跳"。下一章，我们将深入研究操作系统的时间管理：jiffies、hrtimer、以及现代CPU时钟源的演化故事。</p>
-
-        <div class="footer-nav">
-            <a href="16.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="18.html">下一章 →</a>
-        </div>
-    </div>
 </div>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>为一个网卡收到数据的例子分出立即处理和延后处理。</p><details><summary>查看思考提示</summary><p>考虑关中断时间、抢占限制和延迟目标。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<nav class="footer-nav" aria-label="章节前后导航"><a href="16.html">← 上一章 · 设备驱动</a><a href="index.html">返回课程目录</a><a href="18.html">下一章 · 时间管理 →</a></nav>
+</article></main>
+</div>
+<footer class="site-footer">操作系统中文实践教程 · <a href="docs/guides/learning-path.md">学习路线</a> · <a href="docs/guides/content-guide.md">内容规范</a></footer>
 </div>
 </body>
 </html>

@@ -1,58 +1,62 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第19章 网络协议栈</title>
-    <link rel="stylesheet" href="theme.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="套接字接口、传输层、IP 层与设备路径共同完成封装和发送。">
+  <title>第 19 章 · 网络协议栈 | 操作系统中文实践教程</title>
+  <link rel="stylesheet" href="assets/css/site.css">
 </head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>🖥️ 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 什么是操作系统</a></li>
-            <li><a href="02.html">第2章 硬件架构基础</a></li>
-            <li><a href="03.html">第3章 OS内核架构</a></li>
-            <li><a href="04.html">第4章 用户态与内核态</a></li>
-            <li><a href="05.html">第5章 引导与初始化</a></li>
-            <li><a href="06.html">第6章 OS内核源码初探</a></li>
-            <li><a href="07.html">第7章 OS实验环境搭建</a></li>
-            <li><a href="08.html">第8章 进程管理</a></li>
-            <li><a href="09.html">第9章 线程与协程</a></li>
-            <li><a href="10.html">第10章 CPU调度</a></li>
-            <li><a href="11.html">第11章 同步与互斥</a></li>
-            <li><a href="12.html">第12章 虚拟内存</a></li>
-            <li><a href="13.html">第13章 物理内存管理</a></li>
-            <li><a href="14.html">第14章 文件系统</a></li>
-            <li><a href="15.html">第15章 I/O模型与io_uring</a></li>
-            <li><a href="16.html">第16章 设备驱动</a></li>
-            <li><a href="17.html">第17章 中断与异常处理</a></li>
-            <li><a href="18.html">第18章 时间管理</a></li>
-            <li><a href="19.html" class="active">第19章 网络协议栈</a></li>
-            <li><a href="20.html">第20章 eBPF可观测性</a></li>
-            <li><a href="21.html">第21章 虚拟化技术</a></li>
-            <li><a href="22.html">第22章 容器与命名空间</a></li>
-            <li><a href="23.html">第23章 内核调试技术</a></li>
-            <li><a href="24.html">第24章 性能分析与调优</a></li>
-            <li><a href="25.html">第25章 动手写一个小OS</a></li>
-            <li><a href="26.html">第26章 现代OS前沿趋势</a></li>
-            <li><a href="27.html">第27章 OS内核设计决策</a></li>
-            <li><a href="28.html">第28章 综合项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
+<body class="chapter-page">
+<a class="skip-link" href="#content">跳转至正文</a>
+<div class="site-shell">
+<header class="site-masthead"><a href="index.html">操作系统 · 中文实践教程</a><span class="section-mark">CHAPTER 19 / 28</span></header>
+<div class="reading-layout">
+<nav class="sidebar" aria-label="课程章节"><details class="chapter-drawer" open><summary>全部 28 章</summary><ol><li><a href="01.html">01 · 什么是操作系统</a></li>
+<li><a href="02.html">02 · 硬件架构基础</a></li>
+<li><a href="03.html">03 · OS内核架构</a></li>
+<li><a href="04.html">04 · 用户态与内核态</a></li>
+<li><a href="05.html">05 · 引导与初始化</a></li>
+<li><a href="06.html">06 · OS内核源码初探</a></li>
+<li><a href="07.html">07 · OS实验环境搭建</a></li>
+<li><a href="08.html">08 · 进程管理</a></li>
+<li><a href="09.html">09 · 线程与协程</a></li>
+<li><a href="10.html">10 · CPU调度</a></li>
+<li><a href="11.html">11 · 同步与互斥</a></li>
+<li><a href="12.html">12 · 虚拟内存</a></li>
+<li><a href="13.html">13 · 物理内存管理</a></li>
+<li><a href="14.html">14 · 文件系统</a></li>
+<li><a href="15.html">15 · I/O模型与io_uring</a></li>
+<li><a href="16.html">16 · 设备驱动</a></li>
+<li><a href="17.html">17 · 中断与异常处理</a></li>
+<li><a href="18.html">18 · 时间管理</a></li>
+<li><a href="19.html" aria-current="page">19 · 网络协议栈</a></li>
+<li><a href="20.html">20 · eBPF可观测性</a></li>
+<li><a href="21.html">21 · 虚拟化技术</a></li>
+<li><a href="22.html">22 · 容器与命名空间</a></li>
+<li><a href="23.html">23 · 内核调试技术</a></li>
+<li><a href="24.html">24 · 性能分析与调优</a></li>
+<li><a href="25.html">25 · 动手写一个小OS</a></li>
+<li><a href="26.html">26 · 现代OS前沿趋势</a></li>
+<li><a href="27.html">27 · OS内核设计决策</a></li>
+<li><a href="28.html">28 · 综合项目</a></li></ol></details></nav>
+<main id="content" class="content-column"><article class="chapter-article" aria-labelledby="chapter-title">
+<header class="article-header"><p class="kicker">OPERATING SYSTEMS · CHAPTER 19</p><h1 id="chapter-title">第 19 章 · 网络协议栈</h1><p class="article-dek">一段用户数据如何经过协议栈抵达网络设备？</p></header>
+<section class="learning-map" aria-labelledby="learning-map-title"><h2 id="learning-map-title">先建立问题地图</h2><p>套接字接口、传输层、IP 层与设备路径共同完成封装和发送。</p><div class="concept-steps" role="list"><div role="listitem"><strong>起点</strong><span>数据包内核路径</span></div><div role="listitem"><strong>机制</strong><span>三次握手实现</span></div><div role="listitem"><strong>拓展</strong><span>Netfilter五链四表 / XDP可编程数据路径</span></div></div><p class="map-note">这是帮助建立概念依赖的阅读地图，不表示内核内部的实际执行时序。</p></section>
 
-        <h2>第19章 网络协议栈</h2>
-
-        <p>大家好，我是你们的讲师。你有没有想过，当你在浏览器里输入 <code>https://www.google.com</code> 并按回车，到页面出现在屏幕上，这中间到底发生了什么？DNS查询、TCP三次握手、TLS协商、HTTP请求、路由转发、ARP解析……这一连串看似复杂的步骤，在你按下的那一瞬间就全部完成了。而承载这一切的，正是操作系统的网络协议栈（Network Stack）。</p>
+<nav class="page-toc" aria-label="本章小节"><details open><summary>本章目录 · 5 个部分</summary><ol><li><a href="#section-01">从socket()到网卡：数据包的完整旅程</a></li>
+<li><a href="#section-02">三次握手的内核实现</a></li>
+<li><a href="#section-03">Netfilter五链四表</a></li>
+<li><a href="#section-04">XDP：网卡驱动层的可编程数据路径</a></li>
+<li><a href="#section-05">内核旁路与DPDK</a></li></ol></details></nav>
+<div class="article-body">
+<p>大家好，我是你们的讲师。你有没有想过，当你在浏览器里输入 <code>https://www.google.com</code> 并按回车，到页面出现在屏幕上，这中间到底发生了什么？DNS查询、TCP三次握手、TLS协商、HTTP请求、路由转发、ARP解析……这一连串看似复杂的步骤，在你按下的那一瞬间就全部完成了。而承载这一切的，正是操作系统的网络协议栈（Network Stack）。</p>
 
         <p>网络协议栈是操作系统里"存在感最强"的子系统之一。你几乎感觉不到它的存在——直到某个深夜，你发现服务器上 <code>ss -tuln</code> 显示几十万个 <code>TIME_WAIT</code> 连接，或者生产环境突然出现诡异的"Connection refused"。这时候你就知道，不懂网络协议栈是要吃大亏的。本章我们沿着数据包穿越内核的完整路径，把网络协议栈的各个关键环节一一拆解。</p>
 
         <p>先分享一个真实的踩坑经历。有次线上告警：某台Nginx反向代理服务器的响应延迟从2ms飙到了2秒。分析后发现这台机器的 <code>/proc/net/netstat</code> 中 <code>ListenOverflows</code> 计数器在疯狂增长——Accept队列满了，新连接被内核直接丢弃。调整 <code>net.core.somaxconn</code> 和 <code>tcp_abort_on_overflow</code> 后立即恢复。如果不懂内核TCP连接建立的内部机制，面对这种问题你就是两眼一抹黑。</p>
 
-        <h2>从socket()到网卡：数据包的完整旅程</h2>
+        <h2 id="section-01">从socket()到网卡：数据包的完整旅程</h2>
 
         <p>一条数据从用户态应用出发，到最终从网线（或无线）上飞出去，要穿越七个主要关卡。我们从自上而下的视角来梳理：</p>
 
@@ -93,7 +97,7 @@
 //     → ip_output → dev_queue_xmit → nf_hook
 //       → netdev_start_xmit → 网卡驱动 → 网卡</code></pre>
 
-        <h2>三次握手的内核实现</h2>
+        <h2 id="section-02">三次握手的内核实现</h2>
 
         <p>TCP三次握手是我们面试中被问烂的话题，但面试很少问你：这个握手在内核里究竟是怎么实现的？理解这一点，你才能解释为什么高并发场景下会出现连接失败、SYN Flood如何防御、以及各种TCP内核参数的真正含义。</p>
 
@@ -137,7 +141,7 @@ $ sysctl -w net.ipv4.tcp_syncookies=1
 # 加快TIME_WAIT回收（谨慎使用）
 $ sysctl -w net.ipv4.tcp_tw_reuse=1</code></pre>
 
-        <h2>Netfilter五链四表</h2>
+        <h2 id="section-03">Netfilter五链四表</h2>
 
         <p>Netfilter是Linux内核内置的数据包过滤和修改框架。你在用户态用 <code>iptables</code> 或 <code>nftables</code> 配置的规则，最终都会编译为内核Netfilter模块的hook处理函数。</p>
 
@@ -182,7 +186,7 @@ $ sysctl -w net.ipv4.tcp_tw_reuse=1</code></pre>
 #                        |
 #                     [网卡发送]</code></pre>
 
-        <h2>XDP：网卡驱动层的可编程数据路径</h2>
+        <h2 id="section-04">XDP：网卡驱动层的可编程数据路径</h2>
 
         <p>传统的iptables/nftables处理数据包需要包经过整个协议栈——从网卡→驱动→链路层→网络层→Netfilter钩子。这意味着大量的CPU时间花在了协议栈处理上，对于DDoS防御、负载均衡这种需要超高吞吐的场景，太慢了。</p>
 
@@ -218,7 +222,7 @@ int block_bad_ip(struct xdp_md *ctx) {
     // 否则 return XDP_PASS;
 }</code></pre>
 
-        <h2>内核旁路与DPDK</h2>
+        <h2 id="section-05">内核旁路与DPDK</h2>
 
         <p>XDP是在"不绕过内核"的前提下极致优化。但有些人说：我追求极致性能，内核本身就是一个瓶颈——中断处理、系统调用、上下文切换、锁竞争，所有这些内核开销我都不要。这就是内核旁路（Kernel Bypass）的出发点。</p>
 
@@ -248,14 +252,13 @@ $ ethtool -K eth0 rx-udp-gro-forwarding on  # 启用UDP GRO</code></pre>
         <p>网络协议栈是操作系统中最复杂、最优雅的子系统之一。从应用层的socket抽象到硬件层的DMA传输，每一层都体现了分层抽象的设计哲学。这一章我们走完了数据包的完整旅程，理解了三次握手的内核实现、Netfilter的钩子框架、XDP的可编程数据路径、以及DPDK和io_uring zcrx两种绕过内核的加速方案。</p>
 
         <p>下一章，我们将走进操作系统可观测性（Observability）的核心——eBPF。如果说网络协议栈关注的是"数据怎么走"，那么eBPF关心的就是"系统在干什么"。有了eBPF，我们不需要修改内核代码，不需要重启机器，就能在内核的任意位置注入观测代码。这将是你掌握操作系统调试与性能分析的又一大利器。</p>
-
-        <div class="footer-nav">
-            <a href="18.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="20.html">下一章 →</a>
-        </div>
-    </div>
 </div>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>按层级描述一次 TCP 数据发送涉及的主要状态与边界。</p><details><summary>查看思考提示</summary><p>区分 TCP 可靠传输保证与 IP 层转发。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<nav class="footer-nav" aria-label="章节前后导航"><a href="18.html">← 上一章 · 时间管理</a><a href="index.html">返回课程目录</a><a href="20.html">下一章 · eBPF可观测性 →</a></nav>
+</article></main>
+</div>
+<footer class="site-footer">操作系统中文实践教程 · <a href="docs/guides/learning-path.md">学习路线</a> · <a href="docs/guides/content-guide.md">内容规范</a></footer>
 </div>
 </body>
 </html>

@@ -1,58 +1,62 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第18章 时间管理</title>
-    <link rel="stylesheet" href="theme.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="计时依据、时间推进与定时回调分别承担不同任务，精度和成本需要权衡。">
+  <title>第 18 章 · 时间管理 | 操作系统中文实践教程</title>
+  <link rel="stylesheet" href="assets/css/site.css">
 </head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>🖥️ 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 什么是操作系统</a></li>
-            <li><a href="02.html">第2章 硬件架构基础</a></li>
-            <li><a href="03.html">第3章 OS内核架构</a></li>
-            <li><a href="04.html">第4章 用户态与内核态</a></li>
-            <li><a href="05.html">第5章 引导与初始化</a></li>
-            <li><a href="06.html">第6章 OS内核源码初探</a></li>
-            <li><a href="07.html">第7章 OS实验环境搭建</a></li>
-            <li><a href="08.html">第8章 进程管理</a></li>
-            <li><a href="09.html">第9章 线程与协程</a></li>
-            <li><a href="10.html">第10章 CPU调度</a></li>
-            <li><a href="11.html">第11章 同步与互斥</a></li>
-            <li><a href="12.html">第12章 虚拟内存</a></li>
-            <li><a href="13.html">第13章 物理内存管理</a></li>
-            <li><a href="14.html">第14章 文件系统</a></li>
-            <li><a href="15.html">第15章 I/O模型与io_uring</a></li>
-            <li><a href="16.html">第16章 设备驱动</a></li>
-            <li><a href="17.html">第17章 中断与异常处理</a></li>
-            <li><a href="18.html" class="active">第18章 时间管理</a></li>
-            <li><a href="19.html">第19章 网络协议栈</a></li>
-            <li><a href="20.html">第20章 eBPF可观测性</a></li>
-            <li><a href="21.html">第21章 虚拟化技术</a></li>
-            <li><a href="22.html">第22章 容器与命名空间</a></li>
-            <li><a href="23.html">第23章 内核调试技术</a></li>
-            <li><a href="24.html">第24章 性能分析与调优</a></li>
-            <li><a href="25.html">第25章 动手写一个小OS</a></li>
-            <li><a href="26.html">第26章 现代OS前沿趋势</a></li>
-            <li><a href="27.html">第27章 OS内核设计决策</a></li>
-            <li><a href="28.html">第28章 综合项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
+<body class="chapter-page">
+<a class="skip-link" href="#content">跳转至正文</a>
+<div class="site-shell">
+<header class="site-masthead"><a href="index.html">操作系统 · 中文实践教程</a><span class="section-mark">CHAPTER 18 / 28</span></header>
+<div class="reading-layout">
+<nav class="sidebar" aria-label="课程章节"><details class="chapter-drawer" open><summary>全部 28 章</summary><ol><li><a href="01.html">01 · 什么是操作系统</a></li>
+<li><a href="02.html">02 · 硬件架构基础</a></li>
+<li><a href="03.html">03 · OS内核架构</a></li>
+<li><a href="04.html">04 · 用户态与内核态</a></li>
+<li><a href="05.html">05 · 引导与初始化</a></li>
+<li><a href="06.html">06 · OS内核源码初探</a></li>
+<li><a href="07.html">07 · OS实验环境搭建</a></li>
+<li><a href="08.html">08 · 进程管理</a></li>
+<li><a href="09.html">09 · 线程与协程</a></li>
+<li><a href="10.html">10 · CPU调度</a></li>
+<li><a href="11.html">11 · 同步与互斥</a></li>
+<li><a href="12.html">12 · 虚拟内存</a></li>
+<li><a href="13.html">13 · 物理内存管理</a></li>
+<li><a href="14.html">14 · 文件系统</a></li>
+<li><a href="15.html">15 · I/O模型与io_uring</a></li>
+<li><a href="16.html">16 · 设备驱动</a></li>
+<li><a href="17.html">17 · 中断与异常处理</a></li>
+<li><a href="18.html" aria-current="page">18 · 时间管理</a></li>
+<li><a href="19.html">19 · 网络协议栈</a></li>
+<li><a href="20.html">20 · eBPF可观测性</a></li>
+<li><a href="21.html">21 · 虚拟化技术</a></li>
+<li><a href="22.html">22 · 容器与命名空间</a></li>
+<li><a href="23.html">23 · 内核调试技术</a></li>
+<li><a href="24.html">24 · 性能分析与调优</a></li>
+<li><a href="25.html">25 · 动手写一个小OS</a></li>
+<li><a href="26.html">26 · 现代OS前沿趋势</a></li>
+<li><a href="27.html">27 · OS内核设计决策</a></li>
+<li><a href="28.html">28 · 综合项目</a></li></ol></details></nav>
+<main id="content" class="content-column"><article class="chapter-article" aria-labelledby="chapter-title">
+<header class="article-header"><p class="kicker">OPERATING SYSTEMS · CHAPTER 18</p><h1 id="chapter-title">第 18 章 · 时间管理</h1><p class="article-dek">为什么系统有多个时钟源和多种定时机制？</p></header>
+<section class="learning-map" aria-labelledby="learning-map-title"><h2 id="learning-map-title">先建立问题地图</h2><p>计时依据、时间推进与定时回调分别承担不同任务，精度和成本需要权衡。</p><div class="concept-steps" role="list"><div role="listitem"><strong>起点</strong><span>jiffies与HZ</span></div><div role="listitem"><strong>机制</strong><span>hrtimer高精度定时器</span></div><div role="listitem"><strong>拓展</strong><span>TSC/HPET/PIT时钟源 / 时钟漂移与闰秒</span></div></div><p class="map-note">这是帮助建立概念依赖的阅读地图，不表示内核内部的实际执行时序。</p></section>
 
-        <h2>第18章 时间管理</h2>
-
-        <p>大家好，我是你们的讲师。时间对操作系统来说是一个既普通又神奇的东西——普通到每个系统调用都牵涉到它，神奇到一旦它不准确，整个系统都会陷入混乱。试想：你的 <code>sleep(1)</code> 睡了2秒才返回，<code>gettimeofday()</code> 返回的时间忽快忽慢，定时器触发的间隔忽长忽短——整个系统将变得不可用。</p>
+<nav class="page-toc" aria-label="本章小节"><details open><summary>本章目录 · 5 个部分</summary><ol><li><a href="#section-01">一、内核的时间观：jiffies与HZ</a></li>
+<li><a href="#section-02">二、高精度定时器hrtimer</a></li>
+<li><a href="#section-03">三、时钟源对比</a></li>
+<li><a href="#section-04">四、时间子系统踩坑集</a></li>
+<li><a href="#section-05">五、结语与下一章预告</a></li></ol></details></nav>
+<div class="article-body">
+<p>大家好，我是你们的讲师。时间对操作系统来说是一个既普通又神奇的东西——普通到每个系统调用都牵涉到它，神奇到一旦它不准确，整个系统都会陷入混乱。试想：你的 <code>sleep(1)</code> 睡了2秒才返回，<code>gettimeofday()</code> 返回的时间忽快忽慢，定时器触发的间隔忽长忽短——整个系统将变得不可用。</p>
 
         <p>操作系统的时间管理远比你想像的复杂。从古老的PIT计数器到现代CPU的TSC（时间戳计数器），从传统的 <code>jiffies</code> 到纳秒级的 <code>hrtimer</code>，从 <code>timer_list</code> 到时间轮算法——OS的"计时能力"经历了从粗糙到精密、从简单到复杂的演进。理解这些机制不仅对内核开发者重要，对每一个写过 <code>sleep</code>、<code>timeout</code>、<code>cron</code>、<code>latency</code> 相关代码的工程师都至关重要。</p>
 
         <p>分享一个令人难忘的线上故障。某金融公司的一台交易服务器每隔几个月就会在特定时刻"挂死"几分钟，然后自动恢复。日志里没有任何异常，CPU和内存都正常，网络也在通。排查了半年，最终发现是Linux内核的 <code>ktime_get()</code> 在遭遇"闰秒"（leap second）时出现了死锁。2012年Linux内核的一个bug导致闰秒插入时 <code>hrtimer</code> 的锁粒度过大，引发全局 <code>clocksource_watchdog</code> 锁竞争——所有依赖 <code>gettimeofday</code> 的线程都在排队等锁。这让你明白：一个错误的时间管理机制可以拖垮整个系统。</p>
 
-        <h2>一、内核的时间观：jiffies与HZ</h2>
+        <h2 id="section-01">一、内核的时间观：jiffies与HZ</h2>
 
         <p>在Linux内核的早期版本中，时间管理简单而粗暴：一个叫做 <code>jiffies</code> 的全局变量从内核启动开始，每发生一次定时器中断就加1。这个定时器中断的频率由 <code>HZ</code> 宏定义——100、250或1000，分别对应10ms、4ms和1ms的精度。</p>
 
@@ -87,7 +91,7 @@ if (time_after_eq(jiffies, timeout)) {
 
         <p>在x86架构上，你可以通过 <code>/proc/timer_list</code> 查看当前系统的HZ值和其他定时器信息。也可以通过 <code>getconfig</code> 或编译内核时的 <code>CONFIG_HZ</code> 选项确认实际配置。大多数发行版默认使用HZ=250或HZ=1000。</p>
 
-        <h2>二、高精度定时器hrtimer</h2>
+        <h2 id="section-02">二、高精度定时器hrtimer</h2>
 
         <p>随着硬件的发展（CPU频率进入GHz时代、高精度事件计时器HPET的普及），每tick更新一次时间的模式已经无法满足需求。于是Linux 2.6.16引入了全新的高精度定时器子系统——hrtimer（High Resolution Timer）。</p>
 
@@ -150,7 +154,7 @@ void my_stop_timer(struct my_device *dev) {
             <p><strong>迁移趋势</strong>：现代Linux内核中，传统的 <code>timer_list</code> API已被标记为deprecated，所有新的定时器使用应当基于hrtimer。实际上，内核已经将大部分内部定时器（如TCP重传定时器、I/O调度器的延迟定时器）迁移到了hrtimer。如果你在内核模块开发中还看到 <code>init_timer</code> 或 <code>setup_timer</code>，那是应该被替换的旧代码。</p>
         </div>
 
-        <h2>三、时钟源对比</h2>
+        <h2 id="section-03">三、时钟源对比</h2>
 
         <p>hrtimer的高精度依赖于底层的硬件时钟源（clocksource）。Linux内核在启动时会检测所有可用的时钟源，选择精度最高且最稳定的那个作为当前的 <code>clocksource</code>。你可以通过 <code>/sys/devices/system/clocksource/clocksource0/current_clocksource</code> 查看系统正在使用哪个时钟源。</p>
 
@@ -184,7 +188,7 @@ $ echo "hpet" > /sys/devices/system/clocksource/clocksource0/current_clocksource
         <h3>kvm-clock：虚拟化中的特殊需求</h3>
         <p>在KVM虚拟机中，物理TSC的频率和语义对Guest OS可能不可见。kvm-clock是一个半虚拟化时钟源——Guest通过专用的hypercall获取宿主机的精确时间，精度达到纳秒级。使用kvm-clock的Guest不需要处理TSC频率校准、迁移后TSC回拨等复杂问题。</p>
 
-        <h2>四、时间子系统踩坑集</h2>
+        <h2 id="section-04">四、时间子系统踩坑集</h2>
 
         <p>时间管理是OS中最容易出Bug的子系统之一——因为你需要同时面对硬件差异、并发访问、虚拟化干扰等多重挑战。这里总结几个实战中遇到的高频问题。</p>
 
@@ -228,19 +232,18 @@ $ cat /proc/timer_list | head -30</code></pre>
             <p><strong>最佳实践</strong>：对于生产系统，建议在NTP配置中启用 <code>leapmode</code> 的平滑处理（如 <code>ntpd -x</code> 或chronyd的 <code>makestep</code> 策略），避免时间跳变。对于关键的金融交易系统，甚至建议在闰秒事件发生前主动禁用NTP同步，待闰秒过去后再恢复。Google的"闰秒弥散"（leap smear）方案也值得参考——将闰秒的调整分散到一天内完成，而不是瞬间调整。</p>
         </div>
 
-        <h2>五、结语与下一章预告</h2>
+        <h2 id="section-05">五、结语与下一章预告</h2>
 
         <p>本章我们从内核最原始的时间计量方式 <code>jiffies</code> 出发，深入到高精度定时器 <code>hrtimer</code> 的红黑树设计，对比了从TSC到HPET到kvm-clock的多种时钟源的特点，最后通过时钟漂移、虚拟化时钟和闰秒故障三个案例揭示了时间子系统的工程复杂性。时间管理是操作系统的"心跳"——它推动着进程调度、定时器执行、时间戳记录等一切周期性活动。</p>
 
         <p>从下一章开始，我们将从底层工程实践转向更上层的系统通信机制。第19章将深入Linux网络协议栈——数据包从网卡到socket的完整路径、TCP/IP协议栈在内核中的实现、以及近年来网络栈的性能优化（XDP、RPS/RFS、SO_REUSEPORT等）。如果说I/O是OS和外部世界的对话，那网络就是OS和整个互联网的对话。</p>
-
-        <div class="footer-nav">
-            <a href="17.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="19.html">下一章 →</a>
-        </div>
-    </div>
 </div>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>解释 monotonic 时间与墙上时间为何不能互换。</p><details><summary>查看思考提示</summary><p>先想系统时间被校准时，定时器应该怎样表现。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<nav class="footer-nav" aria-label="章节前后导航"><a href="17.html">← 上一章 · 中断与异常处理</a><a href="index.html">返回课程目录</a><a href="19.html">下一章 · 网络协议栈 →</a></nav>
+</article></main>
+</div>
+<footer class="site-footer">操作系统中文实践教程 · <a href="docs/guides/learning-path.md">学习路线</a> · <a href="docs/guides/content-guide.md">内容规范</a></footer>
 </div>
 </body>
 </html>

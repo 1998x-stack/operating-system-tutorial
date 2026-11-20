@@ -1,58 +1,62 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第13章 物理内存管理</title>
-    <link rel="stylesheet" href="theme.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="伙伴系统提供页粒度分配，Slab/SLUB 等机制面向频繁的小对象复用。">
+  <title>第 13 章 · 物理内存管理 | 操作系统中文实践教程</title>
+  <link rel="stylesheet" href="assets/css/site.css">
 </head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>🖥️ 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 什么是操作系统</a></li>
-            <li><a href="02.html">第2章 硬件架构基础</a></li>
-            <li><a href="03.html">第3章 OS内核架构</a></li>
-            <li><a href="04.html">第4章 用户态与内核态</a></li>
-            <li><a href="05.html">第5章 引导与初始化</a></li>
-            <li><a href="06.html">第6章 OS内核源码初探</a></li>
-            <li><a href="07.html">第7章 OS实验环境搭建</a></li>
-            <li><a href="08.html">第8章 进程管理</a></li>
-            <li><a href="09.html">第9章 线程与协程</a></li>
-            <li><a href="10.html">第10章 CPU调度</a></li>
-            <li><a href="11.html">第11章 同步与互斥</a></li>
-            <li><a href="12.html">第12章 虚拟内存</a></li>
-            <li><a href="13.html" class="active">第13章 物理内存管理</a></li>
-            <li><a href="14.html">第14章 文件系统</a></li>
-            <li><a href="15.html">第15章 I/O模型与io_uring</a></li>
-            <li><a href="16.html">第16章 设备驱动</a></li>
-            <li><a href="17.html">第17章 中断与异常处理</a></li>
-            <li><a href="18.html">第18章 时间管理</a></li>
-            <li><a href="19.html">第19章 网络协议栈</a></li>
-            <li><a href="20.html">第20章 eBPF可观测性</a></li>
-            <li><a href="21.html">第21章 虚拟化技术</a></li>
-            <li><a href="22.html">第22章 容器与命名空间</a></li>
-            <li><a href="23.html">第23章 内核调试技术</a></li>
-            <li><a href="24.html">第24章 性能分析与调优</a></li>
-            <li><a href="25.html">第25章 动手写一个小OS</a></li>
-            <li><a href="26.html">第26章 现代OS前沿趋势</a></li>
-            <li><a href="27.html">第27章 OS内核设计决策</a></li>
-            <li><a href="28.html">第28章 综合项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
+<body class="chapter-page">
+<a class="skip-link" href="#content">跳转至正文</a>
+<div class="site-shell">
+<header class="site-masthead"><a href="index.html">操作系统 · 中文实践教程</a><span class="section-mark">CHAPTER 13 / 28</span></header>
+<div class="reading-layout">
+<nav class="sidebar" aria-label="课程章节"><details class="chapter-drawer" open><summary>全部 28 章</summary><ol><li><a href="01.html">01 · 什么是操作系统</a></li>
+<li><a href="02.html">02 · 硬件架构基础</a></li>
+<li><a href="03.html">03 · OS内核架构</a></li>
+<li><a href="04.html">04 · 用户态与内核态</a></li>
+<li><a href="05.html">05 · 引导与初始化</a></li>
+<li><a href="06.html">06 · OS内核源码初探</a></li>
+<li><a href="07.html">07 · OS实验环境搭建</a></li>
+<li><a href="08.html">08 · 进程管理</a></li>
+<li><a href="09.html">09 · 线程与协程</a></li>
+<li><a href="10.html">10 · CPU调度</a></li>
+<li><a href="11.html">11 · 同步与互斥</a></li>
+<li><a href="12.html">12 · 虚拟内存</a></li>
+<li><a href="13.html" aria-current="page">13 · 物理内存管理</a></li>
+<li><a href="14.html">14 · 文件系统</a></li>
+<li><a href="15.html">15 · I/O模型与io_uring</a></li>
+<li><a href="16.html">16 · 设备驱动</a></li>
+<li><a href="17.html">17 · 中断与异常处理</a></li>
+<li><a href="18.html">18 · 时间管理</a></li>
+<li><a href="19.html">19 · 网络协议栈</a></li>
+<li><a href="20.html">20 · eBPF可观测性</a></li>
+<li><a href="21.html">21 · 虚拟化技术</a></li>
+<li><a href="22.html">22 · 容器与命名空间</a></li>
+<li><a href="23.html">23 · 内核调试技术</a></li>
+<li><a href="24.html">24 · 性能分析与调优</a></li>
+<li><a href="25.html">25 · 动手写一个小OS</a></li>
+<li><a href="26.html">26 · 现代OS前沿趋势</a></li>
+<li><a href="27.html">27 · OS内核设计决策</a></li>
+<li><a href="28.html">28 · 综合项目</a></li></ol></details></nav>
+<main id="content" class="content-column"><article class="chapter-article" aria-labelledby="chapter-title">
+<header class="article-header"><p class="kicker">OPERATING SYSTEMS · CHAPTER 13</p><h1 id="chapter-title">第 13 章 · 物理内存管理</h1><p class="article-dek">内核怎样同时管理整页内存和小块对象？</p></header>
+<section class="learning-map" aria-labelledby="learning-map-title"><h2 id="learning-map-title">先建立问题地图</h2><p>伙伴系统提供页粒度分配，Slab/SLUB 等机制面向频繁的小对象复用。</p><div class="concept-steps" role="list"><div role="listitem"><strong>起点</strong><span>Buddy System</span></div><div role="listitem"><strong>机制</strong><span>Slab/Slub分配器</span></div><div role="listitem"><strong>拓展</strong><span>页面回收与swap / MGLRU多代LRU</span></div></div><p class="map-note">这是帮助建立概念依赖的阅读地图，不表示内核内部的实际执行时序。</p></section>
 
-        <h2>第13章 物理内存管理</h2>
-
-        <p>大家好，我是你们的讲师。前一章我们讲了虚拟内存——CPU看到的、进程感觉到的那层"假"地址空间。这一章我们把这层抽象扒开，看看底下真正的物理内存是如何被管理的。物理内存管理回答的是两个核心问题：第一，进程需要一页内存时，内核怎么分配给它？第二，物理内存不够时，内核怎么腾出空间？</p>
+<nav class="page-toc" aria-label="本章小节"><details open><summary>本章目录 · 5 个部分</summary><ol><li><a href="#section-01">Buddy System伙伴分配器</a></li>
+<li><a href="#section-02">Slab/Slub分配器</a></li>
+<li><a href="#section-03">页面回收与swap</a></li>
+<li><a href="#section-04">MGLRU多代LRU</a></li>
+<li><a href="#section-05">内存cgroup</a></li></ol></details></nav>
+<div class="article-body">
+<p>大家好，我是你们的讲师。前一章我们讲了虚拟内存——CPU看到的、进程感觉到的那层"假"地址空间。这一章我们把这层抽象扒开，看看底下真正的物理内存是如何被管理的。物理内存管理回答的是两个核心问题：第一，进程需要一页内存时，内核怎么分配给它？第二，物理内存不够时，内核怎么腾出空间？</p>
 
         <p>物理内存管理可以粗分为两个层级——页面级的分配（Buddy System负责）和对象级的分配（Slab负责）。前者管理4KB物理页面的分配和回收，后者在内核中为各种小对象（inode、task_struct、dentry等）提供缓存。两者配合，构成了Linux物理内存管理的骨架。而页面回收、swap、MGLRU则是当内存紧张时的应急机制。最后，memcg让多租户场景下的内存隔离成为可能。</p>
 
         <p>分享一个让我后悔莫及的调优经历。有次在数据库服务器上，我把 <code>vm.swappiness</code> 设置为0（尽量少用swap），以为这样能提升性能。结果到了内存紧张的时候，内核直接触发了OOM Killer，把数据库进程给杀了——比用swap慢10倍还要糟糕！后来才明白，swappiness=0并不意味着"永远不swap"——在真正的内存压力下，内核依然可以swap，但因为没有提前做页面回收，触发OOM的概率反而更高。适度的swap（swappiness=10左右）让内核有缓冲空间，反而更安全。</p>
 
-        <h2>Buddy System伙伴分配器</h2>
+        <h2 id="section-01">Buddy System伙伴分配器</h2>
 
         <p>内核管理物理内存的基本单位是"页帧"（Page Frame），即4KB大小的物理内存块（如果配置了大页就是2MB或1GB）。Buddy System 是Linux内核中用于管理物理页分配和回收的核心算法。</p>
 
@@ -99,7 +103,7 @@ order 2 (4页):  [页I-K页] [页L-O页]
             <p><strong>设计哲学</strong>：Buddy System用"以空间换时间"的策略——为了分配和回收的O(log N)效率，接受了一定程度的内部碎片。而且物理内存管理里几乎所有路径都要求原子操作（不能睡眠），所以Buddy的实现依赖自旋锁和per-CPU缓存来减少锁争用。</p>
         </div>
 
-        <h2>Slab/Slub分配器</h2>
+        <h2 id="section-02">Slab/Slub分配器</h2>
 
         <p>内核中频繁创建和销毁大量小对象——task_struct、inode、dentry、mm_struct等。如果每次创建都通过Buddy System分配一个或多个物理页，效率太低了。一方面，4KB以下的分配造成严重的内部碎片；另一方面，对象的初始化和销毁需要额外开销。</p>
 
@@ -158,7 +162,7 @@ void kmem_cache_free(struct kmem_cache *cachep, void *object)
             <p><strong>观察方法</strong>：在Linux上运行 <code>cat /proc/slabinfo</code> 可以看到所有Slab缓存的当前使用情况。输出中的 <code>active_objs</code> 和 <code>num_objs</code> 分别表示当前已分配对象数和缓存中的总对象数。高频的内核对象（如 dentry、inode）通常有非常大的缓存池。</p>
         </div>
 
-        <h2>页面回收与swap</h2>
+        <h2 id="section-03">页面回收与swap</h2>
 
         <p>物理内存是有限的，当系统内存不足时，内核必须选择"牺牲"某些页面——把不常用的页面换出到磁盘（swap out），腾出物理内存给更需要的页面。</p>
 
@@ -203,7 +207,7 @@ pgsteal_direct 318</code></pre>
             <p><strong>性能警钟</strong>：当你在 <code>/proc/vmstat</code> 中看到 <code>pgscan_direct</code> 持续增长，说明系统已经发生了直接回收——这意味着内存压力已经比较严重，进程在等待内存分配时被阻塞。这时候系统的延迟通常会显著增加。正常情况下的内存回收应该完全由kswapd在后台完成。</p>
         </div>
 
-        <h2>MGLRU多代LRU</h2>
+        <h2 id="section-04">MGLRU多代LRU</h2>
 
         <p>传统的Linux页面回收使用LRU（Least Recently Used）链表来追踪页面的"热度"。但这个设计的根本问题在于：LRU链表在大量页面时（数GB甚至数十GB）遍历成本极高。而且，一次页面访问就会把一个页面从链表的尾部移到头部，这在多核系统上导致大量的链表锁争用。</p>
 
@@ -238,7 +242,7 @@ pgsteal_direct 318</code></pre>
             <p><strong>工程成就</strong>：MGLRU不是理论创新——FIFO/LRU/LFU这些基础算法几十年前就有了。MGLRU的真正价值在于工程化的实现：它在海量页面的场景下（数百万到数亿页）解决了传统LRU在大规模系统中的扩展性问题。Google在数据中心部署后，内存回收带来的延迟抖动大幅降低。</p>
         </div>
 
-        <h2>内存cgroup</h2>
+        <h2 id="section-05">内存cgroup</h2>
 
         <p>在多租户场景下（如容器、虚拟机），多个进程组共享相同的物理内存。如果没有隔离机制，一个容器可能耗尽所有内存，导致其他容器被OOM Killer杀掉。memcg（Memory Cgroup）正是为解决这个问题而生的。</p>
 
@@ -278,14 +282,13 @@ cat /sys/fs/cgroup/my_container/memory.current
         <p>物理内存管理是操作系统中最靠近硬件的部分之一——Buddy System管理物理页、Slub加速小对象分配、kswapd和MGLRU在内存压力下优雅降级、memcg实现多租户隔离。这些机制合在一起，让物理内存这个有限且复杂的资源变得易于使用而又高效可控。</p>
 
         <p>下一章，我们从"内存"转向"存储"——文件系统。当你执行 <code>cat file.txt</code> 时，从文件名到磁盘扇区之间经历了哪些层次？VFS的抽象、inode和dentry的缓存、ext4和Btrfs的不同设计哲学——下一章见。</p>
-
-        <div class="footer-nav">
-            <a href="12.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="14.html">下一章 →</a>
-        </div>
-    </div>
 </div>
+<section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>比较申请一页内存与申请一个小内核对象的需求。</p><details><summary>查看思考提示</summary><p>从分配粒度、对象生命周期与碎片成本切入。</p></details></section>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<nav class="footer-nav" aria-label="章节前后导航"><a href="12.html">← 上一章 · 虚拟内存</a><a href="index.html">返回课程目录</a><a href="14.html">下一章 · 文件系统 →</a></nav>
+</article></main>
+</div>
+<footer class="site-footer">操作系统中文实践教程 · <a href="docs/guides/learning-path.md">学习路线</a> · <a href="docs/guides/content-guide.md">内容规范</a></footer>
 </div>
 </body>
 </html>

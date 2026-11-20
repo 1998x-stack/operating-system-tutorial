@@ -37,6 +37,24 @@
       "locator": "bpftrace documentation",
       "status": "verified",
       "notes": "探针可用性取决于内核配置、权限和工具版本。"
+    },
+    {
+      "id": "bpf-20-05",
+      "claim": "eBPF verifier 要求程序满足安全性与终止性约束；现代内核允许符合条件的有界循环，但会对状态复杂度与指令路径进行验证。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://docs.kernel.org/bpf/verifier.html",
+      "locator": "The verifier",
+      "status": "verified",
+      "notes": "不能简化为“永远禁止循环”或“模拟每条可能路径”。"
+    },
+    {
+      "id": "bpf-20-06",
+      "claim": "BPF_MAP_TYPE_PERF_EVENT_ARRAY 与 BPF_MAP_TYPE_RINGBUF 是不同的事件输出机制，不能把 perf event array 本身称为 BPF ring buffer。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://docs.kernel.org/bpf/ringbuf.html",
+      "locator": "BPF ring buffer",
+      "status": "verified",
+      "notes": "工具的 printf/事件输出方式可能随实现变化。"
     }
   ]
 }

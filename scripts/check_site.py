@@ -54,7 +54,6 @@ def parse_page(path: Path) -> PageParser:
     check(parser.counts["h1"] == 1, f"{path.name}: expected exactly one H1")
     check(parser.counts["main"] == 1, f"{path.name}: expected exactly one main")
     check('lang="zh-CN"' in source, f"{path.name}: missing lang=zh-CN")
-          f"{path.name}: missing lang=zh-CN")
     check(all(alt and alt.strip() for alt in parser.img_alts),
           f"{path.name}: image needs descriptive alt")
     check(not parser.duplicate_ids,

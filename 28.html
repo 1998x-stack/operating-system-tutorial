@@ -133,17 +133,15 @@ int on_sched_switch(struct trace_event_raw_sched_switch *ctx)
 
         <p>使用bpftool或libbpf-bootstrap编译eBPF程序并加载到内核：</p>
 
-        <pre><code># 用bpftool编译（需要内核开启CONFIG_DEBUG_INFO_BTF）
-$ bpftool btf dump file /sys/kernel/btf/vmlinux format c &gt; vmlinux.h
-
-# 使用clang编译eBPF程序
-$ clang -O2 -target bpf -c runqlat.bpf.c -o runqlat.bpf.o
-
-# 验证BPF程序
-$ bpftool prog load runqlat.bpf.o /sys/fs/bpf/runqlat
-
-# 查看挂载点
-$ bpftool prog show</code></pre>
+        <pre><code># 需要 CONFIG_DEBUG_INFO_BTF、clang/LLVM、libbpf 与 bpftool
+$ bpftool btf dump file /sys/kernel/btf/vmlinux format c > vmlinux.h
+$ clang -g -O2 -target bpf -D__TARGET_ARCH_x86 -c runqlat.bpf.c -o runqlat.bpf.o
+$ bpftool gen skeleton runqlat.bpf.o > runqlat.skel.h
+# 用户态 libbpf loader 需加载 skeleton，并显式 attach 三个 tracepoint：
+# bpf_program__attach_tracepoint(..., "sched", "sched_wakeup")
+# bpf_program__attach_tracepoint(..., "sched", "sched_wakeup_new")
+# bpf_program__attach_tracepoint(..., "sched", "sched_switch")
+# bpftool prog load 只负责加载，不会自动 attach tracepoint。</code></pre>>
 
         <h3>步骤三：读取直方图数据</h3>
 
@@ -179,7 +177,7 @@ static int major_num;
 static struct class *memdev_class;
 static struct device *memdev_device;
 
-struct memdev_data {
+struct memdev_data { struct cdev cdev; // cdev 必须嵌入设备状态结构，供 container_of 使用
     char *buffer;           // 设备缓冲区
     size_t size;            // 已写入数据大小
     struct mutex lock;      // 并发保护
@@ -347,8 +345,13 @@ static int __init memdevice_init(void)
         ret = PTR_ERR(memdev_device);
         goto err_class;
     }
+    ret = device_create_file(memdev_device, &dev_attr_buffer_size);
+    if (ret)
+        goto err_device;
     return 0;
 
+err_device:
+    device_destroy(memdev_class, devt);
 err_class:
     class_destroy(memdev_class);
 err_cdev:
@@ -365,6 +368,7 @@ err_data:
 
 static void __exit memdevice_exit(void)
 {
+    device_remove_file(memdev_device, &dev_attr_buffer_size);
     device_destroy(memdev_class, devt);
     class_destroy(memdev_class);
     cdev_del(&dev_data->cdev);
@@ -377,29 +381,43 @@ module_exit(memdevice_exit);</code></pre>
 
         <h3>步骤二：注册sysfs属性</h3>
 
-        <pre><code>// 在sysfs下暴露设备大小属性
+        <pre><code>// 先声明属性对象，供 init 中 device_create_file() 使用
+static struct device_attribute dev_attr_buffer_size;
+
 static ssize_t buffer_size_show(struct device *dev,
                                 struct device_attribute *attr, char *buf)
 {
-    return sprintf(buf, "%zu\n", dev_data-&gt;size);
+    size_t size;
+    mutex_lock(&dev_data->lock);
+    size = dev_data->size;
+    mutex_unlock(&dev_data->lock);
+    return sysfs_emit(buf, "%zu\\n", size);
 }
 
 static ssize_t buffer_size_store(struct device *dev,
                                  struct device_attribute *attr,
                                  const char *buf, size_t count)
 {
-    size_t new_size;
-    if (kstrtouint(buf, 10, &amp;new_size))
+    unsigned long new_size;
+    if (kstrtoul(buf, 10, &new_size) || new_size > BUFFER_SIZE)
         return -EINVAL;
-    if (new_size &gt; BUFFER_SIZE)
-        return -EINVAL;
-    mutex_lock(&amp;dev_data-&gt;lock);
-    dev_data-&gt;size = new_size;
-    mutex_unlock(&amp;dev_data-&gt;lock);
+    mutex_lock(&dev_data->lock);
+    dev_data->size = new_size;
+    mutex_unlock(&dev_data->lock);
     return count;
 }
+static DEVICE_ATTR_RW(buffer_size);
 
-static DEVICE_ATTR_RW(buffer_size);</code></pre>
+/* init 成功创建设备节点后： */
+ret = device_create_file(memdev_device, &dev_attr_buffer_size);
+if (ret)
+    goto err_device;
+
+/* 错误回滚标签： */
+err_device:
+    device_destroy(memdev_class, devt);
+/* exit 卸载前： */
+device_remove_file(memdev_device, &dev_attr_buffer_size);</code></pre>>
 
         <div class="warning">
             <p><strong>并发检查</strong>：字符设备的多个 file descriptor 可能并发调用 read/write/ioctl。是否需要互斥锁取决于共享状态与操作语义；锁的范围、睡眠能力、错误路径和生命周期都应明确设计。不能简单套用“先加锁再操作”，因为中断上下文、自旋锁与互斥锁有不同约束。</p>

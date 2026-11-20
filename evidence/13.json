@@ -37,6 +37,15 @@
       "locator": "Overview",
       "status": "verified",
       "notes": "是否启用及默认行为依赖内核配置和发行版。"
+    },
+    {
+      "id": "mem-13-05",
+      "claim": "cgroup v2 memory.low 是 best-effort 保护；memory.high 超限触发节流与回收压力但不触发 OOM；memory.max 在无法回收时可能触发该 cgroup 内 OOM。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://docs.kernel.org/admin-guide/cgroup-v2.html",
+      "locator": "Memory Interface Files; memory.low/high/max",
+      "status": "verified",
+      "notes": "有效保护还受父级边界和 overcommit 影响。"
     }
   ]
 }

@@ -54,7 +54,7 @@
 
         <h2 id="section-01">一、内核的时间观：jiffies与HZ</h2>
 
-        <p>在Linux内核的早期版本中，时间管理简单而粗暴：一个叫做 <code>jiffies</code> 的全局变量从内核启动开始，每发生一次定时器中断就加1。这个定时器中断的频率由 <code>HZ</code> 宏定义——100、250或1000，分别对应10ms、4ms和1ms的精度。</p>
+        <p><code>jiffies</code> 是内核用于表示 tick 计数的时间基准之一，<code>CONFIG_HZ</code> 决定调度时钟 tick 的配置频率（常见值包括 100、250、1000，但并非只有这些）。现代 Linux 可通过 NO_HZ_IDLE/NO_HZ_FULL 在空闲或满足条件的 CPU 上抑制周期 tick，因此不能把 jiffies 简化成“每次硬件定时器中断固定加一”，也不能把 HZ 直接等同于所有定时事件的精度。</p>
 
         <pre><code>// jiffies在内核源码中的定义（简洁版）
 // include/linux/jiffies.h

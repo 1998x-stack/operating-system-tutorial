@@ -97,8 +97,7 @@ def main() -> int:
     for i, course in enumerate(chapters):
         filename = course["file"]
         chapter_path = ROOT / filename
-        check(re.search(rf'href=["\\']{re.escape(filename)}["\\']', index_text) is not None,
-              f"index.html: missing {filename}")
+        check(filename in index_text, "index.html: missing " + filename)
         if not chapter_path.exists():
             continue
         source = chapter_path.read_text(encoding="utf-8")

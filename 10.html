@@ -45,9 +45,9 @@
 <section class="learning-map" aria-labelledby="learning-map-title"><h2 id="learning-map-title">先建立问题地图</h2><p>调度器根据策略在可运行任务间选择执行者，公平性和时延并非同一目标。</p><div class="concept-steps" role="list"><div role="listitem"><strong>起点</strong><span>O(n)→CFS→EEVDF</span></div><div role="listitem"><strong>机制</strong><span>vruntime红黑树</span></div><div role="listitem"><strong>拓展</strong><span>sched_ext 的 BPF 可编程调度 / PREEMPT_RT实时</span></div></div><p class="map-note">这是帮助建立概念依赖的阅读地图，不表示内核内部的实际执行时序。</p></section>
 <figure class="mechanism-figure"><img src="assets/diagrams/scheduler.svg" width="800" height="205" alt="调度器在可运行任务之间作出选择"><figcaption>任务等待、可运行和运行是不同状态；图中不预设某一 Linux 版本的具体调度算法。</figcaption></figure>
 <nav class="page-toc" aria-label="本章小节"><details open><summary>本章目录 · 5 个部分</summary><ol><li><a href="#section-01">调度器简史</a></li>
-<li><a href="#section-02">CFS完全公平调度器</a></li>
-<li><a href="#section-03">EEVDF：Linux 6.6后的新王者</a></li>
-<li><a href="#section-04">sched_ext与用户态调度</a></li>
+<li><a href="#section-02">CFS：历史公平调度模型</a></li>
+<li><a href="#section-03">EEVDF：Linux 6.6 起引入的 EEVDF</a></li>
+<li><a href="#section-04">sched_ext：BPF 可扩展调度类</a></li>
 <li><a href="#section-05">实时调度与PREEMPT_RT</a></li></ol></details></nav>
 <div class="article-body">
 <p>当可运行任务数超过 CPU 可同时执行的硬件线程数，调度器必须决定谁先运行、运行多久，以及任务迁移到哪个 CPU。这个决定会影响交互延迟、吞吐量、功耗和缓存局部性；不存在对所有工作负载都最优的单一策略。</p><p>本章沿着 Linux 调度器的演进解释 O(1)、CFS 与 EEVDF 的设计动机，再观察虚拟运行时间、权重、可运行队列和调度类之间的关系。版本边界很重要：EEVDF 自 Linux 6.6 起进入公平调度类的演进过程，不应把它描述成某个版本中一次性、完全替换所有 CFS 机制。</p>
@@ -143,7 +143,7 @@ static struct sched_entity *__pick_first_entity(struct cfs_rq *cfs_rq)
 
         <p>EEVDF被合入Linux 6.6主线，作为新的默认调度器。这是CFS服役17年后的首次更替。内核邮件列表上的讨论长达数年，测试基准覆盖了从数据库到Web服务器、从HPC到桌面交互的全场景。最终EEVDF在保持CFS公平性的同时，在延迟和吞吐量方面都展现出优势。</p>
 
-        <h2 id="section-04">sched_ext与用户态调度</h2>
+        <h2 id="section-04">sched_ext：BPF 可扩展调度类</h2>
 
         <p>如果说EEVDF是内核调度的自我革新，那sched_ext（从Linux 6.12开始合入）代表的则是一个更激进的范式转变——用eBPF让用户态写调度器。</p>
 
@@ -198,7 +198,7 @@ s32 my_pick_next_task(struct task_struct *prev)
             <tr><th>策略</th><th>调度方式</th><th>行为</th></tr>
             <tr><td>SCHED_FIFO</td><td>先进先出</td><td>一旦获得CPU，就运行到主动让出或被更高优先级任务抢占。同优先级FIFO内按等待时间排序。</td></tr>
             <tr><td>SCHED_RR</td><td>时间片轮转</td><td>在SCHED_FIFO基础上增加了时间片限制——每个实时进程运行一段时间片后让出CPU。</td></tr>
-            <tr><td>SCHED_DEADLINE</td><td>最早截止时间优先</td><td>使用EDF（Earliest Deadline First）算法，每个任务声明周期和运行时间，内核保证在截止时间前完成。</td></tr>
+            <tr><td>SCHED_DEADLINE</td><td>最早截止时间优先</td><td>使用 runtime/deadline/period 参数和 CBS 带宽服务器，按调度截止时间执行 EDF 选择；只有在 admission control 与负载假设满足时，才能讨论相应的时间预算/截止时间保证。</td></tr>
         </table>
 
         <p>调度优先级范围：实时进程的优先级范围是0-99（数值越大优先级越高），普通进程的nice值范围是-20到19，nice值-20映射到100，nice值19映射到139——所以<strong>任何实时进程的优先级都高于所有普通进程</strong>。这意味着如果你写了一个 <code>SCHED_FIFO</code> 的死循环，它可以"饿死"所有普通进程（包括sshd和bash），让你连ssh都登不上机器——我当年干过这事，血的教训。</p>

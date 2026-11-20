@@ -60,21 +60,21 @@
             <tr><th>维度</th><th>虚拟机</th><th>容器</th></tr>
             <tr><td>内核</td><td>每个VM有自己独立的OS内核</td><td>所有容器共享宿主OS内核</td></tr>
             <tr><td>隔离级别</td><td>硬件级（CPU特权级、EPT页表）</td><td>操作系统级（Namespace + Cgroup）</td></tr>
-            <tr><td>启动时间</td><td>分钟级（需启动Guest OS）</td><td>毫秒级（直接运行进程）</td></tr>
+            <tr><td>启动时间</td><td>取决于固件、镜像与初始化服务</td><td>通常省去独立 Guest 内核启动，但仍有运行时和应用初始化成本</td></tr>
             <tr><td>镜像大小</td><td>GB级别（含完整OS）</td><td>MB级别（含应用+依赖库）</td></tr>
-            <tr><td>性能开销</td><td>2-10%（VM-Exit、设备模拟）</td><td>接近零（直接调用宿主内核syscall）</td></tr>
+            <tr><td>性能开销</td><td>取决于设备模型、I/O 路径与工作负载</td><td>共享宿主内核可避免 Guest/Host 边界，但隔离、存储和网络路径仍有开销</td></tr>
             <tr><td>安全边界</td><td>强（完全隔离内核）</td><td>弱（共享内核，逃逸攻击风险）</td></tr>
         </table>
 
-        <p>容器的本质是：通过Namespace"欺骗"进程看到不同的系统视图，通过Cgroup限制它能使用的资源，通过UnionFS提供独立的文件系统视图。这三者加起来，就是一个"看起来像独立OS"的进程沙箱——但它确实只是一个进程，和宿主机共享同一个内核。</p>
+        <p>容器通常由一组进程及其 namespace、cgroup、挂载和安全策略组成；它们共享宿主机内核，但并不等于“单一进程”。容器的隔离强度取决于 capability、seccomp、LSM、用户映射、挂载选项和运行时配置。</p>
 
         <div class="highlight">
             <p><strong>核心区别一句话总结</strong>：虚拟机是硬件层的多副本，每个副本有自己的内核；容器是内核层的多视图，所有容器共享同一个内核但各有各的"滤镜"看世界。所以容器逃逸的本质就是打破了这个滤镜——突破Namespace隔离，访问到了宿主机或其他容器的资源。</p>
         </div>
 
-        <h2 id="section-02">六种Namespace深度解析</h2>
+        <h2 id="section-02">Linux Namespace 全景解析</h2>
 
-        <p>Namespace（命名空间）是Linux内核提供的一种资源隔离机制。它将全局系统资源包装在一层抽象中，让进程只能看到自己的那份"副本"。Linux目前支持8种Namespace，其中有6种是最核心、最常用的。</p>
+        <p>Namespace（命名空间）是 Linux 内核提供的资源视图隔离机制。当前 Linux 提供 8 种 namespace：mount、UTS、IPC、PID、network、user、cgroup 和 time。前六种常见于容器基础介绍；cgroup 与 time namespace 也有明确用途，不能因教材只展开六种就遗漏其存在。</p>
 
         <h3>1. UTS Namespace（主机名隔离）</h3>
         <p>隔离 <code>hostname</code> 和 <code>domainname</code>。容器内的 <code>hostname</code> 可以不同于宿主机。最轻量的Namespace——不涉及任何资源分配，只是字符串隔离。</p>
@@ -142,7 +142,7 @@ lrwxrwxrwx 1 root root 0 Jun 30 09:00 uts   -> 'uts:[4026531838]'</code></pre>
         </ul>
 
         <div class="highlight">
-            <p><strong>关键设计区别</strong>：memory.high 和 memory.max 的区别非常微妙。memory.high是软限制——超过后内核开始异步回收内存和限速（throttling），但不一定会kill。memory.max是硬限制——一旦超过，直接OOM kill。对于Web服务来说，使用memory.high能让服务在内存压力下变慢但不崩溃，比直接到memory.max被kill要优雅得多。这个设计是v2相对v1的重要改进。</p>
+            <p><strong>关键设计区别</strong>：memory.high 和 memory.max 的区别非常微妙。memory.high 是节流边界：超过后会施加回收压力并对该 cgroup 节流，但不直接触发 OOM。memory.max 是硬限制：内核尝试回收，若仍无法满足限制则可能触发该 cgroup 的 OOM；不是一超过就无条件立即 kill。对于Web服务来说，使用memory.high能让服务在内存压力下变慢但不崩溃，比直接到memory.max被kill要优雅得多。这个设计是v2相对v1的重要改进。</p>
         </div>
 
         <pre><code># cgroup v2 的统一层级结构
@@ -176,7 +176,7 @@ $ cat /sys/fs/cgroup/system.slice/docker-xxx.scope/memory.max
         <p>OverlayFS将一个或多个只读层（lowerdir）和一个可写层（upperdir）合并为一个统一的视图（merged）。容器的场景下：</p>
         <ul>
             <li><strong>lowerdir</strong>：镜像层，只读。一个镜像由多个只读层叠加而成（如 ubuntu:22.04 的base层 + apt安装软件包层 + 应用层）。所有容器共享相同的镜像层——节省磁盘空间。</li>
-            <li><strong>upperdir</strong>：容器层，可读写。容器运行时的所有文件修改（创建、删除、修改）都发生在这一层。容器重启后这一层被丢弃，容器回到镜像的初始状态。</li>
+            <li><strong>upperdir</strong>：容器层，可读写。容器运行时的文件修改主要发生在这一层。容器停止后，写层通常仍会保留；是否丢弃取决于运行时生命周期操作（例如删除容器），不是每次 restart 都会自动清空。</li>
             <li><strong>merged</strong>：最终呈现给容器的文件系统视图。</li>
         </ul>
 

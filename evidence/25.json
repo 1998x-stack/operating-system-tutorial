@@ -1,0 +1,42 @@
+{
+  "chapter": "25",
+  "title": "动手写一个小OS",
+  "claims": [
+    {
+      "id": "os-25-01",
+      "claim": "QEMU system emulation provides virtual machines for running and debugging guest operating systems.",
+      "kind": "kernel behavior, API or project documentation",
+      "source_url": "https://www.qemu.org/docs/master/system/introduction.html",
+      "locator": "System emulation",
+      "status": "verified",
+      "notes": "Machine type and firmware determine boot environment."
+    },
+    {
+      "id": "os-25-02",
+      "claim": "The x86 boot process and protected-mode transition depend on firmware mode and platform conventions.",
+      "kind": "kernel behavior, API or project documentation",
+      "source_url": "https://wiki.osdev.org/Protected_Mode",
+      "locator": "Protected Mode",
+      "status": "derived",
+      "notes": "OSDev is community documentation; verify details against processor manuals."
+    },
+    {
+      "id": "os-25-03",
+      "claim": "The Global Descriptor Table and Interrupt Descriptor Table are x86 architectural structures with architecture-specific formats.",
+      "kind": "kernel behavior, API or project documentation",
+      "source_url": "https://wiki.osdev.org/Global_Descriptor_Table",
+      "locator": "Global Descriptor Table",
+      "status": "derived",
+      "notes": "Teaching examples must specify x86 mode and CPU generation."
+    },
+    {
+      "id": "os-25-04",
+      "claim": "xv6 is a teaching operating system used to explain operating-system concepts and implementation.",
+      "kind": "kernel behavior, API or project documentation",
+      "source_url": "https://pdos.csail.mit.edu/6.1810/",
+      "locator": "6.1810 course materials",
+      "status": "verified",
+      "notes": "The course version and target architecture can change between years."
+    }
+  ]
+}

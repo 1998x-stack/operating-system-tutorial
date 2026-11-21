@@ -14,6 +14,17 @@
 - GitHub Actions 运行静态结构检查、Playwright 浏览器冒烟测试（360 / 390 / 1440 px）及第 04 章用户态 write() 示例的编译/执行测试。
 - [第三轮实验验收与覆盖范围](docs/reviews/round-3-lab-validation.md)：区分已实测项目、仅静态复核项目和仍需隔离 VM/硬件的项目。
 
+## 第 01–05 章逐篇精细化（2026-11）
+
+- [逐篇改造记录](docs/reviews/fine-grained-01-05.md)：从“概念解释”深化为“因果机制追踪 + 明确验证边界的微实验”，逐篇提交、逐篇检查。
+- [第 01 章](01.html)：文件描述符、内核资源抽象与 procfs 观察。
+- [第 02 章](02.html)：TLB miss / CPU cache miss / page fault 的区别及 perf 事件。
+- [第 03 章](03.html)：宏内核与微内核的保护域、服务崩溃和重启条件。
+- [第 04 章](04.html)：x86-64 write() ABI、errno/短写与 strace 复现。
+- [第 05 章](05.html)：固件、initramfs 与 PID 1 交接的故障定位和只读 systemd 观察。
+
+新增机制讲解与实验卡片在手机端可读；Playwright 额外断言前五篇的组件存在并可展开。真实硬件性能和有权限限制的命令仍需根据目标系统单独复现。
+
 ## 如何阅读
 
 1. **本地即开即用：**克隆仓库后双击 `index.html`，或用浏览器打开任意章节 HTML。新版目录不再依赖 `fetch()`，因此在 `file://` 下也可以浏览。

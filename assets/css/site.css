@@ -222,3 +222,60 @@ button, input, select, textarea { font: inherit; }
 .article-body pre { box-sizing: border-box; width: 100%; max-width: 100%; }
 .article-body table { box-sizing: border-box; max-width: 100%; }
 .article-body th, .article-body td { overflow-wrap: anywhere; }
+
+
+/* Five-chapter deep reading components: causal explanation and reproducible micro-labs */
+.article-body .deep-dive,
+.article-body .practice-card {
+  min-width: 0;
+  margin: 1.8rem 0;
+  padding: clamp(1rem, 2vw, 1.45rem);
+  border: 1px solid #cbded8;
+  border-radius: .75rem;
+  background: #f6faf8;
+  overflow-wrap: anywhere;
+}
+.article-body .practice-card {
+  border-color: #d5dfeb;
+  background: #f8fafc;
+}
+.article-body .deep-dive > h3,
+.article-body .practice-card > h3 {
+  margin: 0 0 .75rem;
+  color: #143b39;
+  font-size: clamp(1.02rem, 2vw, 1.23rem);
+  line-height: 1.5;
+}
+.article-body .deep-dive > p,
+.article-body .practice-card > p {
+  margin: .65rem 0;
+  line-height: 1.85;
+}
+.article-body .causal-steps { counter-reset: causal; padding-left: 0; margin: 1.15rem 0; list-style: none; }
+.article-body .causal-steps > li {
+  display: block;
+  position: relative;
+  margin: .6rem 0;
+  padding: .65rem .75rem .65rem 2.65rem;
+  border-left: 2px solid #9cbdb4;
+  background: #fff;
+  border-radius: 0 .45rem .45rem 0;
+  counter-increment: causal;
+}
+.article-body .causal-steps > li::before {
+  content: counter(causal, decimal-leading-zero);
+  position: absolute;
+  left: .55rem; top: .7rem;
+  font-size: .75rem; font-weight: 800; color: #18766c;
+}
+.article-body .deep-dive details { border-top: 1px solid #d3e5df; padding-top: .8rem; margin-top: 1rem; }
+.article-body .deep-dive summary { cursor: pointer; font-weight: 700; }
+.article-body .deep-dive details p { margin: .55rem 0 0; }
+.article-body .practice-card pre { max-width: 100%; overflow-x: auto; }
+.article-body .practice-card code { overflow-wrap: normal; }
+.article-body .deep-dive table { width: 100%; max-width: 100%; display: block; overflow-x: auto; }
+.article-body .deep-dive table th, .article-body .deep-dive table td { min-width: 9rem; }
+@media (max-width: 560px) {
+  .article-body .deep-dive, .article-body .practice-card { padding: .9rem; margin: 1.25rem 0; }
+  .article-body .causal-steps > li { padding-left: 2.25rem; }
+}

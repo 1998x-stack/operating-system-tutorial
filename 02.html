@@ -86,6 +86,17 @@
 perf stat -e cycles,instructions,cache-misses -- ./your_program</code></pre>
 <p>这条命令是否可用取决于 CPU PMU、内核配置和权限；事件定义也可能因微架构而异。记录 CPU 型号、内核版本、程序输入和重复次数，才有条件比较结果。</p>
 
+<section class="deep-dive" aria-labelledby="deep-02-title">
+<h3 id="deep-02-title">机制追踪：一次 cache miss 为什么不等于一次缺页？</h3>
+<p>读入一个指针 <code>p</code> 的值时，处理器先面对的是虚拟地址翻译与缓存层次两个不同问题。它们可能同时发生，却不能合成一个“缺页”概念。</p>
+<ol class="causal-steps">
+<li><strong>地址翻译：</strong>CPU 需要把虚拟地址转换为物理地址；TLB 命中可以避免常规页表遍历，TLB 未命中可能触发页表遍历，但不必然陷入内核。</li>
+<li><strong>数据访问：</strong>得到物理地址后，目标缓存行可能命中 L1/L2/共享缓存，也可能访问 DRAM。CPU cache miss 是微架构层面的缓存事件，不等于页故障。</li>
+<li><strong>真正的页故障：</strong>当页表项的访问权限或映射状态无法满足当前访问时，处理器产生同步异常；操作系统再判断是按需分配、COW、换入，还是非法访问。</li>
+<li><strong>观测边界：</strong><code>perf</code> 的 <code>cache-misses</code>、<code>page-faults</code> 统计来源和精度不同；部分硬件事件可能不可用或需要权限。</li>
+</ol>
+<details><summary>思考：TLB miss 之后一定会从 SSD 读取数据吗？</summary><p>不会。TLB miss 可能仅在内存中的页表遍历后解决；页表遍历又可能命中 CPU cache。即使发生缺页异常，也可能只是首次分配匿名页，不需要读取 SSD。</p></details>
+</section>
 <h2 id="section-04">四、中断与异常</h2>
 <p>处理器需要处理两类重要事件：来自设备或计时器的异步中断，以及执行当前指令时检测到的同步异常。不同 ISA 对 interrupt、exception、trap、fault 的术语和分类并不完全相同，因此下面先给出概念层面的区分。</p>
 <table><thead><tr><th>事件</th><th>触发时机</th><th>例子</th></tr></thead><tbody>
@@ -99,6 +110,17 @@ perf stat -e cycles,instructions,cache-misses -- ./your_program</code></pre>
 <h2 id="section-05">五、结语与下一章预告</h2>
 <p>硬件知识最重要的作用，是帮助我们把抽象机制放回真实执行路径：ISA 决定软件可见的机器契约；缓存与内存层次影响数据访问成本；中断和异常为操作系统提供事件入口。具体性能数字必须在具体硬件和软件环境中测量，不能从一张通用表格直接推导。</p>
 <p>下一章讨论内核架构：相同的硬件能力，可以通过不同的内核/用户态边界组织成宏内核、微内核或其他系统结构。</p>
+<section class="practice-card" aria-labelledby="practice-02-title">
+<h3 id="practice-02-title">微实验：对比 CPU 硬件事件与软件缺页事件</h3>
+<p><strong>环境：</strong>Linux、<code>perf</code>；部分事件需要 PMU 支持或性能计数器访问权限。先观察配置，再执行一个不需要修改系统的命令。</p>
+<pre><code>uname -m
+cat /proc/sys/kernel/perf_event_paranoid
+perf stat -e page-faults,context-switches -- /bin/true
+# 若 CPU/权限允许，再加硬件事件： 
+perf stat -e cycles,instructions,cache-misses -- /bin/true</code></pre>
+<p><strong>预期：</strong>软件事件可能显示页故障和上下文切换计数；硬件事件可能显示计数，也可能报权限或“不支持事件”。<code>/bin/true</code> 运行时间很短，计数易受动态加载器和观测开销影响，不能用来比较不同 CPU 的性能。</p>
+<p><strong>排查：</strong>若 <code>perf</code> 不存在，请按发行版安装与运行内核匹配的工具；若权限不足，记录失败信息，不要为了实验直接修改全局安全参数。<strong>清理：</strong>无状态修改。</p>
+</section>
 <section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>区分 ISA 与微架构、CPU cache 与 page cache、外部中断与同步异常。哪些数字不能从通用存储金字塔表直接推导？</p><details><summary>查看思考提示</summary><p>从定义所在层次入手：软件可见契约、处理器内部实现、内核文件缓存和设备 I/O。</p></details></section>
 <aside class="reading-sources" aria-label="延伸阅读"><strong>架构规范与测量：</strong>
 <a href="https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html">Intel · 64/IA-32 架构手册</a>

@@ -37,6 +37,15 @@
       "locator": "OSTEP overview and topic organization",
       "status": "derived",
       "notes": "这是对分类维度的综合解释；不同教材采用的分类边界可能不同。"
+    },
+    {
+      "id": "os-01-05",
+      "claim": "procfs 暴露运行中内核管理的进程与系统状态，/proc/self 随访问该路径的进程而解析；文件描述符表与真实对象并非同一层。",
+      "kind": "userspace observation",
+      "source_url": "https://man7.org/linux/man-pages/man5/proc_pid_fd.5.html",
+      "locator": "DESCRIPTION; /proc/pid/fd symbolic links",
+      "status": "verified",
+      "notes": "实验采用只读 procfs；观察时 /proc/self 指向执行该命令的进程。"
     }
   ]
 }

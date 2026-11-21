@@ -46,6 +46,15 @@
       "locator": "OSTEP operating-system abstractions and virtualization overview",
       "status": "illustrative",
       "notes": "本章只介绍设计模式，不对所有 unikernel 项目作统一性能承诺。"
+    },
+    {
+      "id": "kernel-03-06",
+      "claim": "seL4 的机器检查形式化证明依赖明确的硬件、DMA、启动代码、系统配置与机器接口假设，不能外推到整体应用与驱动可靠性。",
+      "kind": "formal verification boundary",
+      "source_url": "https://www.sel4.systems/Verification/assumptions.html",
+      "locator": "What the Proofs Assume",
+      "status": "verified",
+      "notes": "微内核用户态服务崩溃能否恢复仍取决于 IPC、持久化和重启机制。"
     }
   ]
 }

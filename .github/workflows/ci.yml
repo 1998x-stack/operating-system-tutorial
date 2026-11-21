@@ -17,6 +17,17 @@ jobs:
       - name: Check chapters, navigation, labs and evidence
         run: python3 scripts/check_site.py
 
+  userspace-lab:
+    name: Userspace lab compile and execution
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile and execute ch04 write syscall example
+        run: python3 scripts/test_labs.py
+
   browser:
     name: Responsive browser QA
     runs-on: ubuntu-24.04

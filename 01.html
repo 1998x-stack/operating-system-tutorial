@@ -77,6 +77,17 @@
 <p>以 <code>read(fd, buf, n)</code> 为例：应用通过文件描述符表达“我要读”；系统调用入口检查参数和权限；VFS 根据文件对象分派操作；具体文件系统或设备驱动完成后续工作。并非所有设备都以普通文件呈现，也不是每次 <code>read()</code> 都会访问物理磁盘——数据可能来自页缓存、管道、终端或网络套接字。</p>
 <p>“一切皆文件”是 Unix/Linux 接口设计中的重要思想，但不是对所有内核对象的字面描述。理解抽象接口时，要同时看到它隐藏了哪些细节，以及哪些语义仍然暴露给应用。</p>
 
+<section class="deep-dive" aria-labelledby="deep-01-title">
+<h3 id="deep-01-title">机制追踪：读一个文件，到底是谁在工作？</h3>
+<p>以应用执行 <code>read(fd, buffer, 4096)</code> 为线索，先分清<strong>抽象接口</strong>、<strong>资源归属</strong>和<strong>真实硬件访问</strong>。这是以后学习进程、文件系统与系统调用时反复使用的一条路径。</p>
+<ol class="causal-steps">
+<li><strong>应用持有文件描述符：</strong><code>fd</code> 是进程文件描述符表里的整数索引，并不直接等于磁盘地址。内核由它定位对应的打开文件对象。</li>
+<li><strong>系统调用检查请求：</strong>内核检查描述符是否有效、打开方式和用户缓冲区等条件；不同文件类型对应不同操作语义。</li>
+<li><strong>内核选择数据路径：</strong>普通文件可能命中页缓存；管道读取可能需要等待写端；终端和 socket 有各自的驱动/协议路径。</li>
+<li><strong>结果返回用户态：</strong>返回实际读取的字节数；返回 0 可能表示文件结束，错误由 libc 包装层体现为 <code>-1</code> 和 <code>errno</code>。并非每次请求都会进入块设备，也并非每次都发生任务切换。</li>
+</ol>
+<details><summary>假如第二次 read() 没有产生磁盘 I/O，该如何解释？</summary><p>可能是文件内容已经存在页缓存；也可能数据根本不来自磁盘（例如管道）。先确定文件描述符所指向的对象类型，再判断是否有后备存储访问。</p></details>
+</section>
 <h2 id="section-03">三、操作系统类型全景图</h2>
 <p>下面的分类是按系统目标和使用方式划分的教学坐标，不是互斥的产品标签。一台 Linux 服务器可以同时支持多用户分时、批处理作业、网络服务和实时性要求较高的工作负载。</p>
 <table><thead><tr><th>视角</th><th>主要目标</th><th>典型机制或场景</th></tr></thead><tbody>
@@ -106,9 +117,21 @@
 <h3>观察一台正在运行的 Linux 系统</h3>
 <pre><code>uname -srmo
 ps -eo pid,ppid,stat,comm --sort=pid | head
-cat /proc/meminfo | head</code></pre>
+cat /proc/meminfo | head
+# 文件描述符 0/1/2 通常分别连接标准输入/输出/错误；具体重定向因 shell 而异
+ls -l /proc/self/fd</code></pre>
 <p>输出会随发行版、内核版本和当前负载变化。可选地安装 <code>strace</code> 后，运行 <code>strace -e trace=openat,read,write -o /tmp/ls.trace ls</code>，再检查跟踪文件，观察应用如何通过系统调用请求内核服务。</p>
 <p>下一章转向硬件：指令集、存储层级和中断机制，解释操作系统依赖哪些处理器能力。</p>
+<section class="practice-card" aria-labelledby="practice-01-title">
+<h3 id="practice-01-title">微实验：观察抽象接口，而不是直接猜硬件</h3>
+<p><strong>环境：</strong>Linux、<code>sh</code>、<code>ps</code>、<code>ls</code> 与 procfs；普通用户权限，无需安装模块。</p>
+<pre><code>uname -s
+ps -o pid,ppid,comm -p $
+ls -l /proc/$/fd
+cat /proc/self/status | head -n 8</code></pre>
+<p><strong>预期：</strong>看到当前 shell 的 PID/PPID、进程打开的文件描述符和 procfs 中的部分任务状态。终端、重定向、容器和 shell 类型会改变文件描述符目标；<code>/proc/self</code> 在每条命令中指向执行该命令的进程。</p>
+<p><strong>解释：</strong><code>/proc</code> 暴露内核管理的进程信息，但不是普通磁盘目录的静态快照；观察者本身也是进程。<strong>清理：</strong>没有修改系统配置、无需清理。</p>
+</section>
 <section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>用 read() 说明应用、系统调用、内核子系统和设备驱动之间的关系。再解释为什么 read() 不一定访问物理磁盘。</p><details><summary>查看思考提示</summary><p>从文件描述符开始，区分页缓存命中、普通文件、管道和设备文件。</p></details></section>
 <aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读与证据：</strong>
 <a href="https://research.cs.wisc.edu/wind/OSTEP/">OSTEP · 操作系统基础</a>

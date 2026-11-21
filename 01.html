@@ -126,10 +126,10 @@ ls -l /proc/self/fd</code></pre>
 <h3 id="practice-01-title">微实验：观察抽象接口，而不是直接猜硬件</h3>
 <p><strong>环境：</strong>Linux、<code>sh</code>、<code>ps</code>、<code>ls</code> 与 procfs；普通用户权限，无需安装模块。</p>
 <pre><code>uname -s
-ps -o pid,ppid,comm -p $
-ls -l /proc/$/fd
+ps -eo pid,ppid,comm | head -n 8
+ls -l /proc/self/fd
 cat /proc/self/status | head -n 8</code></pre>
-<p><strong>预期：</strong>看到当前 shell 的 PID/PPID、进程打开的文件描述符和 procfs 中的部分任务状态。终端、重定向、容器和 shell 类型会改变文件描述符目标；<code>/proc/self</code> 在每条命令中指向执行该命令的进程。</p>
+<p><strong>预期：</strong>看到进程的 PID/PPID、执行 ls 命令时该进程可见的文件描述符和 procfs 中的部分任务状态。终端、重定向、容器和 shell 类型会改变文件描述符目标；<code>/proc/self</code> 在每条命令中指向执行该命令的进程。</p>
 <p><strong>解释：</strong><code>/proc</code> 暴露内核管理的进程信息，但不是普通磁盘目录的静态快照；观察者本身也是进程。<strong>清理：</strong>没有修改系统配置、无需清理。</p>
 </section>
 <section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>用 read() 说明应用、系统调用、内核子系统和设备驱动之间的关系。再解释为什么 read() 不一定访问物理磁盘。</p><details><summary>查看思考提示</summary><p>从文件描述符开始，区分页缓存命中、普通文件、管道和设备文件。</p></details></section>

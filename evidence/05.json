@@ -46,6 +46,15 @@
       "locator": "Description",
       "status": "verified",
       "notes": "不据此推断其一定比 GRUB 更快。"
+    },
+    {
+      "id": "boot-05-06",
+      "claim": "systemd 的 After=/Before= 定义排序，不会凭空引入 unit 依赖；Requires=/Wants= 的依赖与失败传播需结合启动事务和 ordering 解释。",
+      "kind": "service management semantics",
+      "source_url": "https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html",
+      "locator": "Requires=; Wants=; Before=; After=",
+      "status": "verified",
+      "notes": "network-online.target 也不能被当作通用互联网连通性保证。"
     }
   ]
 }

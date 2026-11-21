@@ -46,6 +46,15 @@
       "locator": "Processor architecture and memory hierarchy",
       "status": "derived",
       "notes": "图示是概念层面的常见组织方式，不代表所有 CPU 的内部拓扑。"
+    },
+    {
+      "id": "hw-02-06",
+      "claim": "perf_event_open 支持硬件与软件计数器事件；cache miss 和 page fault 的语义、可用性及采样精度不同。",
+      "kind": "measurement semantics",
+      "source_url": "https://man7.org/linux/man-pages/man2/perf_event_open.2.html",
+      "locator": "PERF_TYPE_HARDWARE; PERF_TYPE_SOFTWARE",
+      "status": "verified",
+      "notes": "硬件 PMU 事件受 CPU 和系统权限限制；缓存未命中不必然造成缺页异常。"
     }
   ]
 }

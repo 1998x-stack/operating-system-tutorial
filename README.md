@@ -11,7 +11,8 @@
 - [实验可复现规范](docs/guides/experiment-standard.md) 与 [实验报告模板](labs/EXPERIMENT_TEMPLATE.md)
 - [第二轮质量审计记录](docs/reviews/round-2-platform-upgrade.md)
 - [第 01–07 章技术审计](docs/reviews/chapters-01-07.md) · [08–14 章](docs/reviews/chapters-08-14.md) · [15–21 章](docs/reviews/chapters-15-21.md) · [22–28 章](docs/reviews/chapters-22-28.md)
-- GitHub Actions 同时运行静态结构检查与 Playwright 浏览器冒烟测试（360 / 390 / 1440 px）。
+- GitHub Actions 运行静态结构检查、Playwright 浏览器冒烟测试（360 / 390 / 1440 px）及第 04 章用户态 write() 示例的编译/执行测试。
+- [第三轮实验验收与覆盖范围](docs/reviews/round-3-lab-validation.md)：区分已实测项目、仅静态复核项目和仍需隔离 VM/硬件的项目。
 
 ## 如何阅读
 
@@ -49,7 +50,7 @@
 | --- | --- |
 | [08 · 进程管理](08.html) | task_struct、进程五状态模型、fork写时拷贝、execve加载程序 |
 | [09 · 线程与协程](09.html) | 内核线程、1:1 vs M:N模型、clone系统调用、协程与async/await |
-| [10 · CPU调度](10.html) | O(n)→CFS→EEVDF、vruntime红黑树、sched_ext用户态调度、PREEMPT_RT实时 |
+| [10 · CPU调度](10.html) | O(n)→CFS→EEVDF、vruntime红黑树、sched_ext BPF 可扩展调度、PREEMPT_RT实时 |
 | [11 · 同步与互斥](11.html) | 自旋锁vs互斥锁、信号量PV操作、RCU读多写少、死锁与lockdep |
 | [12 · 虚拟内存](12.html) | 四级页表遍历、TLB加速器、缺页中断全流程、大页与mTHP |
 | [13 · 物理内存管理](13.html) | Buddy System、Slab/Slub分配器、页面回收与swap、MGLRU多代LRU |
@@ -71,7 +72,7 @@
 | 章节 | 关键主题 |
 | --- | --- |
 | [21 · 虚拟化技术](21.html) | KVM Hypervisor、vCPU调度、virtio半虚拟化、Popek-Goldberg定理 |
-| [22 · 容器与命名空间](22.html) | 六种Namespace、cgroup v2层级、OverlayFS分层、从chroot到Docker |
+| [22 · 容器与命名空间](22.html) | 八种Namespace、cgroup v2层级、OverlayFS分层、从chroot到Docker |
 | [23 · 内核调试技术](23.html) | printk动态调试、kdump+crash分析、KASAN/UBSAN检测、kgdb源码级调试 |
 | [24 · 性能分析与调优](24.html) | perf全景、火焰图生成、内存泄漏排查、I/O延迟分析 |
 | [25 · 动手写一个小OS](25.html) | 实模式Bootloader、GDT/IDT设置、物理页分配器、Ring 0→Ring 3切换 |
@@ -96,6 +97,7 @@ operating-system-tutorial/
 │   └── reviews/                  # 分批技术复核记录（01–07、08–14、15–21、22–28）
 ├── theme.css                      # 旧样式路径的兼容入口
 ├── scripts/check_site.py          # 静态 HTML、章节索引、证据和链接校验
+├── scripts/test_labs.py           # 安全的用户态实验编译/运行冒烟测试
 └── .github/workflows/ci.yml      # 提交与 PR 的静态质量检查
 ```
 
@@ -103,16 +105,17 @@ operating-system-tutorial/
 
 ## 技术复核与实验
 
-第 01–21 章已完成分批技术内容复核，修正了过时或过度绝对化的论断，并新增 35 条证据记录。查看 [本批复核报告](docs/reviews/chapters-01-07.md)、[证据清单目录](evidence/README.md) 和 [配套实验](labs/README.md)。
+第 01–28 章已有分批技术内容审计与逐章证据台账，修正了过时 API、版本敏感说法和过度绝对化的结论。查看 [本批复核报告](docs/reviews/chapters-01-07.md)、[证据清单目录](evidence/README.md) 和 [配套实验](labs/README.md)。
 
-注意：本轮已按官方接口和文档校正示例，但没有在实际 Linux VM 中编译、加载模块或启动 xv6；也未完成浏览器多视口人工验收。请勿将源码级审阅等同于运行时验证。
+注意：静态结构检查、自动化浏览器冒烟测试及第 04 章用户态示例验收是不同测试层级。尚未在专门的隔离 VM/硬件上完成内核模块加载、完整 QEMU 启动、xv6 COW、eBPF/驱动及相关硬件实验；不能把源码级审阅等同于运行时验证。
 
 ## 静态校验
 
-仅需 **Python 3.10+**，不依赖第三方包：
+静态检查仅需 **Python 3.10+**；用户态实验执行还需要 Linux 和 C 编译器：
 
 ```bash
 python3 scripts/check_site.py
+python3 scripts/test_labs.py  # Linux + C 编译器，编译并运行 ch04 用户态实验
 python3 -m http.server 8000
 ```
 

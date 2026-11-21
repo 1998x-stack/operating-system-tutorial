@@ -74,6 +74,18 @@
 <h3>3. IPC 的成本需要实测</h3>
 <p>服务拆分会增加消息传递、调度和数据复制等潜在成本，但不能用“每次 IPC 固定两次上下文切换”或“必然慢若干倍”来概括。共享内存、快速路径、批量请求和内核调度实现都会影响成本。正确比较方法是明确服务调用路径，再在相同硬件和工作负载下测量。</p>
 
+<section class="deep-dive" aria-labelledby="deep-03-title">
+<h3 id="deep-03-title">机制对照：文件系统服务故障会沿着哪条边界传播？</h3>
+<p>不要用“微内核驱动崩溃一定不影响系统”替代故障分析。下面比较的是<strong>假想设计</strong>，目的是明确保护域与恢复前提，不是 Linux 或 seL4 的逐函数调用图。</p>
+<table><thead><tr><th>阶段</th><th>宏内核常见组织</th><th>微内核常见组织</th></tr></thead><tbody>
+<tr><td>应用发起读取</td><td>系统调用进入内核，VFS 分派给文件系统实现</td><td>应用通过 IPC 向受隔离的文件服务发送请求</td></tr>
+<tr><td>处理文件元数据</td><td>相关内核组件共享内核地址空间</td><td>服务进程维护自身状态，可能向驱动服务进一步 IPC</td></tr>
+<tr><td>文件服务出现越界写</td><td>可能损坏内核内共享状态，但未必立即触发 panic</td><td>若错误被限制在独立地址空间，可能只终止文件服务</td></tr>
+<tr><td>故障后的恢复</td><td>依靠错误检测、内核容错及重启策略</td><td>需管理未完成请求、持久化元数据、一致性与服务重启</td></tr>
+</tbody></table>
+<p>核心判断是：<strong>隔离在哪里建立，恢复要保留什么状态？</strong>IPC 本身不是安全保证；服务若能 DMA 写入任意物理内存，或与其他服务共享了未经隔离的设备，也可能破坏故障边界。seL4 的证明范围须结合具体平台与可信计算基阅读。</p>
+<details><summary>为什么“能重启文件服务”仍不等于“应用不受影响”？</summary><p>应用当前的请求可能失败，缓存元数据和未完成写入可能需要恢复；重启还需要可靠的权限、持久化和协议重连设计。</p></details>
+</section>
 <h2 id="section-03">三、混合内核（Hybrid Kernel）</h2>
 <p>“混合内核”是常用的架构分类词，但边界并没有一个所有教材都一致的严格定义。分析系统时，更可靠的做法是指出哪些子系统运行在内核态、哪些驱动可以运行在用户态、组件之间通过什么机制通信，而不是只贴标签。</p>
 <h3>1. Windows NT</h3>
@@ -94,6 +106,16 @@
 
 <h2 id="section-05">五、结语与下一章预告</h2>
 <p>宏内核、微内核、混合内核和 Unikernel 并不是“性能、速度、安全”的简单排行榜。它们把代码放进不同的保护域，并在调用成本、故障隔离、验证难度和运维复杂度之间做权衡。下一章将聚焦这个设计决策的硬件基础：用户态和内核态如何通过特权级与系统调用入口隔开。</p>
+<section class="practice-card" aria-labelledby="practice-03-title">
+<h3 id="practice-03-title">分析练习：画出可验证的系统边界</h3>
+<p><strong>准备：</strong>任选 Linux 的文件读取路径，或 seL4 上“用户态文件服务 + IPC”设计；记录你研究的系统版本与参考资料。该练习是架构分析，无需 root 权限。</p>
+<ol>
+<li>分别标注应用、内核核心、文件系统服务和驱动所在的地址空间与特权级。</li>
+<li>用实线标出函数调用/系统调用，用虚线标出 IPC；明确哪个环节需要内存复制、共享内存或设备访问。</li>
+<li>假定文件服务出现越界访问：列出可能被破坏的状态、可检测的失败、是否有重启管理器和能否恢复未完成的 I/O。</li>
+</ol>
+<p><strong>预期结果：</strong>得到一张至少包含保护边界、通信路径、故障传播、恢复条件的设计图；不能只给“微内核更安全”的标签。<strong>清理：</strong>无环境修改。参考 <a href="https://docs.sel4.systems/projects/sel4/frequently-asked-questions">seL4 FAQ</a> 的证明假设，以及 Linux 的 <a href="https://docs.kernel.org/kbuild/modules.html">模块边界说明</a>。</p>
+</section>
 <section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>对一次文件读取画出宏内核与微内核的服务路径，并标注保护域、通信方式和可能的故障边界。</p><details><summary>查看思考提示</summary><p>不要预设每次 IPC 固定触发几次上下文切换；说明具体实现依赖哪些假设。</p></details></section>
 <aside class="reading-sources" aria-label="延伸阅读"><strong>内核架构与形式化验证：</strong>
 <a href="https://docs.sel4.systems/projects/sel4/frequently-asked-questions">seL4 · 形式化验证 FAQ</a>

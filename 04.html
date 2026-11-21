@@ -94,7 +94,17 @@ int main(void)
 strace -e trace=write ./hello</code></pre>
 <p>关键输出应包含一次对文件描述符 1 的 <code>write</code> 调用；时间戳、进程启动时的其他调用和具体格式会随环境变化。</p>
 
-<h2 id="section-03">三、strace实战</h2>
+<section class="deep-dive" aria-labelledby="deep-04-title">
+<h3 id="deep-04-title">逐步拆解：一次 <code>write(1, "hello\\n", 6)</code></h3>
+<p>下面是 Linux x86-64 的<strong>概念执行路径</strong>。<code>write()</code> 的系统调用号为 1；C 函数调用 ABI 与内核系统调用 ABI 不是同一份寄存器约定。</p>
+<ol class="causal-steps">
+<li><strong>用户态包装层：</strong><code>write(fd, buf, len)</code> 通常由 libc 提供；调用约定把参数准备好，系统调用入口需要 <code>rax=1</code>、<code>rdi=fd</code>、<code>rsi=buf</code>、<code>rdx=len</code>。</li>
+<li><strong>受控特权级切换：</strong><code>syscall</code> 指令按架构规定进入内核入口；<code>rcx</code>、<code>r11</code> 分别参与保存返回地址和标志，并不用于传递系统调用的第 4、5 个参数。</li>
+<li><strong>内核执行：</strong>验证文件描述符和用户缓冲区可访问性，沿文件操作接口发送数据。若标准输出指向终端、管道或文件，后续路径各不相同；可能只写入缓存。</li>
+<li><strong>返回与 errno：</strong>内核原始返回值可为写入字节数或负错误码；libc 将常见错误包装为返回 <code>-1</code> 并设置 <code>errno</code>。短写不等同于错误，通用程序需要处理部分写入。</li>
+</ol>
+<p><strong>三个不同的计数：</strong>“执行了一次系统调用”“发生用户态→内核态转换”“切换到另一进程”并不等价。<code>strace</code> 能看到系统调用边界，不会自动证明另一次任务切换已经发生。</p>
+</section><h2 id="section-03">三、strace实战</h2>
 <p><code>strace</code> 记录目标程序执行的系统调用、参数、返回值和信号。Linux 上它主要利用 <code>ptrace</code> 等机制观察 tracee；因此跟踪本身会改变执行时序，不能把带有 strace 的运行时间当成无观测开销的真实性能。</p>
 <pre><code># 只观察文件描述符相关调用
 strace -e trace=read,write,openat,close ./hello
@@ -124,6 +134,19 @@ perf stat -e cycles,instructions,context-switches \
 
 <h2 id="section-05">五、结语与下一章预告</h2>
 <p>系统调用是受控的特权级入口；上下文切换是调度器在任务之间转移执行权。两者可能连续发生，但不能混为一谈。下一章我们把视角从“应用如何进入内核”转向“内核如何被装入并开始运行”，追踪固件、引导加载器、内核和 PID 1 的交接过程。</p>
+<section class="practice-card" aria-labelledby="practice-04-title">
+<h3 id="practice-04-title">实验复现：源码、调用轨迹和实际输出相互校验</h3>
+<p><strong>环境：</strong>Linux、C 编译器、<code>strace</code>。在仓库根目录操作，非特权用户即可；<code>strace</code> 在受限容器中可能被禁用。</p>
+<pre><code>cc -std=c11 -Wall -Wextra -Werror -O0 -g \
+  -o /tmp/os-ch04-hello labs/ch04-syscall/hello.c
+/tmp/os-ch04-hello
+strace -e trace=write -o /tmp/os-ch04-write.trace /tmp/os-ch04-hello
+grep 'write(1,' /tmp/os-ch04-write.trace
+# 测试结束清理本人创建的文件
+rm -f /tmp/os-ch04-hello /tmp/os-ch04-write.trace</code></pre>
+<p><strong>预期结果：</strong>程序向标准输出写出 <code>hello</code> 和换行；轨迹中可见 <code>write(1, ..., 6) = 6</code> 一类记录。若失败，核对编译器、ptrace 权限、<code>strace</code> 是否安装及输出是否被重定向。</p>
+<p><strong>自动验收边界：</strong>CI 中的 <code>scripts/test_labs.py</code> 实际编译并检查 stdout/退出码；本段 <code>strace</code> 轨迹仍需在允许 ptrace 的 Linux 环境中单独观察，不能把两者混为一次已通过的测试。</p>
+</section>
 <section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>用 strace 观察 write()，并解释系统调用进入内核态为什么不必然意味着进程上下文切换。</p><details><summary>查看思考提示</summary><p>分别标记权限级转换、内核服务执行、任务阻塞/唤醒和调度器选择。</p></details></section>
 <aside class="reading-sources" aria-label="延伸阅读"><strong>系统调用与追踪工具：</strong>
 <a href="https://man7.org/linux/man-pages/man2/syscall.2.html">Linux · syscall(2)</a>

@@ -44,17 +44,26 @@ try {
         h1: document.querySelectorAll("h1").length,
         main: document.querySelectorAll("main").length,
         toc: Boolean(document.querySelector(".page-toc")),
+        deepDive: document.querySelectorAll(".article-body .deep-dive").length,
+        practice: document.querySelectorAll(".article-body .practice-card").length,
         width: document.documentElement.scrollWidth,
         viewport: window.innerWidth,
       }));
       if (result.h1 !== 1) failures.push(`${path}: expected one H1, got ${result.h1}`);
       if (result.main !== 1) failures.push(`${path}: expected one main, got ${result.main}`);
       if (!result.toc) failures.push(`${path}: missing section navigation`);
+      if (number <= 5 && (result.deepDive !== 1 || result.practice !== 1)) {
+        failures.push(`${path} [${viewport.width}px]: missing or duplicate mechanism/lab components`);
+      }
       if (result.width > result.viewport + 1) failures.push(`${path} [${viewport.width}px]: horizontal overflow ${result.width} > ${result.viewport}`);
     }
   }
 
   await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto(`${baseURL}/01.html`, { waitUntil: "domcontentloaded" });
+  const interactive = page.locator(".deep-dive details");
+  await interactive.locator("summary").click();
+  if (!(await interactive.evaluate(element => element.open))) failures.push("01.html: mechanism explanation not expandable");
   await page.goto(baseURL, { waitUntil: "domcontentloaded" });
   await page.keyboard.press("Tab");
   const skipLinkVisible = await page.locator(".skip-link").evaluate(el => {
@@ -68,7 +77,7 @@ try {
     for (const failure of failures) console.error(" - " + failure);
     process.exitCode = 1;
   } else {
-    console.log("BROWSER QA PASS: homepage at 360/390/1440px; all 28 chapters at 360/1440px; keyboard skip link.");
+    console.log("BROWSER QA PASS: homepage at 360/390/1440px; all 28 chapters at 360/1440px; keyboard skip link; deep dive labs across chapters 01-05.");
   }
 } finally {
   await browser.close();

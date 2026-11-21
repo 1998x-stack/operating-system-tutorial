@@ -86,7 +86,7 @@
 <pre><code># 查看当前内核收到的启动参数
 cat /proc/cmdline
 
-# 在 Linux 中检查是否以 UEFI 模式启动
+# 在 Linux 中检查是否提供 EFI 固件接口（容器/WSL 等环境不能据此推断物理宿主机）
 test -d /sys/firmware/efi && echo UEFI || echo "Legacy/非 UEFI"</code></pre>
 
 <h2 id="section-04">四、initramfs与rootfs切换</h2>
@@ -107,6 +107,17 @@ cat /proc/cmdline</code></pre>
 <p>initramfs 并不是所有系统都必须使用的独立“临时 Linux”。有的内核把内置 cpio 归档链接进镜像，有的引导加载器传入外部 initrd/initramfs；早期用户空间的内容由发行版工具生成。</p>
 <p>参考 <a href="https://docs.kernel.org/filesystems/ramfs-rootfs-initramfs.html">Linux 内核：ramfs、rootfs 与 initramfs</a>。</p>
 
+<section class="deep-dive" aria-labelledby="deep-05-title">
+<h3 id="deep-05-title">机制追踪：为什么“找不到根文件系统”和“服务启动失败”是两类故障？</h3>
+<p>理解启动应按<strong>交接发生之前与之后</strong>定位，而不是把一切叫做“系统进不去”。以下是带 initramfs、使用 systemd 的常见 Linux 路径；无 initramfs、非 systemd 的系统可能不同。</p>
+<ol class="causal-steps">
+<li><strong>固件选启动项：</strong>UEFI 通过 Boot Manager 启动 EFI 应用，或由内核 EFI stub 进入内核；固件是否找到合适 EFI 文件、Secure Boot 签名是否可接受，是这一层的问题。</li>
+<li><strong>启动组件传参数：</strong>引导器传递内核镜像、可选 initramfs、命令行。若镜像/参数不匹配，可能在早期解压或设备发现前停止。</li>
+<li><strong>早期用户态找真实根：</strong>initramfs 的 <code>/init</code> 可能负责装载驱动、解锁加密卷、组合 RAID/LVM 和挂载真实根分区。若根设备不可用，可能进入 emergency shell；这尚不等于真正 rootfs 上的 systemd 已经失败。</li>
+<li><strong>交接 PID 1：</strong>早期用户态通常通过 <code>switch_root</code> 与 <code>exec</code> 交接给真实根上的 init；不是销毁原 PID 1 再创建一个新的 PID 1。systemd 随后处理 unit 依赖与排序。</li>
+</ol>
+<p><strong>故障定位的首要证据：</strong>固件启动菜单、内核命令行、initramfs 日志、真实根挂载状态，以及 <code>journalctl -b</code> / <code>systemd-analyze</code> 的阶段性信息。不要未经分析修改引导配置或删除 initramfs。</p>
+</section>
 <h2 id="section-05">五、systemd启动编排</h2>
 <p>当内核启动第一个用户态进程后，许多现代 Linux 发行版会以 systemd 作为 PID 1。systemd 不只是启动脚本执行器，它还管理服务、挂载点、socket、timer、target 和其他 unit 的生命周期。</p>
 <h3>1. Unit 与依赖语义</h3>
@@ -127,6 +138,22 @@ systemctl show ssh.service -p Requires -p Wants -p After -p Before</code></pre>
 <h2 id="section-06">六、结语与下一章预告</h2>
 <p>开机过程是多个独立接口之间的交接：固件选择 EFI 应用或传统引导代码，Bootloader 依照架构协议装载内核，内核建立基础执行环境，initramfs（若使用）准备真实根文件系统，PID 1 再组织用户空间。理解每一步的输入、输出和失败边界，比背一条看似统一的启动时间线更重要。</p>
 <p>下一章将进入 Linux 源码树，观察内核目录、构建系统和一个最小的可加载模块。</p>
+<section class="practice-card" aria-labelledby="practice-05-title">
+<h3 id="practice-05-title">只读实验：还原当前机器的启动交接点</h3>
+<p><strong>环境：</strong>运行中的 Linux，普通用户；systemd 命令仅适用于以 systemd 为服务管理器的环境。在虚拟机、WSL、容器与非 systemd 系统中，输出或可用性可能不同。</p>
+<pre><code># 1. 固件类型和传给内核的参数
+test -d /sys/firmware/efi &amp;&amp; echo UEFI || echo "非 UEFI 启动环境"
+cat /proc/cmdline
+# 2. 当前实际根文件系统
+findmnt -no SOURCE,FSTYPE,TARGET /
+# 3. 观察 PID 1 的进程名（其实现不一定是 systemd）
+ps -p 1 -o pid,comm,args
+# 4. 仅在 systemd 作为 PID 1 的系统上执行
+systemd-analyze critical-chain
+systemctl show -p Requires -p Wants -p After -p Before systemd-journald.service</code></pre>
+<p><strong>预期结果：</strong>记录固件类型、<code>root=</code> 等内核参数（可能缺省或由 initramfs 决定）、真实根的挂载方式、PID 1 名称与 unit 排序关系。<code>After=</code> 不会自动拉入被排序 unit；<code>Wants=</code> 通常不传播被依赖 unit 的失败，<code>Requires=</code> 的失败传播还需结合排序和 unit 生命周期分析。</p>
+<p><strong>排查与清理：</strong>如果没有 systemd 或相应命令，记下环境差异即可；实验全程只读、不改变启动项，无需清理。不要根据 <code>systemd-analyze blame</code> 的数值直接决定停用关键服务。</p>
+</section>
 <section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>描述 initramfs 中的 /init 如何准备真实根文件系统，以及 systemd 的 After= 与 Requires= 有何不同。</p><details><summary>查看思考提示</summary><p>注意 PID 1 通常通过 exec 延续；After= 只定义顺序，不会自动拉起被排序的 unit。</p></details></section>
 <aside class="reading-sources" aria-label="延伸阅读"><strong>固件、内核启动与用户空间：</strong>
 <a href="https://uefi.org/specs/UEFI/2.10/03_Boot_Manager.html">UEFI · Boot Manager</a>

@@ -46,6 +46,15 @@
       "locator": "RISC-V privilege levels",
       "status": "verified",
       "notes": "Arm 参考 https://developer.arm.com/-/media/Arm%20Developer%20Community/PDF/Learn%20the%20Architecture/Exception%20model.pdf"
+    },
+    {
+      "id": "priv-04-06",
+      "claim": "write() 在成功时返回已写入的字节数，实际字节数可以小于请求长度；系统调用 ABI 与 C ABI 不同。",
+      "kind": "system call contract",
+      "source_url": "https://man7.org/linux/man-pages/man2/write.2.html",
+      "locator": "RETURN VALUE; DESCRIPTION",
+      "status": "verified",
+      "notes": "实验中短小输出通常完整写入，但通用 I/O 必须处理短写与错误。"
     }
   ]
 }

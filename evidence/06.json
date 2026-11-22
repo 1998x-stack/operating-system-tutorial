@@ -46,6 +46,15 @@
       "locator": "Configuring module signing; Non-valid signatures and unsigned modules",
       "status": "verified",
       "notes": "是否强制签名取决于内核配置和启动参数。"
+    },
+    {
+      "id": "src-06",
+      "claim": "发行版通常用 /lib/modules/$(uname -r)/build 指向与当前内核匹配、可供外部模块构建的构建目录。",
+      "kind": "build procedure",
+      "source_url": "https://docs.kernel.org/kbuild/modules.html",
+      "locator": "Command Syntax",
+      "status": "verified",
+      "notes": "该路径是常见约定；构建目录缺失或版本不匹配时外部模块构建失败，本章只读核对实验不加载模块。"
     }
   ]
 }

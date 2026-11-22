@@ -156,8 +156,33 @@ obj-m += hello.o
 obj-$(CONFIG_OS_TUTORIAL_HELLO) += hello.o</code></pre>
 <p>Kconfig 决定“用户可以选择什么、选项之间有什么依赖”；Kbuild Makefile 决定“选中某个配置后构建哪些对象”。二者协作，但不是同一套语言。对独立外部模块而言，最小示例通常只需要 <code>obj-m</code> 和外部模块构建命令，不必先修改主线内核 Kconfig。</p>
 
+<section class="deep-dive" aria-labelledby="deep-06-title">
+<h3 id="deep-06-title">机制追踪：一个内核功能，如何从配置项走到运行的代码？</h3>
+<p>读源码时常把“配置项”“Makefile 目标”“编译产物”“已加载模块”混为一谈。以本章的最小模块为例，把这条链路拆开，就能知道每一步失败时该检查什么。</p>
+<ol class="causal-steps">
+<li><strong>Kconfig 声明选项：</strong>某个 <code>config</code> 条目定义符号名、类型（<code>bool</code>/<code>tristate</code>）、依赖与 <code>help</code> 文本。它只描述“这个功能是什么”，不决定要不要编译。</li>
+<li><strong>配置工具写出 .config：</strong>选择结果保存为 <code>CONFIG_*</code> 变量（<code>y</code>、<code>m</code> 或 <code>n</code>），并生成后续参与编译的自动头文件。<code>depends on</code> 未满足时，该选项可能根本不能取 <code>m</code>。</li>
+<li><strong>Kbuild 决定构建目标：</strong><code>obj-$(CONFIG_...)</code> 把配置变量展开成 <code>y</code>/<code>m</code>，决定该对象编进内核镜像还是单独的 <code>.ko</code>。二者不是同一套语言。</li>
+<li><strong>构建产出目标文件：</strong>编入内核产生 <code>vmlinux</code>/<code>bzImage</code>；作为模块产生 <code>.ko</code>，并携带 vermagic 与符号依赖信息。</li>
+<li><strong>运行时校验后加载：</strong>模块加载器核对版本、导出符号与签名策略；通过后调用 <code>module_init()</code> 注册的入口，功能才真正在内核特权域生效。</li>
+</ol>
+<details><summary>如果 .config 里写了 <code>CONFIG_...=m</code>，但目录里没有生成 .ko，先查什么？</summary><p>先确认该选项的类型是否允许 <code>m</code>、依赖是否满足，再核对对应 Kbuild Makefile 是否用 <code>obj-$(CONFIG_...)</code> 连接了它。仅修改 .config 本身不会自动让模块文件出现。</p></details>
+</section>
+
 <h2 id="section-05">五、结语与下一章预告</h2>
 <p>读内核源码的路线是：先识别子系统，再追踪数据结构和调用链；构建模块时要匹配内核构建树、理解 Kbuild 目标并尊重签名策略。下一章将用 QEMU、GDB 和 xv6 建立一个可重复的实验环境，让我们在虚拟机器里观察内核的执行过程。</p>
+<section class="practice-card" aria-labelledby="practice-06-title">
+<h3 id="practice-06-title">只读核对：目标内核的配置与构建树</h3>
+<p><strong>环境：</strong>Linux 主机，普通用户权限即可读取；不需要 root，也不加载任何模块。发行版决定 <code>/boot/config-*</code> 与 <code>/lib/modules/*/build</code> 是否存在。</p>
+<pre><code>uname -r
+ls -l /lib/modules/$(uname -r)/build
+ls /boot/config-$(uname -r)
+grep -m1 CONFIG_MODULES /boot/config-$(uname -r)
+modinfo $(lsmod | awk 'NR==2{print $1}') | head
+cat /proc/version</code></pre>
+<p><strong>预期：</strong><code>build</code> 通常指向已安装的内核构建目录；<code>CONFIG_MODULES=y</code> 表示该内核支持可加载模块；<code>modinfo</code> 显示已加载模块的 vermagic 与参数。若 <code>build</code> 缺失，或它指向的内核版本与 <code>uname -r</code> 不一致，外部模块构建会失败。</p>
+<p><strong>解释：</strong>这里核对的是“构建与加载的前提条件”，而不是加载模块本身；<code>lsmod</code> 为空时 <code>modinfo</code> 会报错，属正常现象。<strong>清理：</strong>全部为只读命令，没有修改系统状态。</p>
+</section>
 <section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>解释 Kconfig 和 Kbuild 的分工，并列出外部模块构建和加载失败时至少三项检查。</p><details><summary>查看思考提示</summary><p>检查目标内核构建目录、vermagic/导出符号、模块签名策略与内核日志。</p></details></section>
 <aside class="reading-sources" aria-label="延伸阅读"><strong>源码规范与构建系统：</strong>
 <a href="https://docs.kernel.org/process/coding-style.html">Linux · Coding Style</a>

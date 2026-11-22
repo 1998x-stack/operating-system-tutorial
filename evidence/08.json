@@ -46,6 +46,15 @@
       "locator": "VMAP_STACK and vmalloc overview",
       "status": "derived",
       "notes": "具体实现需对照目标架构配置与源码。"
+    },
+    {
+      "id": "proc-08-06",
+      "claim": "fork 后子进程继承父进程文件描述符的副本，且这些副本指向相同的打开文件描述（open file description），因此共享文件偏移与状态标志。",
+      "kind": "system call behavior",
+      "source_url": "https://man7.org/linux/man-pages/man2/fork.2.html",
+      "locator": "DESCRIPTION; NOTES",
+      "status": "verified",
+      "notes": "本章机制追踪与只读实验用于说明“内存页写时复制”与“文件描述符共享内核对象”是两类不同行为。"
     }
   ]
 }

@@ -192,7 +192,21 @@ static __latent_entropy struct task_struct *copy_process(...)
             <p><strong>性能洞见</strong>：COW 避免在 fork 时立即复制所有用户态物理页，但 fork 仍需处理内存映射和页表等元数据，因此不能简单地把复杂度写成固定的 O(页表大小)，更不能保证数量级加速。Redis 等程序可利用 fork 创建快照视图：父子进程起初共享只读映射，任一方写入相关页面时可能触发私有副本；大量写入会增加内存压力和延迟。</p>
         </div>
 
-        <h2 id="section-05">execve()：一个程序的诞生</h2>
+        <figure class="mechanism-figure"><img src="assets/diagrams/fork-cow.svg" width="800" height="300" alt="父进程与子进程的页表项指向同一只读物理页；子进程写入时触发缺页，内核分配新的可写物理页并复制内容"><figcaption>fork 后父子先只读共享同一批物理页；写入触发缺页时才分配私有副本——共享的是页表目标，而不是“子进程已拥有独立内存”</figcaption></figure>
+<section class="deep-dive" aria-labelledby="deep-08-title">
+<h3 id="deep-08-title">机制追踪：fork() 之后，父子进程到底共享了什么？</h3>
+<p>“子进程复制了父进程”是一句容易让人误解的话。沿着 <code>copy_process()</code> 的几类复制动作走一遍，就能分清哪些是真正独立的，哪些只是暂时共享。</p>
+<ol class="causal-steps">
+<li><strong>任务身份独立：</strong>内核为新任务复制 <code>task_struct</code> 与内核栈、分配新的 PID；父子是两个可以被独立调度的任务。</li>
+<li><strong>地址空间先共享后分离：</strong><code>copy_mm()</code> 复制 <code>mm_struct</code> 和页表，用户页表项指向同一批物理页并标记为只读，用户数据此时并不复制。</li>
+<li><strong>打开文件默认共享同一对象：</strong>文件描述符表被复制，但底层打开文件对象通常仍被父子共同引用；共享的是读写位置等内核对象状态。</li>
+<li><strong>写入触发写时复制：</strong>任一方写入只读页会触发缺页异常，内核分配新物理页、复制内容，并把该页表项改为可写。</li>
+<li><strong>退出与回收分离：</strong>子进程 <code>exit()</code> 后 <code>task_struct</code> 先保留为僵尸，父进程 <code>wait()</code> 后才能回收——身份与资源的回收时机并不相同。</li>
+</ol>
+<details><summary>如果 fork 后父子进程都对同一变量赋值，对方会看到吗？</summary><p>不会。赋值会触发写时复制，双方各自得到私有物理页，只共享“写入之前”的内容。注意文件描述符的读写位置属于共享的内核对象，行为与内存页不同。</p></details>
+</section>
+
+<h2 id="section-05">execve()：一个程序的诞生</h2>
 
         <p>fork创建了一个"几乎和父进程一模一样"的子进程（共享地址空间但用COW）。但绝大多数情况下，你fork之后想干的是——让子进程运行一个完全不同的程序。这就是execve()系统调用的职责。</p>
 
@@ -236,8 +250,17 @@ int execve(const char *pathname, char *const argv[],
 
         <p>下一章，我们沿着"执行粒度更小"的方向继续深挖——从进程到线程，再到协程。你会发现，当同步机制越来越重、切换开销越来越成为瓶颈时，操作系统提供了更轻量的并发原语来应对。我们下一章见。</p>
 </div>
+<section class="practice-card" aria-labelledby="practice-08-title">
+<h3 id="practice-08-title">只读观察：进程身份与写时复制计数</h3>
+<p><strong>环境：</strong>Linux 主机，普通用户权限；只读取 procfs，不编译程序、不需要 root。字段是否存在随内核版本和配置变化。</p>
+<pre><code>cat /proc/self/status | grep -E '^(Pid|PPid|Threads)'
+cat /proc/self/smaps_rollup | head -n 8
+sh -c 'echo child=$$ ppid=$PPID'</code></pre>
+<p><strong>预期：</strong>第一条显示观察进程自身的 PID、父 PID 与线程数；<code>smaps_rollup</code> 给出 Shared_Clean、Shared_Dirty、Private_Dirty 等内存计数；<code>sh -c</code> 打印的子进程 PPID 应等于外层 shell 的 PID。</p>
+<p><strong>解释：</strong>共享/私有内存计数与写时复制相关，但还包含文件映射、共享库等因素，不能单凭一个数字断定发生过多少次 COW。<strong>清理：</strong>均为只读命令，没有修改系统状态。</p>
+</section>
 <section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>指出 fork 后地址空间、文件描述符与 PID 的差异。</p><details><summary>查看思考提示</summary><p>区分相同虚拟内容、共享内核对象与真正相同的进程身份。</p></details></section>
-<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p><a href="evidence/08.json">查看本章论断与来源证据清单（evidence/08.json）</a></p><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
 <nav class="footer-nav" aria-label="章节前后导航"><a href="07.html">← 上一章 · OS实验环境搭建</a><a href="index.html">返回课程目录</a><a href="09.html">下一章 · 线程与协程 →</a></nav>
 </article></main>
 </div>

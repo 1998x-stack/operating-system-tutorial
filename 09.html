@@ -130,7 +130,21 @@
             <tr><td>代表</td><td>GNU Pth（已废弃）</td><td>Linux NPTL (pthread)</td><td>Go Goroutine</td></tr>
         </table>
 
-        <h3>Go Goroutine的M:N调度</h3>
+        <figure class="mechanism-figure"><img src="assets/diagrams/thread-models.svg" width="800" height="320" alt="三种线程模型：M:1 多个用户线程映射到一个内核线程，1:1 每个用户线程对应一个内核线程，M:N 多个用户线程复用较少内核线程"><figcaption>用户态线程与内核可调度实体的三种映射关系。M:1 中内核只看到一个实体，一个阻塞调用会拖住整个进程；M:N 的挂起/恢复由用户态运行时协调</figcaption></figure>
+<section class="deep-dive" aria-labelledby="deep-09-title">
+<h3 id="deep-09-title">机制追踪：一个 pthread 与它所在的进程，共享了哪些内核对象？</h3>
+<p>“线程共享地址空间”只说对了一部分。把 <code>clone()</code> 的资源共享标志拆开，就能看清哪些对象是一个线程独有的，哪些是整组共享的。</p>
+<ol class="causal-steps">
+<li><strong>由 clone 的 flags 决定：</strong>创建内核任务时传入哪些 <code>CLONE_*</code> 标志，决定了新任务与调用者共享多少内核对象；libc 在线程库层按 ABI 组合这些标志。</li>
+<li><strong>CLONE_VM 共享地址空间：</strong>共享同一个 <code>mm_struct</code> 与页表，因此一个线程写全局变量，其他线程能直接看到——这与 fork 的写时复制是两种行为。</li>
+<li><strong>CLONE_FILES / CLONE_FS 共享文件上下文：</strong>共享文件描述符表与文件系统信息，一个线程 <code>close()</code> 或改工作目录会影响同级线程。</li>
+<li><strong>CLONE_SIGHAND + CLONE_THREAD 组成线程组：</strong>共享信号处理相关结构，tgid 相同，<code>getpid()</code> 返回同一个进程号；信号默认按进程处理。</li>
+<li><strong>独立的执行上下文仍然存在：</strong>每个任务有自己的内核栈、寄存器上下文和调度实体，因此仍可被内核独立调度、独立阻塞。</li>
+</ol>
+<details><summary>线程 A 修改了一个全局变量，线程 B 一定能立刻看到吗？</summary><p>内存是同一份，但“立刻”还取决于同步与编译器/CPU 的重排序。没有同步手段时，可见性不保证；这正是下一章同步与互斥要解决的问题。共享地址空间只保证对象相同，不保证访问顺序。</p></details>
+</section>
+
+<h3>Go Goroutine的M:N调度</h3>
         <p>Go语言的Goroutine是M:N模型最成功的工业实践。Go运行时维护一个M（Machine，内核线程）对N（Goroutine，用户态协程）的映射，用G（Goroutine）、M（Machine）、P（Processor）三个结构体实现了高效的M:N调度。Go 运行时在 channel、定时器、网络轮询和阻塞系统调用等路径上协调 G 的挂起与恢复；发生阻塞系统调用时，运行时可让出 P 给其他 M/G 继续执行。并非每次系统调用都会切换 G，也不能把所有调度成本描述为“避免内核态切换”。</p>
 
         <div class="highlight">
@@ -195,8 +209,17 @@ class fetch_data__coroutine:
 
         <p>下一章，我们把视角从"谁来执行"转向"谁决定谁先执行"——CPU调度。当一个系统里有几十个可运行的线程时，操作系统如何决定下一次该运行哪一个？公平、高效、低延迟，这三者怎么平衡？Linux的调度器从O(n)到O(1)到CFS再到EEVDF，每一次变革都带来了什么？下一章见。</p>
 </div>
+<section class="practice-card" aria-labelledby="practice-09-title">
+<h3 id="practice-09-title">只读观察：线程组与轻量级进程</h3>
+<p><strong>环境：</strong>Linux 主机，普通用户权限；只读取 procfs 与 <code>ps</code>，不创建线程、不需要 root。字段和列名随内核与 procps 版本变化。</p>
+<pre><code>cat /proc/self/status | grep -E '^(Pid|Tgid|Threads)'
+ls /proc/self/task
+ps -eLf | head -n 6</code></pre>
+<p><strong>预期：</strong>单线程 shell 的 <code>Pid</code> 与 <code>Tgid</code> 相等，<code>Threads</code> 为 1，<code>/proc/self/task</code> 下只有一个目录；多线程进程在 <code>ps -eLf</code> 中会出现多行，LWP 列不同而 PID 列相同。</p>
+<p><strong>解释：</strong><code>/proc/&lt;pid&gt;/task/&lt;tid&gt;</code> 的每个子目录对应一个可调度任务；同一线程组内 PID 相同、LWP（tid）不同。这一观察验证了“内核按任务而非按进程调度”的说法。<strong>清理：</strong>均为只读命令。</p>
+</section>
 <section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>比较多线程与协程在一次阻塞操作中的行为。</p><details><summary>查看思考提示</summary><p>先明确阻塞调用是否阻塞了整个执行线程。</p></details></section>
-<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p><a href="evidence/09.json">查看本章论断与来源证据清单（evidence/09.json）</a></p><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
 <nav class="footer-nav" aria-label="章节前后导航"><a href="08.html">← 上一章 · 进程管理</a><a href="index.html">返回课程目录</a><a href="10.html">下一章 · CPU调度 →</a></nav>
 </article></main>
 </div>

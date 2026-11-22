@@ -37,6 +37,15 @@
       "locator": "startingStackSize; fixedStack",
       "status": "verified",
       "notes": "栈大小与创建耗时不能作为固定性能基准；以目标 Go 版本源码为准。"
+    },
+    {
+      "id": "thread-09-05",
+      "claim": "同一线程组内的任务共享 tgid，getpid() 返回 tgid，而 gettid() 返回任务自身的 TID；/proc/<pid>/task 列出组内每个任务。",
+      "kind": "system call behavior",
+      "source_url": "https://man7.org/linux/man-pages/man2/gettid.2.html",
+      "locator": "DESCRIPTION; NOTES",
+      "status": "verified",
+      "notes": "本章只读实验用 Pid/Tgid/Threads 与 /proc/self/task 验证“内核按任务调度”的说法。"
     }
   ]
 }

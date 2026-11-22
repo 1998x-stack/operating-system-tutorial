@@ -143,7 +143,20 @@ static struct sched_entity *__pick_first_entity(struct cfs_rq *cfs_rq)
 
         <p>EEVDF被合入Linux 6.6主线，作为新的默认调度器。这是CFS服役17年后的首次更替。内核邮件列表上的讨论长达数年，测试基准覆盖了从数据库到Web服务器、从HPC到桌面交互的全场景。最终EEVDF在保持CFS公平性的同时，在延迟和吞吐量方面都展现出优势。</p>
 
-        <h2 id="section-04">sched_ext：BPF 可扩展调度类</h2>
+        <section class="deep-dive" aria-labelledby="deep-10-title">
+<h3 id="deep-10-title">机制追踪：一次调度决策里，EEVDF 到底比较了什么？</h3>
+<p>把“公平调度”简化成“总选 vruntime 最小的那个”会漏掉 EEVDF 的关键一步。逐项拆开选择过程，就能解释为什么“最亏”的任务不一定被选中。下面符号照官方设计介绍，细节按目标内核源码为准。</p>
+<ol class="causal-steps">
+<li><strong>何时需要重选：</strong>可运行队列发生变化（任务唤醒/阻塞、主动让出、被抢占或时钟 tick）时，内核可能触发重新调度。</li>
+<li><strong>维护两个量：</strong>每个调度实体跟踪虚拟运行时间（vruntime）与 lag——已获得的 CPU 服务与“应得”服务之间的差额。</li>
+<li><strong>先判 eligibility：</strong>只有 lag 非负（虚拟时间不超前于运行队列当前虚拟时间）的实体才“有资格”。长期占用 CPU、已超支的实体要先等待，而不是继续抢。</li>
+<li><strong>在 eligible 中选最早虚拟截止时间：</strong>deadline 与实体权重、期望时间片相关；权重越大、希望越早响应的任务，deadline 通常越早。</li>
+<li><strong>运行后回插红黑树：</strong>实体运行会改变 vruntime 与 lag，需重新插入红黑树；实时调度类与截止时间调度类由各自调度类处理，不随 EEVDF 改变。</li>
+</ol>
+<details><summary>既然看 vruntime，为什么“最小 vruntime 的任务”不一定马上被选中？</summary><p>因为选择分两步：先筛 eligibility，再在合格集合中按 virtual deadline 选。若最小 vruntime 的实体 lag 为负（已超支），它可能暂时失去资格；也可能存在截止时间更早的其他合格实体。</p></details>
+</section>
+
+<h2 id="section-04">sched_ext：BPF 可扩展调度类</h2>
 
         <p>如果说EEVDF是内核调度的自我革新，那sched_ext（从Linux 6.12开始合入）代表的则是一个更激进的范式转变——用eBPF让用户态写调度器。</p>
 
@@ -224,8 +237,18 @@ s32 my_pick_next_task(struct task_struct *prev)
 
         <p>下一章，我们把目光从"谁来跑"转向"怎么协同跑"——当多个进程或多个线程同时访问共享数据时，如何确保数据的一致性？自旋锁、互斥锁、信号量、RCU——这些同步原语各有什么特长和场景？死锁的四个条件是什么，lockdep又是如何在内核中自动检测潜在死锁的？下一章见。</p>
 </div>
+<section class="practice-card" aria-labelledby="practice-10-title">
+<h3 id="practice-10-title">只读观察：调度类、优先级与实时带宽</h3>
+<p><strong>环境：</strong>Linux 主机，普通用户权限；只读取 procfs 与 sysctl，不创建实时任务、不需要 root。字段名与列名随内核和 procps 版本变化。</p>
+<pre><code>cat /proc/self/sched | head -n 5
+ps -eo pid,cls,ni,stat,comm | head -n 5
+cat /proc/sys/kernel/sched_rt_runtime_us
+cat /proc/sys/kernel/sched_rt_period_us</code></pre>
+<p><strong>预期：</strong><code>/proc/self/sched</code> 显示当前任务调度实体的统计（如累计运行时间、上下文切换次数）；<code>ps</code> 的 <code>cls</code> 列区分普通（TS）与实时（FF/RR）任务；两个 sysctl 给出实时调度类的周期与运行预算（默认：周期 1000000 μs、预算 950000 μs）。</p>
+<p><strong>解释：</strong>只有可运行任务才参与当前 CPU 竞争；nice 只调节普通任务的权重，不影响实时类的优先级规则。实时带宽限制用于避免实时任务把普通任务彻底饿死。<strong>清理：</strong>均为只读命令。</p>
+</section>
 <section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>解释可运行、运行中与等待 I/O 的区别。</p><details><summary>查看思考提示</summary><p>只有可运行任务才参与当前的 CPU 竞争。</p></details></section>
-<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
+<aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p><a href="evidence/10.json">查看本章论断与来源证据清单（evidence/10.json）</a></p><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
 <nav class="footer-nav" aria-label="章节前后导航"><a href="09.html">← 上一章 · 线程与协程</a><a href="index.html">返回课程目录</a><a href="11.html">下一章 · 同步与互斥 →</a></nav>
 </article></main>
 </div>

@@ -46,6 +46,15 @@
       "locator": "EEVDF Scheduler; transition from CFS",
       "status": "verified",
       "notes": "旧内核仍需按对应版本阅读 CFS 实现。"
+    },
+    {
+      "id": "sched-10-06",
+      "claim": "内核通过 sched_rt_period_us 与 sched_rt_runtime_us 限制实时调度类的运行带宽（默认周期 1000000 μs、预算 950000 μs），避免实时任务饿死普通任务。",
+      "kind": "kernel tunable",
+      "source_url": "https://docs.kernel.org/scheduler/sched-rt-group.html",
+      "locator": "Real-Time group scheduling; default settings",
+      "status": "verified",
+      "notes": "默认值可被发行版、启动参数或 cgroup RT 带宽配置覆盖；本章只读实验只读取当前值。"
     }
   ]
 }

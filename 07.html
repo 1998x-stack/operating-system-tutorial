@@ -102,6 +102,19 @@ gdb ./vmlinux
 (gdb) x/10gx $rsp</code></pre>
 <p>源码断点要求符号与实际运行内核匹配。开启 KASLR、使用了不同构建产物、优化级别较高或源码路径不匹配，都可能导致断点位置和变量显示不符合预期。</p>
 
+<section class="deep-dive" aria-labelledby="deep-07-title">
+<h3 id="deep-07-title">机制追踪：GDB 断点命中前，宿主机与 Guest 之间发生了什么？</h3>
+<p>“能连上 GDB”和“断点真的停在内核里”是两件事。把 <code>-S</code>、<code>-gdb</code>、<code>target remote</code> 与 <code>break</code> 排成一条时间线，就能定位连不上或断点不命中的原因。</p>
+<ol class="causal-steps">
+<li><strong>Guest CPU 先停住：</strong><code>-S</code> 让虚拟 CPU 在上电后暂停，不执行第一条指令，给调试器留出连接窗口。</li>
+<li><strong>QEMU 打开 gdbstub：</strong><code>-gdb tcp:127.0.0.1:1234</code> 在宿主机回环地址监听，用远程串行协议交换寄存器与内存读写请求。这是 QEMU 的机制，不依赖 <code>CONFIG_KGDB</code>。</li>
+<li><strong>GDB 绑定符号：</strong>GDB 加载与本次启动镜像同一次构建的 <code>vmlinux</code>，把地址翻译成函数与变量，然后 <code>target remote</code> 建立会话。</li>
+<li><strong>断点由 QEMU 执行：</strong><code>break start_kernel</code> 让 GDB 在该地址布置断点；Guest 执行到该地址时，QEMU 暂停 vCPU 并把事件回传给 GDB。</li>
+<li><strong>恢复与观察：</strong><code>continue</code>/<code>next</code>/<code>step</code> 让虚拟 CPU 继续或单步；只有符号与实际镜像一致，GDB 才能正确显示源码位置。</li>
+</ol>
+<details><summary>断点设好了却一直不命中，最可能的三类原因是什么？</summary><p>符号与运行镜像不一致（不同构建，或 KASLR 影响地址）、目标地址尚未被执行到、或 GDB 连到了非预期的 stub。先核对 <code>vmlinux</code> 与 <code>bzImage</code> 是否同源，再确认是否使用 <code>nokaslr</code>。</p></details>
+</section>
+
 <h2 id="section-03">三、xv6教学内核初体验</h2>
 <p>xv6 是 MIT 操作系统课程使用的教学操作系统，当前课程版本移植到 RISC-V。它保留进程、系统调用、页表、文件系统、管道和中断等关键机制，同时刻意省略了通用生产系统的大量兼容性和设备复杂度。它适合读代码和做实验，但不是一个可以替代 Linux 的通用发行版。</p>
 <h3>1. 工具链与构建</h3>
@@ -152,6 +165,17 @@ sudo trace-cmd report</code></pre>
 <h2 id="section-05">五、结语与下一章预告</h2>
 <p>QEMU 提供可重置的 Guest 环境，GDB stub 提供虚拟 CPU 调试入口，xv6 帮助我们在小型代码库里理解内核机制，perf/ftrace/eBPF 则让运行中的系统变得可观测。实验结果必须附带环境、内核版本、权限和测量方法；工具能运行，不等于实验结论已经被验证。</p>
 <p>下一章从进程开始，把这些工具用于观察一个程序如何变成进程、如何获得 CPU 时间，以及它如何与其他任务共享资源。</p>
+<section class="practice-card" aria-labelledby="practice-07-title">
+<h3 id="practice-07-title">只读核对：实验工具链是否就绪</h3>
+<p><strong>环境：</strong>Linux 宿主机，普通用户权限；只检查工具是否存在及其版本，不启动 Guest，也不需要 root。是否支持硬件加速由宿主机与 CPU 决定。</p>
+<pre><code>qemu-system-x86_64 --version
+qemu-system-riscv64 --version
+gdb --version | head -n 1
+command -v riscv64-unknown-elf-gcc
+ls ~/xv6-riscv/Makefile 2>/dev/null</code></pre>
+<p><strong>预期：</strong>能看到 QEMU 与 GDB 版本；<code>command -v</code> 命中裸机 RISC-V 工具链时打印路径，未安装则无输出。要跑 xv6 还需要带 <code>riscv64-softmmu</code> 的 QEMU 目标，可用 <code>qemu-system-riscv64 -machine help</code> 进一步确认。</p>
+<p><strong>解释：</strong>常被混淆的是把 <code>riscv64-linux-gnu-gcc</code> 当成 xv6 工具链；xv6 使用裸机 newlib 工具链，名字通常带 <code>unknown-elf</code>，两者不可互替。<strong>清理：</strong>均为只读检查，没有修改系统状态。</p>
+</section>
 <section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>解释 QEMU 的 -S 与 -gdb 如何配合，并说明为什么调试端口应绑定本机回环地址。</p><details><summary>查看思考提示</summary><p>区分 QEMU GDB stub 与 Linux KGDB；vmlinux 符号必须匹配正在启动的内核镜像。</p></details></section>
 <aside class="reading-sources" aria-label="延伸阅读"><strong>QEMU、xv6 与内核可观测性：</strong>
 <a href="https://www.qemu.org/docs/master/system/gdb.html">QEMU · GDB stub</a>

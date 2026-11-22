@@ -55,6 +55,15 @@
       "locator": "Arguments; tracepoint probes",
       "status": "verified",
       "notes": "仍需确认目标 tracepoint 和字段在当前内核上可用。"
+    },
+    {
+      "id": "lab-07",
+      "claim": "QEMU 的 GDB stub 通过 TCP 上的远程串行协议与 GDB 交换寄存器和内存访问请求，不要求 Guest 内核启用 CONFIG_KGDB。",
+      "kind": "tool behavior",
+      "source_url": "https://www.qemu.org/docs/master/system/gdb.html",
+      "locator": "GDB usage; Stub protocol",
+      "status": "verified",
+      "notes": "本章机制追踪与只读核对实验均不启动 Guest，只描述连接前提。"
     }
   ]
 }

@@ -236,7 +236,6 @@ s32 my_pick_next_task(struct task_struct *prev)
         <p>CPU调度器是操作系统的心脏——它决定了谁跑、跑多久、什么时候换人。从O(n)的蛮力遍历到CFS的vruntime公平模型，再到EEVDF的延迟感知，再到sched_ext的用户态可编程调度，每一步都是对更大规模、更多样化负载的适配。实时调度领域的PREEMPT_RT合入主线，更是Linux走向工业控制领域的里程碑事件。</p>
 
         <p>下一章，我们把目光从"谁来跑"转向"怎么协同跑"——当多个进程或多个线程同时访问共享数据时，如何确保数据的一致性？自旋锁、互斥锁、信号量、RCU——这些同步原语各有什么特长和场景？死锁的四个条件是什么，lockdep又是如何在内核中自动检测潜在死锁的？下一章见。</p>
-</div>
 <section class="practice-card" aria-labelledby="practice-10-title">
 <h3 id="practice-10-title">只读观察：调度类、优先级与实时带宽</h3>
 <p><strong>环境：</strong>Linux 主机，普通用户权限；只读取 procfs 与 sysctl，不创建实时任务、不需要 root。字段名与列名随内核和 procps 版本变化。</p>
@@ -247,6 +246,7 @@ cat /proc/sys/kernel/sched_rt_period_us</code></pre>
 <p><strong>预期：</strong><code>/proc/self/sched</code> 显示当前任务调度实体的统计（如累计运行时间、上下文切换次数）；<code>ps</code> 的 <code>cls</code> 列区分普通（TS）与实时（FF/RR）任务；两个 sysctl 给出实时调度类的周期与运行预算（默认：周期 1000000 μs、预算 950000 μs）。</p>
 <p><strong>解释：</strong>只有可运行任务才参与当前 CPU 竞争；nice 只调节普通任务的权重，不影响实时类的优先级规则。实时带宽限制用于避免实时任务把普通任务彻底饿死。<strong>清理：</strong>均为只读命令。</p>
 </section>
+</div>
 <section class="review-lab" aria-labelledby="review-title"><h2 id="review-title">本章自测 · 从概念走向验证</h2><p>解释可运行、运行中与等待 I/O 的区别。</p><details><summary>查看思考提示</summary><p>只有可运行任务才参与当前的 CPU 竞争。</p></details></section>
 <aside class="reading-sources" aria-label="延伸阅读"><strong>延伸阅读入口：</strong><a href="https://docs.kernel.org/">Linux 内核文档</a><a href="https://man7.org/linux/man-pages/">Linux man-pages</a><p><a href="evidence/10.json">查看本章论断与来源证据清单（evidence/10.json）</a></p><p>具体 API、命令与版本行为请以对应官方文档和实验环境为准。</p></aside>
 <nav class="footer-nav" aria-label="章节前后导航"><a href="09.html">← 上一章 · 线程与协程</a><a href="index.html">返回课程目录</a><a href="11.html">下一章 · 同步与互斥 →</a></nav>

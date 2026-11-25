@@ -64,6 +64,24 @@
       "locator": "Unsafe abilities",
       "status": "verified",
       "notes": "驱动中的硬件访问和 FFI 仍需审计 unsafe 边界。"
+    },
+    {
+      "id": "drv-16-05",
+      "claim": "字符设备通过主/次设备号注册 cdev 与 file_operations，VFS 将 open/read/write 路由到驱动回调。",
+      "kind": "kernel API",
+      "source_url": "https://docs.kernel.org/driver-api/driver-model/",
+      "locator": "Character devices",
+      "status": "verified",
+      "notes": "设备节点名只是接口，不直接对应硬件寄存器。"
+    },
+    {
+      "id": "drv-16-06",
+      "claim": "驱动不能用 memcpy 直接读写用户地址，应使用 copy_to_user/copy_from_user 以处理非法地址与缺页。",
+      "kind": "kernel API",
+      "source_url": "https://docs.kernel.org/core-api/kernel-api.html",
+      "locator": "copy_to_user; copy_from_user",
+      "status": "verified",
+      "notes": "只读实验用 /proc/devices 与 sysfs 观察主设备号与设备模型，不加载模块。"
     }
   ]
 }

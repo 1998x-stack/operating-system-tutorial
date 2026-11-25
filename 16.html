@@ -89,6 +89,8 @@ $ echo -n "0000:01:00.0" > /sys/bus/pci/drivers/nvme/bind</code></pre>
 
         <p>字符设备（char device）是最简单的设备类型——数据像字节流一样顺序读写。键盘、鼠标、串口都是典型的字符设备。写一个简单的字符设备驱动是理解Linux驱动框架的最佳入门实践。</p>
 
+        <figure class="mechanism-figure"><img src="assets/diagrams/chardev-path.svg" width="800" height="300" alt="一次字符设备 read 从应用到 VFS、驱动回调与硬件的分层路径"><figcaption>一次字符设备读取的分层：应用对设备节点 read；VFS 按主/次设备号找到 cdev 与 file_operations，交给驱动的 read 回调；驱动取数据后用 copy_to_user 拷回用户缓冲区。图为分层示意，不代表具体函数名。</figcaption></figure>
+
         <h3>驱动骨架</h3>
 
         <pre><code>#include &lt;linux/module.h&gt;
@@ -181,6 +183,19 @@ MODULE_LICENSE("GPL");</code></pre>
         <h3>copy_to_user 为什么不能直接 memcpy？</h3>
         <p>初学者常问：为什么内核驱动里不用 <code>memcpy</code> 而要用 <code>copy_to_user</code> 和 <code>copy_from_user</code>？原因有两个：一是安全性——用户空间传递的指针可能指向非法地址，直接访问会导致内核崩溃（oops）；二是架构原因——某些架构上内核不能直接访问用户空间内存，需要特殊的指令（如x86的 <code>movs</code> 配合段寄存器）。<code>copy_to_user</code> 内部做了地址校验 + 页面错误处理，失败时返回未拷贝的字节数。</p>
 
+        <section class="deep-dive" aria-labelledby="deep-16-title">
+<h3 id="deep-16-title">机制追踪：一次字符设备 <code>read()</code>，从设备节点到驱动回调经历了什么？</h3>
+<p>用户看到的是一个 <code>/dev</code> 下的文件名，内核看到的是主/次设备号与一组回调。按顺序看：</p>
+<ol class="causal-steps">
+<li><strong>open 解析设备号：</strong>VFS 根据设备节点的主/次设备号，在 cdev 表里找到驱动注册的 <code>file_operations</code>，把它绑定到本次打开的 <code>struct file</code>。</li>
+<li><strong>read 进入 VFS：</strong>用户态 <code>read()</code> 先到 VFS，再由 <code>file->f_op->read</code>（或 <code>read_iter</code>）进入驱动回调，而不是直接碰硬件。</li>
+<li><strong>驱动取数据：</strong>回调从硬件寄存器、FIFO 或 DMA 缓冲区取数据；若数据未就绪，可能睡眠等待，也可能依赖中断在稍后通知完成——这取决于驱动与设备。</li>
+<li><strong>copy_to_user 拷回：</strong>用 <code>copy_to_user</code> 把内核缓冲区的数据拷到用户地址；失败返回 <code>EFAULT</code>。不能直接 <code>memcpy</code>，因为用户地址可能非法、缺页或被换出。</li>
+<li><strong>返回字节数：</strong>回调返回实际拷贝的字节数；短读（小于请求量）是正常现象，通常是暂时无数据或已到达末尾。</li>
+</ol>
+<details><summary>设备节点是硬件寄存器本身吗？</summary><p>不是。设备节点只是“接口”：主/次设备号把内核路由到某个驱动的回调，驱动再决定如何访问寄存器、FIFO 或 DMA。同一份驱动代码可以在不同设备节点上实例化，因此 <code>/dev</code> 下的名字与硬件寄存器不是一一对应。</p></details>
+</section>
+
         <h2 id="section-03">三、设备树（Device Tree）</h2>
 
         <p>在x86平台上，硬件拓扑信息通过ACPI（高级配置与电源管理接口）传递给内核——这是一个复杂的表格系统。但在ARM和RISC-V平台上，ACPI过于复杂和冗余，Linux内核采用了更精简的方案：设备树（Device Tree, DT）。</p>
@@ -264,6 +279,17 @@ static struct platform_driver my_driver = {
         <h2 id="section-05">五、结语与下一章预告</h2>
 
         <p>本章我们从Linux设备模型的三大支柱（device、driver、bus）出发，手写了一个字符设备驱动，学习了设备树在ARM/RISC-V平台上的硬件描述方式，最后眺望了Rust驱动在Linux内核中的新兴浪潮。设备驱动是OS和硬件之间的最后一道桥梁——理解它，你就真正理解了"OS抽象硬件"这句话的背后代码。</p>
+
+<section class="practice-card" aria-labelledby="practice-16-title">
+<h3 id="practice-16-title">只读观察：设备节点、主次设备号与设备模型</h3>
+<p><strong>环境：</strong>Linux 主机，普通用户权限；只读取 <code>/dev</code>、<code>/proc/devices</code> 与 sysfs，不加载模块、不写设备。可用设备与类目录随内核与硬件变化。</p>
+<pre><code>ls -l /dev/null /dev/zero /dev/tty
+head -n 20 /proc/devices
+ls /sys/class | head
+ls /sys/class/net 2>/dev/null</code></pre>
+<p><strong>预期：</strong><code>ls -l</code> 首字符为 <code>c</code> 表示字符设备，逗号两侧是主/次设备号；<code>/proc/devices</code> 列出已注册的字符/块设备主设备号与驱动名；<code>/sys/class</code> 下按类组织设备。</p>
+<p><strong>解释：</strong>设备节点名只是接口，真正把 read/write 路由到哪个驱动由注册的主设备号决定；sysfs 则由设备模型导出 device/driver/bus 的层次。这也说明“设备节点 ≠ 硬件寄存器”。<strong>清理：</strong>均为只读命令。</p>
+</section>
 
         <p>驱动的核心工作方式离不开中断——硬件完成操作后通过中断通知CPU。下一章，我们将全面深入地学习中断与异常处理机制，看看操作系统是如何在"必须响应得快"和"要做的事情很多"这对矛盾中找到解决方案的。</p>
 </div>

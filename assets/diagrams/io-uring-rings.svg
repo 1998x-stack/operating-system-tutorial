@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" role="img" aria-labelledby="t d">
+<title id="t">io_uring 的提交队列（SQ）与完成队列（CQ）在用户态与内核之间共享</title>
+<desc id="d">应用把请求描述（SQE，含 opcode、fd、缓冲区、user_data）写入提交队列并推进 tail，内核从 head 处取出执行。执行完成后内核把结果（CQE，含返回值与 user_data）写入完成队列，应用从 CQ 取出并推进。两个环形队列位于用户态与内核态共享的内存映射中，因此提交与收割不必各走一次系统调用——进入内核的时机由是否需要等待决定。图只表示队列与指针的基本关系。</desc>
+<defs><marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0L6 3L0 6z" fill="#53676d"/></marker></defs>
+<g font-family="sans-serif">
+<text x="400" y="26" text-anchor="middle" font-size="17" fill="#203035">io_uring：共享内存中的两个环形队列</text>
+<text x="60" y="52" font-size="13" fill="#147f80">用户态 · 应用</text>
+<text x="740" y="52" font-size="13" fill="#916c22" text-anchor="end">内核</text>
+<rect x="60" y="62" width="680" height="46" rx="8" fill="#e7f4f0" stroke="#147f80" stroke-width="2"/>
+<text x="400" y="82" text-anchor="middle" font-size="13" fill="#203035">提交队列 SQ：应用写入 SQE，并把 tail 前移</text>
+<text x="400" y="99" text-anchor="middle" font-size="12" fill="#53676d">SQE = opcode + fd + buffer + user_data；内核从 head 取出执行</text>
+<path d="M400 110 L400 132" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#ah)"/>
+<path d="M360 132 L360 110" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#ah)"/>
+<text x="400" y="146" text-anchor="middle" font-size="12" fill="#53676d">head / tail 指针在共享内存中原子推进</text>
+<rect x="60" y="158" width="680" height="46" rx="8" fill="#f2eefa" stroke="#7461ba" stroke-width="2"/>
+<text x="400" y="178" text-anchor="middle" font-size="13" fill="#203035">完成队列 CQ：内核写入 CQE，并把 tail 前移</text>
+<text x="400" y="195" text-anchor="middle" font-size="12" fill="#53676d">CQE = 返回值 res + user_data；应用从 head 取出收割</text>
+<path d="M400 206 L400 228" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#ah)"/>
+<path d="M360 228 L360 206" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#ah)"/>
+<rect x="60" y="240" width="680" height="34" rx="8" fill="#fbe9e1" stroke="#d06d4d" stroke-width="2"/>
+<text x="400" y="262" text-anchor="middle" font-size="13" fill="#203035">提交/收割默认在用户态完成；需要等待完成时才通过一次系统调用进入内核</text>
+<text x="60" y="292" font-size="12" fill="#53676d">简化示意：实际还有 SQPOLL、内核线程等模式，且 API 版本差异较大。</text>
+</g></svg>

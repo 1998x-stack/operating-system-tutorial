@@ -64,6 +64,24 @@
       "locator": "DMA-BUF-backed registered buffers patch series",
       "status": "derived",
       "notes": "按目标内核合入状态和驱动支持矩阵确认。"
+    },
+    {
+      "id": "io-15-08",
+      "claim": "epoll 是就绪通知接口：epoll_wait 返回可读/可写的 fd，应用仍需自行发起 read/write。",
+      "kind": "system call behavior",
+      "source_url": "https://man7.org/linux/man-pages/man7/epoll.7.html",
+      "locator": "epoll_wait; level-triggered and edge-triggered",
+      "status": "verified",
+      "notes": "只读实验用 strace 区分 epoll 就绪通知与 io_uring 完成通知。"
+    },
+    {
+      "id": "io-15-09",
+      "claim": "io_uring 通过共享的提交队列（SQ）与完成队列（CQ）传递请求与完成，完成项携带应用提供的 user_data。",
+      "kind": "system call behavior",
+      "source_url": "https://man7.org/linux/man-pages/man7/io_uring.7.html",
+      "locator": "Submission and completion queue",
+      "status": "verified",
+      "notes": "完成可能乱序，因此需用 user_data 匹配请求；SQPOLL 与内核版本影响是否需 io_uring_enter。"
     }
   ]
 }

@@ -130,6 +130,8 @@ while (1) {
         <h3>共享内存环形队列（SQ/CQ）</h3>
         <p>io_uring的核心创新是使用两个内存环形队列——提交队列（Submission Queue, SQ）和完成队列（Completion Queue, CQ）——在应用和内核之间共享。应用在SQ中填入I/O请求（open/read/write/send/recv/accept 等等），内核从SQ消费请求、执行、然后将结果写入CQ。整个过程不需要系统调用——不！需！要！</p>
 
+        <figure class="mechanism-figure"><img src="assets/diagrams/io-uring-rings.svg" width="800" height="300" alt="io_uring 的提交队列与完成队列在用户态与内核之间共享，head/tail 指针原子推进"><figcaption>io_uring 用两个共享环形队列代替“每次 I/O 一次系统调用”：应用写 SQE 推进 SQ tail，内核从 head 取走执行；完成后内核写 CQE，应用再从 CQ 收割。仅当需要等待完成时才进入内核。图为队列与指针关系示意，不代表具体版本的所有模式。</figcaption></figure>
+
         <pre><code>// io_uring的基础用法——提交读请求并等待完成
 struct io_uring ring;
 io_uring_queue_init(1024, &ring, 0);
@@ -167,6 +169,19 @@ io_uring_cqe_seen(&ring, &cqe);</code></pre>
             <tr><td>批量提交</td><td>不支持</td><td>支持batch提交</td><td>支持batch提交</td></tr>
             <tr><td>适用场景</td><td>通用场景</td><td>高并发网络/存储</td><td>极致性能场景</td></tr>
         </table>
+
+        <section class="deep-dive" aria-labelledby="deep-15-title">
+<h3 id="deep-15-title">机制追踪：<code>io_uring_submit()</code> 之后，请求是怎么被内核发现并完成的？</h3>
+<p>io_uring 与同步 <code>read()</code> 最大的控制流差异，在于“提交”和“完成”是两件分开的事。按顺序看：</p>
+<ol class="causal-steps">
+<li><strong>填入 SQE：</strong>应用获取一个空闲 SQ 槽位，写入 opcode、fd、缓冲区、偏移和 <code>user_data</code>，并把 SQ 的 tail 前移。</li>
+<li><strong>决定是否进入内核：</strong>若内核可能在轮询（<code>IORING_SETUP_SQPOLL</code>），提交可不发系统调用；否则用 <code>io_uring_enter</code>（带 <code>to_submit</code>）告知内核“SQ 里有新请求”。</li>
+<li><strong>内核消费并异步执行：</strong>内核从 SQ head 取出 SQE，交给对应文件/网络实现异步处理；期间应用可以继续提交或做别的工作，不必原地阻塞。</li>
+<li><strong>写 CQE：</strong>操作完成后，内核把结果（<code>res</code> 与提交时原样带回的 <code>user_data</code>）写入 CQ 并推进 CQ tail。</li>
+<li><strong>应用收割：</strong>应用从 CQ head 读出 CQE，用 <code>user_data</code> 匹配回自己的请求，再推进 head（<code>cqe_seen</code>）。</li>
+</ol>
+<details><summary>为什么完成要靠 user_data 匹配，而不是按提交顺序？</summary><p>因为完成顺序不保证与提交顺序一致：不同操作的耗时不同，内核可能乱序完成。这与同步 <code>read()</code> 有本质区别——同步调用返回时就已经拿着本次结果；io_uring 必须把“发起”和“结果”用 <code>user_data</code> 关联起来。这也是 epoll 的“就绪通知”与 io_uring 的“完成通知”区别所在：前者告诉你“现在读可能不阻塞”，你仍需自己发 <code>read</code>；后者直接交付执行结果。</p></details>
+</section>
 
         <h2 id="section-04">四、io_uring高级特性演进</h2>
 
@@ -212,6 +227,23 @@ io_uring_cqe_seen(&ring, &cqe);</code></pre>
         <p>本章我们走过了操作系统I/O模型的完整演进路径——从阻塞I/O到非阻塞，从epoll的事件驱动到io_uring的革命性创新。你看到了工程师们如何一步步解决C10K问题，如何通过共享内存环形队列消除系统调用，又如何通过零拷贝技术消除数据移动的开销。I/O模型不仅仅是OS特性，它深刻影响着你写的每一行网络代码、每一个数据库查询、每一次文件读写。</p>
 
         <p>值得一提的是，io_uring的演进远未结束——它正在从纯粹的I/O框架演变为通用的异步系统调用接口。未来我们甚至可能用 <code>io_uring</code> 来执行 <code>openat</code>、<code>mkdir</code> 甚至 <code>clone</code> 系统调用。可以说io_uring正在模糊"I/O"和"系统调用"的边界。</p>
+
+<section class="practice-card" aria-labelledby="practice-15-title">
+<h3 id="practice-15-title">只读观察：就绪通知（epoll）与完成通知（io_uring）的区别</h3>
+<p><strong>环境：</strong>Linux 主机，普通用户权限；只读取内核开关并用 <code>strace</code> 追踪自己启动的子进程。io_uring 开关与 syscall 支持随内核版本变化。</p>
+<pre><code>uname -r; cat /proc/sys/kernel/io_uring_disabled 2>/dev/null || echo '该内核无此开关'
+strace -f -e trace=epoll_create1,epoll_ctl,epoll_wait,read python3 - <<'PY'
+import select, os
+r, w = os.pipe()
+ep = select.epoll()
+ep.register(r, select.EPOLLIN)
+os.write(w, b'x')
+print(ep.poll(1))       # 就绪通知：报告可读
+print(os.read(r, 1))     # 应用仍需自己发 read
+PY</code></pre>
+<p><strong>预期：</strong>追踪里出现 <code>epoll_create1</code>、<code>epoll_ctl</code> 与 <code>epoll_wait</code>，随后才有单独的 <code>read</code>；<code>epoll_wait</code> 只报告 fd 可读，不返回数据。若 <code>io_uring_disabled</code> 为 <code>2</code>，说明本机已禁止创建 io_uring 实例。</p>
+<p><strong>解释：</strong>epoll 是“就绪通知”——告诉你现在读取不会阻塞，数据还要你自己 <code>read</code>；io_uring 是“完成通知”——内核执行完把结果放进 CQ。这正是两种模型在控制流上的分界，也解释了为何高并发服务会从 epoll 转向 io_uring。<strong>清理：</strong>均为只读追踪与开关读取。</p>
+</section>
 
         <p>下一章，我们将从I/O系统的"使用者"视角切换到"实现者"视角，深入理解设备驱动的工作原理。应用程序的I/O请求如何穿越层层内核代码，最终到达硬件设备？设备驱动又是如何通过中断和DMA与硬件交互的？下一章见分晓。</p>
 </div>

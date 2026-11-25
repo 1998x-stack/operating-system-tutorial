@@ -57,6 +57,8 @@
 
         <p>内核管理物理内存的基本单位是"页帧"（Page Frame），即4KB大小的物理内存块（如果配置了大页就是2MB或1GB）。Buddy 分配器是 Linux 页分配器的重要组成部分，按 order 管理连续页框；实际分配还会受到 NUMA 节点、zone、水位线、迁移类型与 GFP 标志等条件影响。</p>
 
+        <figure class="mechanism-figure"><img src="assets/diagrams/buddy-split-merge.svg" width="800" height="300" alt="伙伴系统把一个 order 2 空闲块分裂成两个 order 1 块，释放后伙伴空闲则合并回 order 2"><figcaption>伙伴系统的一次分裂与合并：请求 2 页时把 order 2 块一分为二，一块分配、一块回到 order 1 链表；释放时若伙伴仍空闲就递归合并。图为规则示意，不代表具体链表顺序或某一内核版本实现。</figcaption></figure>
+
         <h3>算法的核心思想</h3>
 
         <p>Buddy System把物理页按照2的幂次方分组——每种大小的块形成一个链表（freelist）。分配时，如果请求n页，内核会找到大于等于n的最小2的幂次方大小的块。如果那个大小的链表里没有空闲块，就向更大一级的链表借一个块，然后一分为二（称为"分裂"），把分裂后的一半放回小一级的链表，另一半用于分配。</p>
@@ -101,6 +103,18 @@ order 2 (4页):  [页I-K页] [页L-O页]
         </div>
 
         <h2 id="section-02">Slab/Slub分配器</h2>
+
+        <section class="deep-dive" aria-labelledby="deep-13-title">
+<h3 id="deep-13-title">机制追踪：一次 kmalloc() 小对象分配，为什么不从伙伴系统直接拿一页？</h3>
+<p>同一次“要一块内存”，走的是两条粒度不同的路径。把 kmalloc 拆开看：</p>
+<ol class="causal-steps">
+<li><strong>选缓存：</strong><code>kmalloc</code> 按请求大小对到一组预先定好的 <code>kmalloc-*</code> 缓存，每个缓存对应固定的对象尺寸阶，而不是精确字节数。</li>
+<li><strong>取对象（Slub 快路径）：</strong>从当前 CPU 的 per-CPU slab 上直接拿一个空闲对象；无锁或轻量锁就能完成，避免每次都碰全局锁。</li>
+<li><strong>补页（向伙伴系统要页）：</strong>当 slab 内空闲对象用完时，Slub 才向伙伴系统申请新的页框（或一组页框）作为新 slab，再切成固定大小的对象。</li>
+<li><strong>释放与回收：</strong>对象归还到所属 slab；当整个 slab 都空闲且缓存压力大时，slab 才会被归还给伙伴系统，重新成为可分裂/合并的页框。</li>
+</ol>
+<details><summary>那为什么不直接用用户态 malloc/free 的思路管理？</summary><p>内核对象（如 <code>task_struct</code>、<code>inode</code>）频繁创建销毁、尺寸相对固定，而且分配路径往往处于不可睡眠上下文。Slub 用“按类型分缓存 + per-CPU 快路径”把常见路径的锁争用和碎片成本降下来；Buddy 则只负责页粒度、允许分裂合并的底层供给。两者是分层关系，不是替代关系。</p></details>
+</section>
 
         <p>内核中频繁创建和销毁大量小对象——task_struct、inode、dentry、mm_struct等。如果每次创建都通过Buddy System分配一个或多个物理页，效率太低了。一方面，4KB以下的分配造成严重的内部碎片；另一方面，对象的初始化和销毁需要额外开销。</p>
 
@@ -273,6 +287,17 @@ cat my_container/memory.events</code></pre>
         <div class="tip">
             <p><strong>生产实践</strong>：应把匿名内存、页缓存、内核记账、线程栈和峰值波动纳入容量模型。不要采用固定 10–20% 作为通用余量；应根据容器的 <code>memory.current</code>、<code>memory.stat</code>、<code>memory.events</code> 与压力测试结果设定限制。</p>
         </div>
+
+        <section class="practice-card" aria-labelledby="practice-13-title">
+<h3 id="practice-13-title">只读观察：伙伴系统与 slab 的分层供给</h3>
+<p><strong>环境：</strong>Linux 主机，普通用户权限；只读取 <code>/proc</code> 与 sysfs，不调整水位线、不释放缓存。字段与可用 order 随内核版本、配置与内存规模变化。</p>
+<pre><code>grep -E 'MemFree|MemAvailable|^Slab|SReclaimable|SUnreclaim' /proc/meminfo
+cat /proc/buddyinfo
+cat /proc/slabinfo 2>/dev/null | head -n 5 || echo 'slabinfo 需 root，跳过'
+ls /sys/kernel/mm/ 2>/dev/null</code></pre>
+<p><strong>预期：</strong><code>/proc/buddyinfo</code> 按 zone/NUMA 节点列出每个 order 的空闲块个数，低 order 通常数量最多；<code>/proc/meminfo</code> 中 <code>Slab</code> 体现的是 Slub 已向 Buddy 索取的页框汇总，而不是应用可用内存。</p>
+<p><strong>解释：</strong>Buddy 的计数只反映页粒度空闲块；slab 的页一旦被切分就不再出现在 buddyinfo 中，直到整个 slab 被回收。这说明“Slab 用量 ≠ 应用内存”，也不能只看 <code>MemFree</code> 判断内存是否紧张——应结合 <code>MemAvailable</code>、PSI 与回收计数。<strong>清理：</strong>均为只读命令。</p>
+</section>
 
         <p>物理内存管理是操作系统中最靠近硬件的部分之一——Buddy System管理物理页、Slub加速小对象分配、kswapd和MGLRU在内存压力下优雅降级、memcg实现多租户隔离。这些机制合在一起，让物理内存这个有限且复杂的资源变得易于使用而又高效可控。</p>
 

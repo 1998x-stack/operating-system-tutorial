@@ -46,6 +46,24 @@
       "locator": "Memory Interface Files; memory.low/high/max",
       "status": "verified",
       "notes": "有效保护还受父级边界和 overcommit 影响。"
+    },
+    {
+      "id": "mem-13-06",
+      "claim": "Buddy 分配器按 2 的幂次 order 管理连续页框，分裂与合并在伙伴块间进行；/proc/buddyinfo 按 zone 列出各 order 空闲块数。",
+      "kind": "kernel implementation",
+      "source_url": "https://docs.kernel.org/core-api/mm-api.html",
+      "locator": "Page allocator; /proc/buddyinfo",
+      "status": "verified",
+      "notes": "实际分配还受 NUMA/zone/水位线/迁移类型/GFP 标志影响。"
+    },
+    {
+      "id": "mem-13-07",
+      "claim": "Slub 以 per-CPU 缓存和按对象尺寸分组的缓存向页分配器索取 slab 页框，再切分为固定尺寸对象。",
+      "kind": "kernel implementation",
+      "source_url": "https://docs.kernel.org/mm/slab.html",
+      "locator": "SLUB; per-CPU caches",
+      "status": "verified",
+      "notes": "只读实验用 buddyinfo/slabinfo 观察页粒度与对象缓存的分层，不把 Slab 计数等同于应用内存。"
     }
   ]
 }

@@ -64,6 +64,24 @@
       "locator": "EROFS Snapshotter",
       "status": "verified",
       "notes": "运行时集成取决于 snapshotter 与 differ 配置。"
+    },
+    {
+      "id": "fs-14-08",
+      "claim": "VFS 将路径分量解析为 dentry 并指向 inode；inode 是文件的唯一标识，文件名存在 dentry 中。",
+      "kind": "kernel abstraction",
+      "source_url": "https://docs.kernel.org/filesystems/vfs.html",
+      "locator": "The Directory Entry Cache; The Inode Object",
+      "status": "verified",
+      "notes": "同一 inode 可由多个 dentry（硬链接）引用。"
+    },
+    {
+      "id": "fs-14-09",
+      "claim": "每次 open() 创建一个 struct file 记录打开模式与读写偏移；fd 是进程 fd 表中指向它的下标，dup/fork 可能共享同一 struct file。",
+      "kind": "kernel abstraction",
+      "source_url": "https://docs.kernel.org/filesystems/vfs.html",
+      "locator": "The File Object",
+      "status": "verified",
+      "notes": "偏移在 struct file 上，因此独立 open 的偏移互不影响；只读实验用 stat/ls -li/proc fd 观察这一关系。"
     }
   ]
 }

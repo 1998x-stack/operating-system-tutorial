@@ -84,6 +84,8 @@
 
         <p>当你访问一个文件如 <code>/home/user/doc.txt</code> 时，文件系统需要完成"从文件路径到磁盘块"的映射。这条映射链上有三个关键数据结构：dentry、inode和page cache。</p>
 
+        <figure class="mechanism-figure"><img src="assets/diagrams/vfs-lookup.svg" width="800" height="300" alt="一次 read 从应用到 VFS、页缓存、块设备的分层数据流"><figcaption>一次读取经过的分层：应用通过 fd 持有 struct file；VFS 把路径分量解析为 dentry 并指向 inode；inode 经 address_space 关联页缓存；未命中时才由具体文件系统向块设备提交 I/O。图为分层示意，不代表具体函数调用链。</figcaption></figure>
+
         <h3>dentry（目录项缓存）</h3>
         <p>dentry是路径名与其对应inode之间的纽带。每个路径分量对应一个dentry——比如 <code>/home/user/doc.txt</code> 需要四个dentry：<code>/</code>、<code>home</code>、<code>user</code>、<code>doc.txt</code>。dentry缓存在dcache中，加速路径查找。下次快速访问同一路径时无需重新遍历目录。</p>
 
@@ -116,6 +118,19 @@
         <div class="tip">
             <p><strong>性能观察</strong>：通过 <code>cat /proc/meminfo</code> 查看 <code>Cached</code> 和 <code>Dirty</code> 两行。Cached 是内核报告的缓存内存统计项（包括文件页缓存等，不应直接等同于某个挂载点的文件数据量）；Dirty 是当前被标记为脏的内存量。持续增长可能提示写回压力，但需结合 Writeback、I/O 统计、脏页阈值与工作负载判断，不能单凭 Dirty 推断写回已失速。可以用 <code>sysctl vm.dirty_ratio</code> 和 <code>sysctl vm.dirty_background_ratio</code> 调整writeback的触发时机。</p>
         </div>
+
+        <section class="deep-dive" aria-labelledby="deep-14-title">
+<h3 id="deep-14-title">机制追踪：<code>open()</code> 返回的 fd，与 dentry、inode 各是什么关系？</h3>
+<p>“文件名”和“文件”不是同一个对象，一次 <code>open()</code> 会把几个不同的内核对象串起来。按顺序看：</p>
+<ol class="causal-steps">
+<li><strong>路径解析：</strong>VFS 把路径按分量逐个交给 dcache 查找；未命中的分量由具体文件系统读目录并填充 dentry，查不到则返回 <code>ENOENT</code>。</li>
+<li><strong>拿到 inode：</strong>解析出末级 dentry 后取它的 inode，权限与类型检查在此阶段完成。inode 是文件的唯一标识，与文件名无关。</li>
+<li><strong>新建 struct file：</strong>每次 <code>open()</code> 都创建一个新的 <code>struct file</code>，记录读写偏移与打开模式；<code>fd</code> 只是进程 fd 表中指向它的下标。</li>
+<li><strong>三者关系不同：</strong>dentry 是“路径名→inode”的缓存，可有多个 dentry（硬链接）指向同一 inode；<code>struct file</code> 表示一次打开实例，偏移存在它上面。</li>
+<li><strong>共享与隔离：</strong>两个进程各自 <code>open()</code> 同一文件会得到不同的 <code>struct file</code>，偏移互不影响；<code>dup()</code> 或 fork 后父子则可能共享同一个 <code>struct file</code>，从而共享偏移。</li>
+</ol>
+<details><summary>删除一个文件名，为什么数据还在？</summary><p>因为删除的只是目录项（名字到 inode 的引用），inode 的链接计数减一；只有当链接计数归零且没有打开引用时，数据块才会被释放。这也解释了“进程还持有已删除文件的 fd，空间就不会回收”。</p></details>
+</section>
 
         <h2 id="section-03">ext4的设计</h2>
 
@@ -223,6 +238,17 @@ btrfs filesystem df /mnt/data</code></pre>
         <div class="highlight">
             <p><strong>生态视野</strong>：文件系统的选择不是"谁最好"的问题，而是"哪个最适合我的场景"的问题。你不可能用一个文件系统覆盖所有需求——ext4的成熟稳定适合通用服务器，Btrfs的快照适合开发和备份，XFS的大规模并发适合数据仓库，F2FS的闪存优化适合移动设备，EROFS的只读压缩适合容器镜像。在系统设计中，根据场景选对文件系统，能省去很多运维层面的烦恼。</p>
         </div>
+
+<section class="practice-card" aria-labelledby="practice-14-title">
+<h3 id="practice-14-title">只读观察：文件名、inode 与文件描述符</h3>
+<p><strong>环境：</strong>Linux 主机，普通用户权限；只读取 <code>/proc</code> 与元数据，不写入或删除文件。字段与输出随文件系统、内核和 coreutils 版本变化。</p>
+<pre><code>stat -c '%n inode=%i links=%h size=%s' /etc/hostname
+ls -li /etc/hostname
+ls -l /proc/$$/fd
+grep -E '^Cached|^Dirty' /proc/meminfo</code></pre>
+<p><strong>预期：</strong><code>ls -li</code> 第一列是与 <code>stat</code> 相同的 inode 号；<code>links</code> 是硬链接计数；<code>/proc/&lt;pid&gt;/fd</code> 下每个符号链接指向该 fd 绑定的对象（普通文件 fd 的目标是其路径）。</p>
+<p><strong>解释：</strong>fd 绑定的是“这次打开实例”（<code>struct file</code>），而不是文件名；文件名到 inode 的映射由 dentry 完成。想验证硬链接，可对同一 inode 再建一个名字后比较 inode 号是否相等。<code>Cached</code> 是页缓存统计项，不应直接等同于某个目录的数据量。<strong>清理：</strong>均为只读命令。</p>
+</section>
 
         <p>文件系统是操作系统中"离用户最近"的子系统和"离硬件最近"的子系统之间的桥梁。从VFS的抽象、到inode和dentry的数据结构、到ext4的工程优化、到Btrfs的COW革命、再到现代文件系统的多元化生态——每层设计都在回答同一个问题：如何高效、安全、可靠地把数据存储在磁盘上，并让应用程序方便地访问。</p>
 

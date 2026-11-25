@@ -52,7 +52,7 @@ try {
       if (result.h1 !== 1) failures.push(`${path}: expected one H1, got ${result.h1}`);
       if (result.main !== 1) failures.push(`${path}: expected one main, got ${result.main}`);
       if (!result.toc) failures.push(`${path}: missing section navigation`);
-      if (number <= 10 && (result.deepDive !== 1 || result.practice !== 1)) {
+      if (number <= 18 && (result.deepDive !== 1 || result.practice !== 1)) {
         failures.push(`${path} [${viewport.width}px]: missing or duplicate mechanism/lab components`);
       }
       if (result.width > result.viewport + 1) failures.push(`${path} [${viewport.width}px]: horizontal overflow ${result.width} > ${result.viewport}`);
@@ -77,7 +77,7 @@ try {
     for (const failure of failures) console.error(" - " + failure);
     process.exitCode = 1;
   } else {
-    console.log("BROWSER QA PASS: homepage at 360/390/1440px; all 28 chapters at 360/1440px; keyboard skip link; deep dive labs across chapters 01-10.");
+    console.log("BROWSER QA PASS: homepage at 360/390/1440px; all 28 chapters at 360/1440px; keyboard skip link; deep dive labs across chapters 01-18.");
   }
 } finally {
   await browser.close();

@@ -36,6 +36,20 @@
 
 新增图示为 `assets/diagrams/fork-cow.svg` 与 `assets/diagrams/thread-models.svg`；Playwright 冒烟测试的组件断言扩展到前 10 篇。
 
+## 第 11–18 章逐篇精细化（2026-11）
+
+- [逐篇复核记录](docs/reviews/fine-grained-11-18.md)：沿用 01–10 的“机制追踪 + 只读微实验”标准，逐篇提交、逐篇检查，并为原先缺图的章节补一张原创解释图。
+- [第 11 章](11.html)：争用 mutex 的快速/慢路径与 futex 边界，以及只读 futex 追踪。
+- [第 12 章](12.html)：区分 TLB miss 与 page fault，以及按需分配的缺页计数观察。
+- [第 13 章](13.html)：`kmalloc()` 经 Slub 向伙伴系统补页的分层供给，以及 buddyinfo/slab 只读观察。
+- [第 14 章](14.html)：`open()` 返回的 fd 与 dentry、inode、`struct file` 的关系。
+- [第 15 章](15.html)：io_uring 提交/完成路径，以及 epoll 就绪通知与完成通知的对比。
+- [第 16 章](16.html)：字符设备 `read()` 从设备号到驱动回调的路径。
+- [第 17 章](17.html)：中断上半部/下半部分工，以及 `/proc/interrupts`、`/proc/softirqs` 只读观察。
+- [第 18 章](18.html)：`hrtimer` 到期路径与 REALTIME/MONOTONIC 时间基准。
+
+新增图示包括 `assets/diagrams/lock-contention.svg`、`buddy-split-merge.svg`、`vfs-lookup.svg`、`io-uring-rings.svg`、`chardev-path.svg`、`irq-top-bottom.svg` 与 `time-bases.svg`；Playwright 冒烟测试的组件断言扩展到前 18 篇。
+
 ## 如何阅读
 
 1. **本地即开即用：**克隆仓库后双击 `index.html`，或用浏览器打开任意章节 HTML。新版目录不再依赖 `fetch()`，因此在 `file://` 下也可以浏览。

@@ -37,6 +37,15 @@
       "locator": "Multi-size THP; per-size controls",
       "status": "verified",
       "notes": "检查目标系统的 sysfs per-size 控制项。"
+    },
+    {
+      "id": "vm-12-05",
+      "claim": "getrusage() 通过 ru_minflt/ru_majflt 报告进程的轻微/严重缺页计数。",
+      "kind": "system call behavior",
+      "source_url": "https://man7.org/linux/man-pages/man2/getrusage.2.html",
+      "locator": "ru_minflt; ru_majflt",
+      "status": "verified",
+      "notes": "计数不直接等于物理内存用量；只读实验用它观察按需分配。"
     }
   ]
 }

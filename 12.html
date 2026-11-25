@@ -170,6 +170,19 @@
             <p><strong>如何观察：</strong>进程级缺页计数可查看 <code>/proc/&lt;pid&gt;/stat</code> 中的 <code>majflt</code> 字段或使用 <code>getrusage()</code>；系统级计数可查看 <code>/proc/vmstat</code> 的 <code>pgmajfault</code>。major fault 可能来自文件映射或 swap 等需要 I/O 的路径，不能单凭计数断言“物理内存不足”，应结合 PSI、swap 使用、I/O 延迟和工作集判断。</p>
         </div>
 
+        <section class="deep-dive" aria-labelledby="deep-12-title">
+<h3 id="deep-12-title">机制追踪：从“TLB 未命中”到“缺页异常”，两件事分别发生在哪里？</h3>
+<p>TLB miss 和 page fault 常被混为一谈，但它们分别发生在硬件和内核两个层面，代价也完全不同。把一次访问拆开看：</p>
+<ol class="causal-steps">
+<li><strong>先查 TLB（硬件层）：</strong>CPU 先用虚拟地址查 TLB，命中则直接得到物理地址。未命中时按 CR3 指向的页表根逐级遍历（PGD→PUD→PMD→PTE）——这一过程不进入内核，只是变慢。</li>
+<li><strong>发现 PTE 无效：</strong>只有走到末级发现页表项标记为 not-present（或权限不足）时，才触发 #PF 异常，由硬件自动压入错误码并把出错地址写入 CR2。</li>
+<li><strong>入口分派：</strong>架构相关的缺页入口（x86 当前为 <code>exc_page_fault</code> 一类路径，函数名随版本变化）区分用户态与内核态，再交给 <code>handle_mm_fault()</code>。</li>
+<li><strong>按缺页类型分流：</strong>匿名页缺页分配并清零新页（<code>do_anonymous_page</code>）、文件映射缺页从 page cache 或文件系统取页、swap 缺页换入、COW 缺页复制写保护页——并非每次都要分配新页或访盘。</li>
+<li><strong>返回并重试：</strong>处理成功后返回用户态，重新执行触发缺页的那条指令；此时映射已建立，这次访问就能完成。</li>
+</ol>
+<details><summary>为什么 TLB miss 不算是“异常”，而缺页要进入内核？</summary><p>TLB miss 是硬件用页表重填地址翻译的正常情况，处理方式由 CPU 微架构决定，可以纯硬件也可以软件参与，但不属于控制权转移。缺页则是当前映射无法完成访问，必须由内核根据映射类型决定分配、取页或发送信号。因此两者的延迟量级和可观察计数（<code>minor/major fault</code> vs TLB 硬件计数器）完全不同。</p></details>
+</section>
+
         <h2 id="section-05">大页的威力</h2>
 
         <p>我们讲到TLB条目数量是有限的。x86-64 CPU中，每个核心通常有几十到几百个TLB条目。如果页大小是4KB，那么TLB能覆盖的总地址范围也就几百MB到几MB。但如果页大小是2MB呢？每个TLB条目覆盖2MB，几百个条目就能覆盖数GB的地址范围。</p>
@@ -194,6 +207,25 @@
         </div>
 
         <p>虚拟内存是操作系统中最精妙的设计之一。它通过多级页表实现了进程间的地址空间隔离，通过TLB加速了地址翻译，通过缺页机制实现了按需分配和内存超用，通过大页优化了TLB覆盖范围。配合下一章要讲的物理内存管理，构成了操作系统内存管理的完整图景。</p>
+
+<section class="practice-card" aria-labelledby="practice-12-title">
+<h3 id="practice-12-title">只读观察：按需分配带来的缺页计数</h3>
+<p><strong>环境：</strong>Linux 主机，普通用户权限；只读取 <code>getrusage()</code> 计数与 THP 开关，不修改系统配置。计数值随内核、调度与内存压力变化，不能当作固定基准。</p>
+<pre><code>python3 - <<'PY'
+import resource
+def faults():
+    r = resource.getrusage(resource.RUSAGE_SELF)
+    return r.ru_minflt, r.ru_majflt
+print('start', faults())
+buf = bytearray(64 * 1024 * 1024)
+for i in range(0, len(buf), 4096):
+    buf[i] = 1
+print('after touch', faults())
+PY
+cat /sys/kernel/mm/transparent_hugepage/enabled</code></pre>
+<p><strong>预期：</strong>分配 64 MiB 后、逐页写入前，minor fault 增长很小；逐页触写后 minor fault 明显增加（量级上随实际页大小与 THP 状态而变），major fault 通常仍接近 0。</p>
+<p><strong>解释：</strong>匿名内存是“按需分配”的：<code>bytearray</code> 只保留虚拟地址范围，首次写入每一页才触发缺页并映射物理页。若 THP 为 <code>always</code> 并成功合并，实际缺页数会低于按 4 KiB 计算的估计。这也说明<b>不能把 minor fault 数量直接换算成物理内存用量</b>。<strong>清理：</strong>均为只读计数与开关读取。</p>
+</section>
 
         <p>下一章，我们深入到物理内存层面——Buddy System如何分配物理页、Slab分配器如何管理内核对象、页面回收和swap的算法、以及MGLRU（多代LRU）如何让内存回收效率大幅提升。</p>
 </div>

@@ -46,6 +46,24 @@
       "locator": "Reducing Scheduling-Clock Ticks",
       "status": "verified",
       "notes": "具体行为取决于 Kconfig 与 boot 参数。"
+    },
+    {
+      "id": "time-18-05",
+      "claim": "hrtimer 以绝对到期时间维护在每 CPU 的红黑树中，并通过时钟事件设备按需编程一次性中断，不受 HZ 粒度限制。",
+      "kind": "kernel API",
+      "source_url": "https://docs.kernel.org/core-api/timekeeping.html",
+      "locator": "High resolution timers",
+      "status": "verified",
+      "notes": "时钟事件与 tickless 行为因架构与 Kconfig 而异。"
+    },
+    {
+      "id": "time-18-06",
+      "claim": "CLOCK_REALTIME 可被墙上时间校正影响，CLOCK_MONOTONIC 单调递增不受影响；两者均由内核选定的时钟源换算得到。",
+      "kind": "POSIX clock semantics",
+      "source_url": "https://man7.org/linux/man-pages/man2/clock_gettime.2.html",
+      "locator": "CLOCK_MONOTONIC",
+      "status": "verified",
+      "notes": "只读实验用 current_clocksource 与 time.time_ns()/monotonic_ns() 观察两者差异。"
     }
   ]
 }

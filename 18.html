@@ -91,6 +91,8 @@ if (time_after_eq(jiffies, timeout)) {
 
         <p>随着硬件的发展（CPU频率进入GHz时代、高精度事件计时器HPET的普及），每tick更新一次时间的模式已经无法满足需求。于是Linux 2.6.16引入了全新的高精度定时器子系统——hrtimer（High Resolution Timer）。</p>
 
+        <figure class="mechanism-figure"><img src="assets/diagrams/time-bases.svg" width="800" height="300" alt="CLOCK_REALTIME 与 CLOCK_MONOTONIC 两种时间基准与底层时钟源、jiffies 和 hrtimer 的关系"><figcaption>两种时间基准与底层时钟源：REALTIME 是会被 NTP/闰秒校准的墙上时间，MONOTONIC 自启动起单调递增；两者都由内核选定的硬件时钟源换算。周期 tick 驱动 jiffies，hrtimer 用一次性时钟事件编程。图为概念关系示意。</figcaption></figure>
+
         <h3>红黑树定时器</h3>
         <p>传统的 <code>timer_list</code> 使用"时间轮"（timer wheel）算法——将定时器按到期时间分成多个桶（bucket），每次tick到来时扫描当前时间片的桶。这种算法在定时器数量较少时效率不错，但精度受限于HZ。</p>
 
@@ -149,6 +151,19 @@ void my_stop_timer(struct my_device *dev) {
         <div class="tip">
             <p><strong>迁移趋势</strong>：现代Linux内核中，传统的 <code>timer_list</code> API已被标记为deprecated，所有新的定时器使用应当基于hrtimer。实际上，内核已经将大部分内部定时器（如TCP重传定时器、I/O调度器的延迟定时器）迁移到了hrtimer。如果你在内核模块开发中还看到 <code>init_timer</code> 或 <code>setup_timer</code>，那是应该被替换的旧代码。</p>
         </div>
+
+        <section class="deep-dive" aria-labelledby="deep-18-title">
+<h3 id="deep-18-title">机制追踪：一个 <code>hrtimer</code> 到期，内核从硬件计数走到回调经历了什么？</h3>
+<p>“定时”不是轮询，而是一次性编程硬件。按时间从建立到触发的顺序看：</p>
+<ol class="causal-steps">
+<li><strong>取当前时间：</strong>内核读取当前选定的 clocksource（如 TSC）换算成纳秒作为基准；这也是 <code>clock_gettime()</code> 的来源。</li>
+<li><strong>插入红黑树：</strong>hrtimer 以绝对到期时间插入当前 CPU 的红黑树，最早到期的节点在左，便于取最近一个。</li>
+<li><strong>编程时钟事件：</strong>若最近到期时间早于下一个周期 tick，内核用时钟事件设备编程一个一次性中断，而不是等固定 HZ 跳到来才发现。</li>
+<li><strong>中断触发：</strong>到期时硬件中断进入，内核在中断上下文中取出已到期的节点（可能一次处理多个）。</li>
+<li><strong>执行回调并重编程：</strong>回调运行后，内核把下一个到期时间重新编程；没有待处理定时器时就不再安排中断（tickless）。</li>
+</ol>
+<details><summary>HZ 和 hrtimer 的精度是一回事吗？</summary><p>不是。HZ 决定周期性 tick 的粒度，jiffies 也据此粗粒度递增；而 hrtimer 依赖时钟事件设备按需编程一个精确的到期中断，因此不受 HZ 粒度限制。现代内核通常以 tickless 方式运行空闲 CPU。这也是为什么测量时长应用 <code>CLOCK_MONOTONIC</code>：它不受墙上时间被 NTP 校准的影响。</p></details>
+</section>
 
         <h2 id="section-03">三、时钟源对比</h2>
 
@@ -229,6 +244,21 @@ $ cat /proc/timer_list | head -30</code></pre>
         </div>
 
         <h2 id="section-05">五、结语与下一章预告</h2>
+
+<section class="practice-card" aria-labelledby="practice-18-title">
+<h3 id="practice-18-title">只读观察：当前时钟源与两种时间基准</h3>
+<p><strong>环境：</strong>Linux 主机，普通用户权限；只读取 sysfs 与调用时间接口，不修改时钟或 NTP 配置。可用时钟源与 sysfs 路径随架构、内核与虚拟化环境变化。</p>
+<pre><code>cat /sys/devices/system/clocksource/clocksource0/current_clocksource
+cat /sys/devices/system/clocksource/clocksource0/available_clocksource
+python3 - <<'PY'
+import time
+print('REALTIME  ns:', time.time_ns())
+print('MONOTONIC ns:', time.monotonic_ns())
+PY
+cat /proc/timer_list 2>/dev/null | head -n 10 || echo 'timer_list 需 root，跳过'</code></pre>
+<p><strong>预期：</strong><code>current_clocksource</code> 通常是 <code>tsc</code>（虚拟化下常为 <code>kvm-clock</code>）；<code>available_clocksource</code> 列出候选源。<code>time.time_ns()</code>（REALTIME）数值远大于 <code>time.monotonic_ns()</code>（自启动起），两者都不应单方面作为绝对值使用。</p>
+<p><strong>解释：</strong>时钟源是内核选定的硬件计时基础；REALTIME 会被墙上时间校准，适合时间戳；MONOTONIC 不受校准影响，适合测时长与超时。<code>/proc/timer_list</code> 需 root，此实验按“未验证”处理该行也可。<strong>清理：</strong>均为只读命令。</p>
+</section>
 
         <p>本章我们从内核最原始的时间计量方式 <code>jiffies</code> 出发，深入到高精度定时器 <code>hrtimer</code> 的红黑树设计，对比了从TSC到HPET到kvm-clock的多种时钟源的特点，最后通过时钟漂移、虚拟化时钟和闰秒故障三个案例揭示了时间子系统的工程复杂性。时间管理是操作系统的"心跳"——它推动着进程调度、定时器执行、时间戳记录等一切周期性活动。</p>
 

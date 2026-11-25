@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" role="img" aria-labelledby="t d">
+<title id="t">一次设备中断被拆成上半部与下半部执行</title>
+<desc id="d">硬件触发中断后，CPU 进入驱动注册的硬中断处理（上半部）：关中断/关抢占、快速确认硬件并保存必要状态，此阶段不能睡眠。耗时或可能阻塞的工作通过 raise_softirq、tasklet 或 workqueue 推到下半部执行。softirq/tasklet 仍不可睡眠，workqueue 在内核线程上下文运行、可以睡眠。图只表示拆分原则，不代表具体回调名或某一内核版本实现。</desc>
+<defs><marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0L6 3L0 6z" fill="#53676d"/></marker></defs>
+<g font-family="sans-serif">
+<text x="400" y="26" text-anchor="middle" font-size="17" fill="#203035">一次设备中断：上半部与下半部</text>
+<rect x="60" y="44" width="300" height="40" rx="8" fill="#f6efdc" stroke="#916c22" stroke-width="2"/>
+<text x="210" y="69" text-anchor="middle" font-size="13" fill="#203035">硬件：置位并向中断控制器发信号</text>
+<path d="M360 64 L400 64" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#ah)"/>
+<rect x="400" y="44" width="340" height="40" rx="8" fill="#fbe9e1" stroke="#d06d4d" stroke-width="2"/>
+<text x="570" y="62" text-anchor="middle" font-size="13" fill="#203035">上半部：关中断/关抢占，快速确认硬件</text>
+<text x="570" y="78" text-anchor="middle" font-size="12" fill="#53676d">不能睡眠；越短越好</text>
+<path d="M570 84 L570 104" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#ah)"/>
+<rect x="400" y="106" width="340" height="40" rx="8" fill="#e7f4f0" stroke="#147f80" stroke-width="2"/>
+<text x="570" y="124" text-anchor="middle" font-size="13" fill="#203035">raise_softirq / tasklet / workqueue</text>
+<text x="570" y="140" text-anchor="middle" font-size="12" fill="#53676d">把可延后工作推后执行</text>
+<path d="M400 126 L360 126" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#ah)"/>
+<rect x="60" y="108" width="300" height="72" rx="8" fill="#f2eefa" stroke="#7461ba" stroke-width="2"/>
+<text x="210" y="130" text-anchor="middle" font-size="13" fill="#203035">下半部</text>
+<text x="210" y="150" text-anchor="middle" font-size="12" fill="#53676d">softirq / tasklet：不可睡眠</text>
+<text x="210" y="168" text-anchor="middle" font-size="12" fill="#53676d">workqueue：可睡眠、可阻塞</text>
+<path d="M210 180 L210 200" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#ah)"/>
+<rect x="60" y="202" width="680" height="40" rx="8" fill="#e7f4f0" stroke="#147f80" stroke-width="2"/>
+<text x="400" y="227" text-anchor="middle" font-size="13" fill="#203035">处理完成后返回被中断的上下文，或触发一次调度</text>
+<text x="60" y="268" font-size="12" fill="#53676d">简化示意图：softirq 在中断返回路径或 ksoftirqd 上运行；PREEMPT_RT 会把中断处理线程化。</text>
+<text x="60" y="288" font-size="12" fill="#53676d">具体分工取决于驱动与内核版本，本图不代表某一实现的回调链。</text>
+</g></svg>

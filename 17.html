@@ -67,6 +67,8 @@
 
         <p>Linux内核提供了四种下半部机制，每一种都是在前一种的基础上演进而来。理解它们的设计选择和适用场景，能帮你写出更健壮的驱动代码。</p>
 
+        <figure class="mechanism-figure"><img src="assets/diagrams/irq-top-bottom.svg" width="800" height="300" alt="一次设备中断被拆成上半部（关中断快速确认）与下半部（softirq/tasklet/workqueue）"><figcaption>中断被拆成上半部与下半部：上半部关中断/关抢占、快速确认硬件；耗时或可能阻塞的工作推到下半部。softirq/tasklet 仍不可睡眠，workqueue 运行在内核线程上下文、可以睡眠。图为拆分原则示意。</figcaption></figure>
+
         <table>
             <tr><th>机制</th><th>引入版本</th><th>可睡眠</th><th>执行上下文</th><th>特点</th></tr>
             <tr><td>软中断（softirq）</td><td>Linux 2.3</td><td>否</td><td>中断上下文</td><td>静态分配，可并发（同类型可在不同CPU同时执行）</td></tr>
@@ -126,6 +128,19 @@ void my_work_handler(struct work_struct *work) {
         <p>从Linux 2.6.30开始，<code>request_threaded_irq()</code> 允许将整个中断处理（包括上半部）放在一个内核线程中。你提供一个"上半部"函数（在中断上下文中执行，return IRQ_WAKE_THREAD 时唤醒线程），和一个"thread_fn"（在进程上下文中执行）。如果你不需要在真正的上半部做任何紧急操作，可以传入 <code>IRQF_ONESHOT</code> 标志让内核自动管理中断屏蔽——线程化中断会在执行期间自动屏蔽该中断线，执行完成后重新使能。</p>
 
         <p>线程化中断适合需要在可调度上下文中完成主要处理的设备，但并非所有驱动都应默认采用；性能与延迟需实测。在 PREEMPT_RT 下，大多数中断会被强制线程化，但 IRQF_NO_THREAD、IRQF_PERCPU 等特定中断类型存在例外，具体以当前内核实时文档为准。</p>
+
+        <section class="deep-dive" aria-labelledby="deep-17-title">
+<h3 id="deep-17-title">机制追踪：一次网卡收包中断，哪些事必须在上半部完成，哪些可以延后？</h3>
+<p>“快与多”的矛盾靠拆分解决。按中断从到达到结束的顺序看：</p>
+<ol class="causal-steps">
+<li><strong>硬件触发：</strong>设备向中断控制器发信号，CPU 在当前指令边界响应（前提是当前未关中断）。</li>
+<li><strong>上半部（硬中断处理）：</strong>保存现场后进入驱动注册的 handler；读取/清除设备的中断状态、把必要数据搬出设备 FIFO 或安排 DMA。此阶段仍可能关中断/关抢占，<b>不能睡眠</b>，应尽量短。</li>
+<li><strong>触发下半部：</strong>把耗时工作推后——<code>raise_softirq</code>、调度 tasklet，或把 <code>work_struct</code> 排入 workqueue；NAPI 常用 softirq 轮询收包队列。</li>
+<li><strong>下半部执行：</strong>softirq/tasklet 在中断返回路径或 <code>ksoftirqd</code> 上运行，仍不可睡眠；workqueue 在内核线程上下文运行，可以睡眠、阻塞、持锁。</li>
+<li><strong>返回与调度：</strong>处理完成后返回被中断的上下文，或在安全点触发一次调度——若把大量工作塞进上半部，被中断的代码与其他中断就会被推迟得越久。</li>
+</ol>
+<details><summary>为什么不能把所有工作都放在上半部？</summary><p>上半部运行在关中断/关抢占的窗口里，窗口越长，其他中断与调度被推迟得越久，最坏时延就越大。把可延后、可能阻塞的工作放入下半部，既能尽快释放硬件与关中断窗口，又能让 workqueue 在能睡眠的上下文里完成。PREEMPT_RT 则进一步把中断处理线程化，让硬中断只做最小唤醒。</p></details>
+</section>
 
         <h2 id="section-03">三、中断亲和性与CPU绑定</h2>
 
@@ -197,6 +212,17 @@ $ cat /proc/interrupts | grep nvme
         <h2 id="section-06">六、结语与下一章预告</h2>
 
         <p>本章我们从中断处理的核心矛盾出发，逐层深入了下半部的四种机制（softirq、tasklet、workqueue、线程化中断），学习了通过 <code>/proc/irq/smp_affinity</code> 和 <code>/proc/interrupts</code> 诊断和优化中断性能的方法，最后探讨了PREEMPT_RT如何将中断线程化以实现硬实时能力。中断是OS响应外部世界的"触发机制"，没有中断，操作系统就像没有传感器的人——对外界一无所知。</p>
+
+<section class="practice-card" aria-labelledby="practice-17-title">
+<h3 id="practice-17-title">只读观察：中断与软中断计数</h3>
+<p><strong>环境：</strong>Linux 主机，普通用户权限；只读取 <code>/proc</code>，不绑定亲和性、不修改中断配置。中断号、设备名与计数随内核与硬件变化。</p>
+<pre><code>head -n 12 /proc/interrupts
+head -n 12 /proc/softirqs
+cat /proc/sys/kernel/threadirqs 2>/dev/null || echo '无 threadirqs 开关'
+ls /proc/irq | head</code></pre>
+<p><strong>预期：</strong><code>/proc/interrupts</code> 按 CPU 列列出各中断线的计数与设备/控制器名；<code>/proc/softirqs</code> 按类型（如 NET_RX、TIMER）列出各 CPU 的执行次数；<code>threadirqs</code> 为 1 时表示中断处理被线程化。</p>
+<p><strong>解释：</strong>计数只反映发生次数，不代表处理耗时或实时性，也不能单凭某条中断计数高就断言性能瓶颈（需结合 <code>/proc/irq/&lt;n&gt;/smp_affinity</code>、软中断分布与 CPU 利用率）。可见 <code>/proc/irq/&lt;n&gt;/</code> 下存在 affinity 控制项，反映出中断可被绑定到特定 CPU。<strong>清理：</strong>均为只读命令。</p>
+</section>
 
         <p>中断的触发离不开时间——定时器中断是操作系统一切时间相关功能的"心跳"。下一章，我们将深入研究操作系统的时间管理：jiffies、hrtimer、以及现代CPU时钟源的演化故事。</p>
 </div>

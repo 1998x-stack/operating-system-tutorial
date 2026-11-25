@@ -46,6 +46,24 @@
       "locator": "Interrupt handling",
       "status": "verified",
       "notes": "结合 IRQF_NO_THREAD、per-CPU IRQ 等特殊情形。"
+    },
+    {
+      "id": "irq-17-05",
+      "claim": "中断处理分为上半部（硬中断，不可睡眠）与下半部（softirq/tasklet 不可睡眠，workqueue 可睡眠）以缩短关中断窗口。",
+      "kind": "kernel API",
+      "source_url": "https://docs.kernel.org/core-api/genericirq.html",
+      "locator": "Top halves and bottom halves",
+      "status": "verified",
+      "notes": "具体分工取决于驱动与内核版本。"
+    },
+    {
+      "id": "irq-17-06",
+      "claim": "/proc/interrupts 按 CPU 列出中断计数，/proc/softirqs 按类型列出软中断计数；threadirqs 开关反映中断是否线程化。",
+      "kind": "procfs interface",
+      "source_url": "https://docs.kernel.org/filesystems/proc.html",
+      "locator": "/proc/interrupts; /proc/softirqs",
+      "status": "verified",
+      "notes": "计数不表示处理耗时或实时性；只读实验据此观察分布。"
     }
   ]
 }

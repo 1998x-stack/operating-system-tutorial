@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" role="img" aria-labelledby="t d">
+<title id="t">竞争一把锁时，自旋锁与互斥锁的不同等待路径</title>
+<desc id="d">左半部分：自旋锁在锁被占用时，当前 CPU 反复读取锁字，忙等直到锁释放，全程不睡眠。右半部分：互斥锁先尝试快速获取；失败后任务进入等待队列并让出 CPU（睡眠），锁释放时由释放者唤醒一个等待者再重新竞争。图只表示典型路径，具体实现随内核配置与 PREEMPT_RT 变化。</desc>
+<defs><marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0L6 3L0 6z" fill="#53676d"/></marker></defs>
+<g font-family="sans-serif">
+<text x="400" y="26" text-anchor="middle" font-size="17" fill="#203035">锁被占用时：忙等还是睡眠</text>
+<line x1="400" y1="44" x2="400" y2="272" stroke="#d8cfc4" stroke-width="1"/>
+<text x="200" y="58" text-anchor="middle" font-size="15" fill="#147f80">自旋锁 · 忙等（不睡眠）</text>
+<rect x="40" y="80" width="150" height="40" rx="8" fill="#e7f4f0" stroke="#147f80" stroke-width="2"/>
+<text x="115" y="105" text-anchor="middle" font-size="13" fill="#203035">尝试获取锁</text>
+<path d="M190 100 L246 100" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#ah)"/>
+<rect x="250" y="80" width="150" height="40" rx="8" fill="#fbe9e1" stroke="#d06d4d" stroke-width="2"/>
+<text x="325" y="98" text-anchor="middle" font-size="13" fill="#203035">锁被占用 →</text>
+<text x="325" y="114" text-anchor="middle" font-size="13" fill="#203035">原地重复读取</text>
+<path d="M325 152 C 260 152 260 120 250 108" stroke="#d06d4d" stroke-width="2" fill="none" marker-end="url(#ah)"/>
+<text x="200" y="180" text-anchor="middle" font-size="12" fill="#53676d">CPU 持续占用，延迟敏感但开销小</text>
+<text x="200" y="240" text-anchor="middle" font-size="12" fill="#53676d">适用：极短临界区、不可睡眠的上下文</text>
+<text x="600" y="58" text-anchor="middle" font-size="15" fill="#7461ba">互斥锁 · 睡眠（让出 CPU）</text>
+<rect x="440" y="80" width="150" height="40" rx="8" fill="#e7f4f0" stroke="#147f80" stroke-width="2"/>
+<text x="515" y="105" text-anchor="middle" font-size="13" fill="#203035">快速路径获取</text>
+<path d="M590 100 L646 100" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#ah)"/>
+<rect x="650" y="80" width="120" height="40" rx="8" fill="#f2eefa" stroke="#7461ba" stroke-width="2"/>
+<text x="710" y="98" text-anchor="middle" font-size="13" fill="#203035">进入等待队列</text>
+<text x="710" y="114" text-anchor="middle" font-size="13" fill="#203035">并睡眠</text>
+<path d="M710 152 L710 176" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#ah)"/>
+<rect x="620" y="180" width="180" height="40" rx="8" fill="#fbe9e1" stroke="#d06d4d" stroke-width="2"/>
+<text x="710" y="205" text-anchor="middle" font-size="13" fill="#203035">释放者唤醒一个等待者</text>
+<text x="600" y="248" text-anchor="middle" font-size="12" fill="#53676d">适用：可能较长或可能阻塞的临界区</text>
+<text x="400" y="288" text-anchor="middle" font-size="12" fill="#53676d">简化示意图：只画典型路径，不代表某一版本的完整实现或精确时序。</text>
+</g></svg>

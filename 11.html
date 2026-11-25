@@ -84,6 +84,8 @@ counter++;               counter++;
 
         <p>这两种锁的实现哲学完全不同，理解它们的差异对于写出高性能的并发代码至关重要。</p>
 
+        <figure class="mechanism-figure"><img src="assets/diagrams/lock-contention.svg" width="800" height="300" alt="竞争一把锁时自旋锁忙等、互斥锁睡眠唤醒的两条路径对比"><figcaption>锁被占用时：自旋锁原地重复读取锁字（忙等），互斥锁把任务放进等待队列并让出 CPU。两条路径的取舍取决于临界区长度与上下文是否允许睡眠，本图为简化示意。</figcaption></figure>
+
         <h3>自旋锁（spinlock）</h3>
 
         <p>自旋锁的核心行为：如果锁被占用，当前执行上下文会忙等待，直到锁被释放。它不会主动睡眠，但这不等于任何 spinlock 都能在任何中断上下文中安全使用。必须按共享数据是否也会被硬中断/软中断访问选择合适的 irq/irqsave 变体；在 PREEMPT_RT 内核中，普通 <code>spinlock_t</code> 的语义会变化，真正需要硬中断原子语义的核心路径使用 <code>raw_spinlock_t</code>。具体规则以目标内核的 locking 文档为准。</p>
@@ -109,6 +111,19 @@ counter++;               counter++;
         <div class="tip">
             <p><strong>调优经验</strong>：一个经验法则是——如果临界区的执行时间小于两次上下文切换的时间（通常为1-5微秒），用自旋锁更好。如果你不确定，从互斥锁开始，用perf测量锁争用情况，再决定是否换用自旋锁。千万别一开始就选自旋锁——它容易引入隐蔽的性能问题。</p>
         </div>
+
+        <section class="deep-dive" aria-labelledby="deep-11-title">
+<h3 id="deep-11-title">机制追踪：一次争用中的 <code>mutex_lock()</code> 从快速路径到睡眠唤醒经历了什么？</h3>
+<p>“锁住”只是结果。把一次有竞争的获取拆开，能看到它为什么在无竞争时几乎不花代价，而在竞争时把成本转成“睡眠—唤醒”。</p>
+<ol class="causal-steps">
+<li><strong>快速路径先试一次：</strong>用原子操作（如比较并交换）尝试把锁字从空闲改为已占用；无人竞争时这一条原子指令就拿到锁，不进入内核。</li>
+<li><strong>乐观自旋再等一下：</strong>发现已加锁但持有者可能正在别的 CPU 上运行，实现可能短暂自旋，期望锁马上释放，避免立即睡眠的上下文切换开销。</li>
+<li><strong>进入慢路径睡眠：</strong>仍拿不到时，任务被挂到该锁的等待队列上，状态改为可中断/不可中断睡眠并调用调度器让出 CPU——这是与自旋锁最本质的区别。</li>
+<li><strong>释放者负责唤醒：</strong><code>unlock</code> 把锁字置空闲并唤醒等待队列中的一个任务；被唤醒者通常需要重新参与竞争，不保证“先到先得”。</li>
+<li><strong>用户态 mutex 落到 futex：</strong>pthread 互斥锁的无竞争路径完全在用户态完成，只有确需休眠或唤醒时才通过 <code>futex()</code> 系统调用进入内核。</li>
+</ol>
+<details><summary>自旋锁为什么不能这样“睡眠”，qspinlock 又改了什么？</summary><p>在硬中断等不可睡眠上下文里不能调用调度器，所以只能忙等；因此要按共享数据是否也会被中断访问选择 irq/irqsave 变体。qspinlock 把锁字与等待队列编码在一起，让各 CPU 在不同的 cache line 上自旋，减少多核同时读同一地址造成的缓存一致性压力。PREEMPT_RT 下普通 <code>spinlock_t</code> 的语义会变化，以目标内核的 locking 文档为准。</p></details>
+</section>
 
         <h2 id="section-03">信号量与PV操作</h2>
 
@@ -243,6 +258,24 @@ which lock already depends on the new lock.
         </div>
 
         <p>同步与互斥是并发编程中最难、也最有魅力的部分。从原子指令到自旋锁、从信号量到RCU、从死锁分析到lockdep自动检测——每一层抽象都在帮你降低并发编程的心智负担。但记住，没有银弹。选择合适的同步原语需要你理解场景：读多写少用RCU、临界区段用自旋锁、临界区长用互斥锁、资源计数用信号量。</p>
+
+<section class="practice-card" aria-labelledby="practice-11-title">
+<h3 id="practice-11-title">只读观察：用户态互斥锁何时落到 futex</h3>
+<p><strong>环境：</strong>Linux 主机，普通用户权限；只用 <code>strace</code> 追踪自己启动的子进程，不修改系统配置。<code>ptrace_scope</code> 限制可能使追踪失败，此时按“未验证”处理。输出随内核、libc 与调度而变化。</p>
+<pre><code>strace -f -e trace=futex python3 - <<'PY'
+import threading
+lock = threading.Lock()
+def worker():
+    for _ in range(2000):
+        with lock:
+            pass
+threads = [threading.Thread(target=worker) for _ in range(4)]
+[t.start() for t in threads]
+[t.join() for t in threads]
+PY</code></pre>
+<p><strong>预期：</strong>输出中出现若干 <code>FUTEX_WAIT_PRIVATE</code> 与 <code>FUTEX_WAKE_PRIVATE</code>（或非 PRIVATE 变体），而不是每次加锁都有系统调用；无竞争的锁几乎没有 futex 行。</p>
+<p><strong>解释：</strong>这正是“快速路径在用户态、慢路径才进内核”的体现：glibc 的互斥锁只在需要睡眠或唤醒时用 futex 请求内核介入。计数与时间不能当作固定基准。<strong>清理：</strong>均为只读追踪命令。</p>
+</section>
 
         <p>下一章，我们把视角从"CPU和并发"转向"内存的奥秘"——虚拟内存。为什么每个程序都以为自己在使用整个地址空间？从虚拟地址到物理地址的翻译过程是怎样的？TLB miss和page fault的开销到底有多大？大页为什么能显著提升性能？让我们一探究竟。</p>
 </div>

@@ -46,6 +46,15 @@
       "locator": "File descriptors; KVM_RUN",
       "status": "verified",
       "notes": "VMX root/non-root 仅是 Intel VT-x 术语，不可推广到 AMD/Arm。"
+    },
+    {
+      "id": "virt-21-06",
+      "claim": "每个 vCPU 对宿主机而言是一个可调度的任务/线程，多个 vCPU 共享物理核心时会产生客户机内可观测的 CPU 窃取（steal）。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://docs.kernel.org/virt/kvm/index.html",
+      "locator": "KVM documentation",
+      "status": "derived",
+      "notes": "steal 需通过两次 /proc/stat 采样做差得到速率。"
     }
   ]
 }

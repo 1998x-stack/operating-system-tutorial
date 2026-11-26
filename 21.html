@@ -121,7 +121,9 @@ $ virsh list --all
             <p><strong>理解关键</strong>：对于宿主机来说，每个虚拟机就是一个普通的QEMU进程。<code>ps aux | grep qemu</code> 就能看到每个虚拟机的内存占用和CPU占用。之所以叫"虚拟化"而不是"模拟"，是因为大多数指令直接在CPU上执行（VT-x的non-root mode），只有敏感指令才经过VM-Exit陷入宿主机处理。所以虚拟机性能非常接近物理机——通常开销在2%-10%之间。</p>
         </div>
 
-        <h2 id="section-03">vCPU调度与CPU窃取</h2>
+        <figure class="mechanism-figure"><img src="assets/diagrams/kvm-vcpu.svg" width="800" height="400" alt="KVM 与 QEMU 的组件边界、通道 ioctl 驱动的客户机执行、vCPU 作为宿主机线程以及 virtio 共享队列的数据路径"><figcaption>组件边界：QEMU 在用户态通过 <code>/dev/kvm</code> 的 ioctl 驱动内核 KVM；<code>KVM_RUN</code> 让 vCPU 客户机执行，直到 VM-Exit 返回。每个 vCPU 对应宿主机上的一个线程，由宿主机调度器分配时间片；virtio 通过共享 virtqueue 降低 I/O 开销。图为概念示意，硬件术语因架构而异。</figcaption></figure>
+
+<h2 id="section-03">vCPU调度与CPU窃取</h2>
 
         <p>vCPU是虚拟化中最容易误解的概念之一。初学者以为vCPU是CPU——错。vCPU是宿主机上的一个线程（确切地说，是QEMU进程中的一组线程）。</p>
 
@@ -155,7 +157,21 @@ $ mpstat -P ALL 1
 $ ps -eo pid,comm,thcount | grep qemu
 12345 qemu-system-x86      4   # 4个vCPU对应4个线程</code></pre>
 
-        <h2 id="section-04">virtio半虚拟化协议</h2>
+        <section class="deep-dive" aria-labelledby="deep-21-title">
+<h3 id="deep-21-title">机制追踪：一次 <code>KVM_RUN</code>，从进入客户机到 VM-Exit 回来经历了什么？</h3>
+<p>客户机并不“一直”在跑，而是一段段被宿主调度与硬件退出切碎。按时间顺序看：</p>
+<ol class="causal-steps">
+<li><strong>准备执行：</strong>QEMU 的 vCPU 线程调用 <code>KVM_RUN</code>，内核把客户机寄存器状态与内存映射装载到硬件虚拟化结构中。</li>
+<li><strong>VM-Entry：</strong>CPU 进入客户机执行状态（Intel x86 为 VMX non-root；AMD SVM、Arm 术语不同），多数指令直接在本机执行，不必逐条模拟。</li>
+<li><strong>硬件判定退出：</strong>当客机执行到被配置为需要退出的操作（如某些特权/敏感指令、I/O、中断窗口）时触发 VM-Exit，原因码交由内核 KVM 处理。</li>
+<li><strong>宿主处理：</strong>KVM 唤醒阻塞的 <code>KVM_RUN</code> 调用线程；若属 I/O 或更复杂设备语义，控制权回到 QEMU 用户态，由设备模型完成操作。</li>
+<li><strong>重新进入：</strong>处理完毕后再次 <code>KVM_RUN</code> 进入客机。若 vCPU 线程在宿主机调度器上等不到 CPU，客机内就会观测到执行时间“变短”，即 steal。
+</li>
+</ol>
+<details><summary>为什么 vCPU 数超过物理核心不一定更快？</summary><p>vCPU 是宿主机线程，多个 vCPU 竞争有限的物理核心。vCPU 数多于物理核心时，宿主调度器需要频繁切换，客机内表现为更多的 steal 与中断延迟；锁竞争、缓存失效和负载均衡也会放大开销。因此 vCPU 超分适合 I/O 或突发负载，而不适合持续 CPU 密集的负载。</p></details>
+</section>
+
+<h2 id="section-04">virtio半虚拟化协议</h2>
 
         <p>虚拟化I/O一直性能瓶颈。全模拟设备（如e1000网卡模拟）性能极差——每个I/O操作要触发VM-Exit，再由QEMU模拟硬件寄存器。半虚拟化则通过Guest和VMM之间的一份协议来大幅提升I/O性能。这个协议就是virtio。</p>
 
@@ -192,6 +208,23 @@ vhost_iotlb            20480  1 vhost
 # 查看virtio设备信息
 $ cat /sys/module/virtio/parameters/
 use_guest_polling  # 是否启用Guest轮询模式</code></pre>
+
+<section class="practice-card" aria-labelledby="practice-21-title">
+<h3 id="practice-21-title">只读观察：是否是虚拟机与 CPU 窃取</h3>
+<p><strong>环境：</strong>Linux 主机；只读取设备、模块与 /proc 信息，不创建虚拟机、不加载模块。虚拟化标识与可用性与硬件、内核配置和云厂商相关。</p>
+<pre><code># 判断当前是否运行在虚拟机中
+systemd-detect-virt 2>/dev/null || echo 'systemd-detect-virt 不可用'
+# CPU 虚拟化扩展标志（物理机常见 vmx/amd-v）
+grep -m1 -oE 'vmx|svm' /proc/cpuinfo || echo '当前环境未暴露 vmx/svm'
+# 是否有 /dev/kvm（存在才可能在宿主上跑 KVM）
+ls -l /dev/kvm 2>/dev/null || echo '/dev/kvm 不存在，可能不支持或未加载'
+# KVM/virtio 内核模块
+lsmod 2>/dev/null | grep -E 'kvm|virtio' | head -n 10 || echo '无相关模块或不可读'
+# 从 /proc/stat 粗略提取 steal（第 8 个字段），需自行与总时间比较
+grep '^cpu ' /proc/stat</code></pre>
+<p><strong>预期：</strong>在云主机内 <code>systemd-detect-virt</code> 常输出 <code>kvm</code> 或其他厂商值；<code>/proc/stat</code> 的 <code>cpu</code> 行第 8 个计数字段为 <code>steal</code>，持续占总时间较大比例说明宿主机物理核心被其他负载占用（常见于超卖）。</p>
+<p><strong>解释：</strong>单个 <code>steal</code> 快照只是累计偏移，必须采样两次做差才能得到速率（对应 <code>top</code> 的 <code>%st</code>）。检测到 <code>vmx/svm</code> 只说明宿主 CPU 支持虚拟化，不等于此环境一定运行着虚拟机。<strong>清理：</strong>均为只读命令。</p>
+</section>
 
         <p>虚拟化技术是云计算大厦的基石。从x86不可虚拟化的历史困境，到KVM将Linux转化为Hypervisor的精巧设计，再到vCPU的调度陷阱和virtio的I/O加速方案——掌握这些知识，你不仅理解了云服务器是怎么工作的，也懂得了如何诊断云上性能问题，比如steal time过高应该怎么办。</p>
 

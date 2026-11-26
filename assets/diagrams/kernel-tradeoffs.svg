@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 360" role="img" aria-labelledby="t d">
+<title id="t">内核设计决策的约束坐标</title>
+<desc id="d">把宏内核与微内核放进同一组约束坐标比较：横轴近似表示通信与切换成本，纵轴近似表示故障隔离与服务边界。宏内核把驱动与核心服务放在内核态，调用路径较直接但单个驱动错误更容易破坏内核状态；微内核把更多服务移到隔离的用户态组件，隔离更强但需要 IPC 与边界切换。两条虚线表示用户空间 ABI（承诺稳定）与内核内部 API（上游不承诺稳定，改动随版本发生）。图为概念示意，不代表任何内核版本的具体实现或量化性能。</desc>
+<g font-family="sans-serif">
+<text x="400" y="26" text-anchor="middle" font-size="17" fill="#203035">在同一组约束下比较：宏内核与微内核的取舍</text>
+<line x1="90" y1="300" x2="470" y2="300" stroke="#53676d" stroke-width="1.5"/>
+<line x1="90" y1="300" x2="90" y2="70" stroke="#53676d" stroke-width="1.5"/>
+<text x="280" y="324" text-anchor="middle" font-size="12" fill="#53676d">通信 / 边界切换成本 →</text>
+<text x="80" y="186" text-anchor="middle" font-size="12" fill="#53676d" transform="rotate(-90 80 186)">故障隔离 / 服务边界 →</text>
+<circle cx="185" cy="215" r="10" fill="#147f80"/>
+<text x="200" y="212" font-size="13" fill="#203035">宏内核（以 Linux 为代表）</text>
+<text x="200" y="230" font-size="11" fill="#53676d">驱动/服务多在内核态；调用较直接，错误影响面大</text>
+<circle cx="400" cy="120" r="10" fill="#7461ba"/>
+<text x="352" y="102" font-size="13" fill="#203035">微内核（以 seL4 类系统为代表）</text>
+<text x="300" y="138" font-size="11" fill="#53676d">更多服务在用户态；隔离更强，IPC 有成本</text>
+<text x="520" y="80" font-size="12" fill="#203035">两条边界，承诺不同</text>
+<line x1="520" y1="100" x2="780" y2="100" stroke="#147f80" stroke-width="2" stroke-dasharray="6 4"/>
+<text x="520" y="118" font-size="11" fill="#53676d">用户空间 ABI：承诺稳定，系统调用语义不可随意改</text>
+<line x1="520" y1="150" x2="780" y2="150" stroke="#d06d4d" stroke-width="2" stroke-dasharray="6 4"/>
+<text x="520" y="168" font-size="11" fill="#53676d">内核内部 API/ABI：上游不承诺稳定，改动随版本发生</text>
+<rect x="520" y="196" width="260" height="104" rx="8" fill="#e7f4f0" stroke="#147f80" stroke-width="1.5"/>
+<text x="536" y="220" font-size="12" fill="#203035">判定顺序</text>
+<text x="536" y="242" font-size="11" fill="#53676d">① 明确核心约束：性能 / 隔离 / 兼容 / 维护</text>
+<text x="536" y="262" font-size="11" fill="#53676d">② 区分“用户空间契约”与“内部接口”</text>
+<text x="536" y="282" font-size="11" fill="#53676d">③ 用目标版本、配置与实测代替直觉</text>
+<text x="90" y="348" font-size="12" fill="#53676d">图为约束坐标的概念示意，坐标轴无量化刻度，不构成对任何架构优劣或性能的断言。</text>
+</g></svg>

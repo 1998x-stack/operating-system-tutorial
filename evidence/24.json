@@ -55,6 +55,24 @@
       "locator": "Flame Graphs",
       "status": "verified",
       "notes": "使用 off-CPU flame graph 时含义与采样方法不同。"
+    },
+    {
+      "id": "perf-24-07",
+      "claim": "Linux 提供 PSI（/proc/pressure/cpu|io|memory）表示资源受阻的累计时间与衰减平均，可用于建立可重复的压力基线。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://docs.kernel.org/accounting/psi.html",
+      "locator": "Pressure Stall Information",
+      "status": "verified",
+      "notes": "需内核启用 CONFIG_PSI；avg 为衰减平均而非瞬时值。"
+    },
+    {
+      "id": "perf-24-08",
+      "claim": "perf 采样需记录事件、频率与符号解析情况；缺少匹配符号时调用栈会退化为地址或未知帧，影响结论。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://man7.org/linux/man-pages/man1/perf-record.1.html",
+      "locator": "SYNOPSIS; -g, -F",
+      "status": "verified",
+      "notes": "高频采样本身的开发开销会改变时序。"
     }
   ]
 }

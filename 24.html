@@ -86,6 +86,21 @@ $ perf script > out.perf</code></pre>
 
         <p>perf stat的几个关键指标解读：<code>instructions/cycle</code>（IPC）衡量CPU的效率，理想值在2-4之间，低于1说明有严重的停顿（比如缓存未命中或分支预测错误）；<code>cache-misses/cache-references</code> 比率超过10%通常意味着程序的数据局部性不好，需要考虑优化内存访问模式。</p>
 
+        <figure class="mechanism-figure"><img src="assets/diagrams/perf-workflow.svg" width="800" height="360" alt="性能诊断从定义基线、提出假设、采样剖析到对比验证的流程，以及各子系统对应的观测工具与常见陷阱"><figcaption>诊断流程与工具对应关系：先用可证伪的假设驱动观测，再按 CPU、调度、内存、I/O、网络子系统选择工具。右侧列出容易误导结论的陷阱（采样开销、缺符号、容器边界、单次基准、平均值掩盖尾延迟）。图为方法示意，不代表具体工具输出。</figcaption></figure>
+
+        <section class="deep-dive" aria-labelledby="deep-24-title">
+<h3 id="deep-24-title">机制追踪：一次 <code>perf record</code> 采样，数据怎样变成可验证的结论？</h3>
+<p>剖析是“采样 + 推断”，每一步都有不确定性与开销。按顺序看：</p>
+<ol class="causal-steps">
+<li><strong>定义问题：</strong>先明确“慢”的指标（吞吐、延迟、利用率）与基线工作负载，否则无法判断采样结果是否异常。</li>
+<li><strong>配置采样：</strong>选择事件与频率（如 <code>-F 99</code>、<code>-g</code> 记调用链）。频率越高越接近真实分布，但采样开销本身也会改变时序。</li>
+<li><strong>内核记录样本：</strong>事件触发时，内核把当前指令指针与（若启用）调用栈写入环形缓冲区，形成 <code>perf.data</code>。</li>
+<li><strong>符号化与聚合：</strong><code>perf report</code>/<code>perf script</code> 把地址解析为函数名并按栈聚合；缺少符号时栈会退化成地址或未知帧，结论也会失真。</li>
+<li><strong>折叠与可视化：</strong>FlameGraph 把聚合后的栈折叠并画成 SVG，宽度代表样本占比；最后仍需回到基线与重复实验验证假设，而不是仅凭一张图定调。</li>
+</ol>
+<details><summary>为什么“最宽的色块”不一定是要优化的地方？</summary><p>火焰图基于采样，宽带表示该栈占用了较多 CPU 时间，但不等于它是可优化的成本：它可能是在等待 I/O 的自旋、在内核中不可避免的网络处理、或采样偏置导致的假热点。正确做法是结合调用链上下文、尾延迟指标与基线对比，判断这块时间是否属于可减少的工作，而不是直接去改最宽的函数。</p></details>
+</section>
+
         <h2 id="section-02">二、火焰图的生成与解读</h2>
 
         <p>perf report虽然强大，但它的调用链树状展示方式在面对百万级采样点时非常难看——层层叠叠的树节点，光是展开就让人头大。Brendan Gregg发明的火焰图（Flame Graph）彻底解决了这个问题：它将所有采样点的调用栈按层级堆叠成一张SVG图，x轴是采样数量（越宽的函数占用CPU越多），y轴是调用深度（底部是顶层函数，顶部是深层调用）。</p>
@@ -253,6 +268,23 @@ usecs               : count     distribution
         <div class="highlight">
             <p><strong>关键认知</strong>：perf 和 eBPF 不是对立的——perf 擅长CPU级的硬件事件分析（PMU采样），eBPF 擅长内核协议栈和系统调用的动态追踪。两者结合使用效果最佳：先用 perf 找到CPU热点，再用 eBPF 深入热点函数的上下文，看看到底是因为什么触发了高CPU消耗。这就是Linux性能分析的"黄金搭档"。</p>
         </div>
+
+<section class="practice-card" aria-labelledby="practice-24-title">
+<h3 id="practice-24-title">只读观察：建立一份可重复的性能基线</h3>
+<p><strong>环境：</strong>Linux 主机；只读取压力指标与对无意义目标做一次采样，不改 sysctl、不长期跑压测。可用性与字段名随发行版、内核配置和容器环境变化。</p>
+<pre><code># 内核提供的资源压力指标（PSI）：avg 平均与 total 累计阻塞时间
+cat /proc/pressure/cpu 2>/dev/null || echo '内核未提供 PSI'
+cat /proc/pressure/io  2>/dev/null | head -n 2 || true
+# 负载与运行队列（三个时间窗的指数平均）
+cat /proc/loadavg
+# 对无意义目标采样，验证 perf 可用且不扰动业务（需 perf 已安装）
+perf stat -e cycles,instructions true 2>/dev/null || echo 'perf 不可用或无权限，跳过'
+# 采样两次磁盘/CPU 快照便于做差（只读）
+vmstat 1 2 2>/dev/null || echo 'vmstat 不可用'
+iostat -x 1 2 2>/dev/null | tail -n 20 || echo 'iostat 不可用（sysstat 未安装）'</code></pre>
+<p><strong>预期：</strong><code>/proc/pressure/*</code> 在较新内核存在，<code>some avg10</code> 反映“至少一个任务受阻”的累计趋势；<code>vmstat</code> 两次输出便于做差看 <code>r</code>（运行队列）、<code>wa</code>（I/O 等待）与 <code>st</code>（窃取）；<code>perf stat true</code> 会给出极短命令的周期与指令数，用来确认采样链路可用。</p>
+<p><strong>解释：</strong>基线必须记录同一硬件、内核、负载与参数下的多次结果；单次 <code>vmstat</code> 或单次 <code>perf</code> 只能说明“此刻发生了什么”，不能作为普遍结论。PSI 的 <code>avg</code> 是衰减平均，不代表瞬时值。<strong>清理：</strong>均为只读命令，无后台任务。</p>
+</section>
 
         <p>这一章我们从perf的四大核心命令出发，到火焰图的一键可视化，再深入到内存泄漏的三种检测手段、I/O延迟的blktrace+fio方案，最后整理了eBPF BCC工具链的速查表。性能分析和内核调试一样，都是"功夫在诗外"——工具掌握得再多，不如建立一个系统化的排查方法论：CPU不够看perf、内存泄漏看kmemleak、I/O慢看blktrace、系统调用多上eBPF。下一章是这门课最硬核的一章——我们要亲手写一个微型操作系统，从BIOS引导到进入用户态，全部自己实现。当你亲手写过一个OS之后，前面学到的所有概念都会落地生根。</p>
 </div>

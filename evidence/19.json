@@ -64,6 +64,24 @@
       "locator": "tcp_tw_reuse; tcp_tw_reuse_delay",
       "status": "verified",
       "notes": "不建议无明确诊断依据修改。"
+    },
+    {
+      "id": "net-19-08",
+      "claim": "发送方向的 Netfilter 钩子顺序为先 OUTPUT（本机发出）后 POSTROUTING（即将离开协议栈）；接收方向先 PREROUTING（进入、路由前），再按路由分流为 INPUT 或 FORWARD。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://www.netfilter.org/documentation/",
+      "locator": "Netfilter hooks and packet flow",
+      "status": "verified",
+      "notes": "钩子内表的遍历顺序为 raw→mangle→nat→filter；实际路径受路由与命名空间影响。"
+    },
+    {
+      "id": "net-19-09",
+      "claim": "监听 socket 的全连接队列长度由 listen() backlog 请求值与 net.core.somaxconn 上限共同约束；ss 的 Send-Q 与 nstat 的 ListenOverflows 可用于只读观察。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://man7.org/linux/man-pages/man7/socket.7.html",
+      "locator": "listen(); NOTES on backlog",
+      "status": "verified",
+      "notes": "具体行为随内核版本与 socket 类型变化。"
     }
   ]
 }

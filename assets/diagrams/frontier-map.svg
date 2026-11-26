@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 340" role="img" aria-labelledby="t d">
+<title id="t">前沿方向按成熟度分层核对</title>
+<desc id="d">阅读操作系统前沿内容时，先区分四类证据：已经合入上游并受配置和工具链约束的能力、仍在讨论或初始化的提案、学术研究原型、以及厂商产品与区域可用性。Rust for Linux 属于已进入主线但采用程度依目标内核与配置而变；LDOS 与机器学习调度多数是研究原型；seL4/LionsOS 的验证覆盖特定实现与配置；RISC-V+Rust 生态横跨原型与产品；机密计算依赖 CPU 平台、固件和设备能力。图中标签为粗略定位示意，具体状态需按发布日期的上游提交、官方文档与论文核验。</desc>
+<g font-family="sans-serif">
+<text x="400" y="26" text-anchor="middle" font-size="17" fill="#203035">先分层，再判断：前沿方向的成熟度核对</text>
+<rect x="40" y="48" width="720" height="50" rx="8" fill="#e7f4f0" stroke="#147f80" stroke-width="2"/>
+<text x="60" y="70" font-size="13" fill="#203035">① 已合入上游</text>
+<text x="60" y="88" font-size="11" fill="#53676d">受 Kconfig、工具链与版本约束：Rust for Linux 抽象与部分驱动使用者</text>
+<rect x="40" y="110" width="720" height="50" rx="8" fill="#f2eefa" stroke="#7461ba" stroke-width="2"/>
+<text x="60" y="132" font-size="13" fill="#203035">② 提案与讨论中</text>
+<text x="60" y="150" font-size="11" fill="#53676d">尚未定型或被接受：具体 API 形态、默认开关、RFC 之外的边界条件</text>
+<rect x="40" y="172" width="720" height="50" rx="8" fill="#f6efdc" stroke="#916c22" stroke-width="2"/>
+<text x="60" y="194" font-size="13" fill="#203035">③ 研究原型</text>
+<text x="60" y="212" font-size="11" fill="#53676d">LDOS 与机器学习调度/内存/拥塞控制的多数工作；结论需在指定负载与基线下复现</text>
+<rect x="40" y="234" width="720" height="50" rx="8" fill="#fbe9e1" stroke="#d06d4d" stroke-width="2"/>
+<text x="60" y="256" font-size="13" fill="#203035">④ 厂商产品与区域可用性</text>
+<text x="60" y="274" font-size="11" fill="#53676d">机密计算（SEV-SNP/TDX/CoCo）依赖平台、固件、设备与部署配置</text>
+<text x="40" y="312" font-size="12" fill="#53676d">核对顺序：确认版本与日期 → 查上游提交/官方文档/论文 → 明确适用配置与受限条件 → 在指定环境复现。</text>
+<text x="40" y="332" font-size="12" fill="#53676d">图为概念分层示意，不构成对任何项目成熟度或性能的断言。</text>
+</g></svg>

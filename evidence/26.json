@@ -73,6 +73,15 @@
       "locator": "Architecture and deployment docs",
       "status": "verified",
       "notes": "runtime、TEE 类型和 key broker 方案决定具体信任边界。"
+    },
+    {
+      "id": "trend-26-09",
+      "claim": "阅读前沿主张时需区分上游提交/官方文档、提案、研究论文与厂商产品，并带上版本或日期；已合入能力仍受 Kconfig、工具链与硬件平台约束。",
+      "kind": "methodology",
+      "source_url": "https://docs.kernel.org/process/development-process.html",
+      "locator": "Development process",
+      "status": "derived",
+      "notes": "本机配置只能证明本机是否具备某能力，不能外推为整个生态已采用。"
     }
   ]
 }

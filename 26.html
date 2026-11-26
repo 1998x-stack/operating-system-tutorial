@@ -53,6 +53,21 @@
 <div class="article-body">
 <p>操作系统前沿主题变化很快，尤其是 Rust for Linux、机密计算、RISC-V 与 AI 辅助系统管理。阅读这类内容时，首先要区分已经合入上游的能力、正在讨论的提案、研究原型和厂商产品；它们的成熟度、可用范围和维护状态并不相同。</p><p>本章采用“技术方向—代表性项目—当前限制”的方式讨论趋势。涉及内核版本、代码规模、项目里程碑或性能数字时，应以对应发布日期的上游提交、官方文档和论文为准；动态项目不应使用没有时间戳的“最新”“已经全面采用”等表述。AI 调度和自动化运维也应明确其研究属性与验证条件。</p>
 
+        <figure class="mechanism-figure"><img src="assets/diagrams/frontier-map.svg" width="800" height="340" alt="将前沿方向按已合入上游、提案讨论、研究原型与厂商产品四个成熟度层核对的概念图"><figcaption>阅读前沿内容前的分层核对：已合入上游的能力仍受 Kconfig、工具链与版本约束；提案尚未定型；LDOS 与机器学习调度多数属于研究原型；机密计算属于厂商产品并依平台与区域而变。图为概念分层，不构成对任何项目成熟度或性能的断言。</figcaption></figure>
+
+        <section class="deep-dive" aria-labelledby="deep-26-title">
+<h3 id="deep-26-title">机制追踪：判断一个前沿说法，需要依次核对哪几层证据？</h3>
+<p>趋势章节最容易被“最新/已经全面采用”误导。一条可核验的结论应逐步收敛：</p>
+<ol class="causal-steps">
+<li><strong>锚定时间与版本：</strong>任何关于“支持/采用/性能”的说法都要带上内核版本、项目发布或论文日期，否则无法判断是否已过时。</li>
+<li><strong>区分证据等级：</strong>上游提交与官方文档、RFC 讨论、研究论文、厂商博客属于不同可信度与适用范围，不能混用。</li>
+<li><strong>确认前置条件：</strong>已合入的功能往往还需 Kconfig、工具链、固件或硬件平台开启，默认配置不一定启用。</li>
+<li><strong>限定适用范围：</strong>性能与安全结论必须给出基准、工作负载、威胁模型和测量方法；跨平台、跨实现外推会失真。</li>
+<li><strong>本地复现或标注未验证：</strong>能复现的写清环境与原始数据，不能复现的明确标为“未验证”而不是当作结论。</li>
+</ol>
+<details><summary>为什么“内存安全漏洞占比很高”不能直接外推为内核 CVE 比例？</summary><p>那些统计通常来自特定大型软件项目集和特定年份、特定漏洞分类方法，样本、分类与时间窗都不同。Linux 内核的漏洞构成受子系统、攻击面、披露实践和修复策略影响，不能用一个笼统百分比代替。可以说明“内存安全是一类重要风险、Rust 的借用检查可在编译期消除部分此类缺陷”，但不能把它包装成内核漏洞的固定占比。</p></details>
+</section>
+
         <h2 id="section-01">一、Rust for Linux：内核中的安全抽象与渐进式采用</h2>
 
         <p>Rust for Linux 的支持自 Linux 6.1 起进入主线，之后逐步增加语言绑定、核心抽象与实际使用者。用“源文件数量”衡量成熟度容易受统计口径和版本变化影响；更有意义的是检查目标内核是否启用 Rust、工具链要求、可用抽象和具体驱动的维护状态。</p>
@@ -176,7 +191,7 @@ impl Drop for HelloModule {
 # 3. 使用对应 RuntimeClass 部署测试 Pod；
 # 4. 验证远程证明报告与密钥释放策略。
 $ kubectl get runtimeclass
-$ kubectl describe pod <confidential-pod></code></pre>>
+$ kubectl describe pod &lt;confidential-pod&gt;</code></pre>
 
         <div class="highlight">
             <p><strong>行业趋势</strong>：机密计算正在成为云原生安全的"最后一块拼图"。云厂商的机密 VM 产品、CPU 平台和可用区域会持续变化；部署前应查对应区域的产品矩阵与 attestation 文档，不要把 Nitro Enclaves、SEV-SNP 和 TDX 当作同一种技术。对OS开发者而言，这意味着内核需要支持新的安全生命周期管理、新的DMA隔离机制和新的内存加密、DMA 隔离和远程证明协议——这些都是内核与平台软件需要协同支持的方向。</p>
@@ -187,6 +202,21 @@ $ kubectl describe pod <confidential-pod></code></pre>>
         <p>回顾一下我们在这章看到的五个前沿方向。Rust for Linux正在将内存安全防线推进到内核深处，从根本上降低CVE数量；LDOS正在探索用AI替代人类手工设计的OS启发式规则，这条路虽然长但方向明确；seL4和LionsOS证明了微内核形式化验证的可行性，为安全攸关领域提供了全新选择；RISC-V+Rust的组合正在催生从微控制器到云端的完整OS生态；机密计算则从硬件层面重新定义了云计算安全的信任边界。</p>
 
         <p>我希望你获得的不是一堆零散的信息，而是一种"感知变化"的能力——操作系统并没有死，它只是进化得更慢了。理解这些前沿趋势，能帮你在未来的技术浪潮中找准自己的位置。是深入Linux内核做贡献，还是做Rust for Linux的先行者，或者投身OS+AI的交叉领域，选择权在你手中。</p>
+
+<section class="practice-card" aria-labelledby="practice-26-title">
+<h3 id="practice-26-title">只读核对：本机支持哪些“前沿”能力</h3>
+<p><strong>环境：</strong>Linux 主机，普通用户权限；只读取内核版本、配置与 dmesg，不加载模块、不改内核。配置读取路径与可用性随发行版变化。</p>
+<pre><code># 架构与内核版本，是判断 RISC-V/Rust 等前提的起点
+uname -m; uname -r
+# 目标内核是否启用 Rust（发行版配置路径不统一）
+CFG=/boot/config-$(uname -r); [ -r "$CFG" ] && grep -E '^CONFIG_RUST' "$CFG" || echo "无法读取 $CFG，需自行核对当前内核配置"
+# 是否暴露机密计算相关平台标记（需权限，视内核而定）
+dmesg 2>/dev/null | grep -iE 'SEV|TDX|cc_platform|confidential' | head -n 10 || echo 'dmesg 不可读或未发现相关行'
+# CPU 缓解措施目录可用于确认平台特性存在
+ls /sys/devices/system/cpu/vulnerabilities 2>/dev/null | head -n 5 || echo '无 vulnerabilities 目录'</code></pre>
+<p><strong>预期：</strong><code>uname -r</code> 给出内核版本，是核对“某版本起支持”的基准。<code>CONFIG_RUST</code> 若存在且为 <code>y</code>，说明该内核编译进了 Rust 支持，但不代表默认启用了某个 Rust 驱动。机密计算相关 dmesg 行是否存在，取决于 CPU 平台与内核配置。</p>
+<p><strong>解释：</strong>这台机器的配置只能证明“本机是否具备某能力”，不能外推为整个生态已全面采用；反之，未看到某标记也不能证明该技术不存在，可能只是配置未开或权限不足。把本机观察到的事实与文档/论文中的主张分开描述。<strong>清理：</strong>均为只读命令。</p>
+</section>
 
         <p>下一章，我们将从"趋势"切换到"思想"。我们要聊一个更有哲学意味的话题——OS内核设计中的关键决策。为什么Linux选择了宏内核而Windows是混合内核？为什么文件系统有这么多选项？内核社区那些著名的辩论和设计权衡背后，隐藏着什么样的工程智慧？</p>
 </div>

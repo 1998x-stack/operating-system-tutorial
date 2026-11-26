@@ -130,6 +130,19 @@ lrwxrwxrwx 1 root root 0 Jun 30 09:00 uts   -> 'uts:[4026531838]'</code></pre>
             <p><strong>动手实践</strong>：在你的Linux机器上执行 <code>ls -la /proc/$$/ns/</code>，你会看到当前进程的8个Namespace inode编号。然后 <code>sudo docker run -d nginx</code> 启动一个容器，获取其PID后比较 <code>/proc/$PID/ns/</code> 下的编号。你会发现所有Namespace编号都不同——说明容器看到的系统和你的终端看到的"不是同一个系统"。</p>
         </div>
 
+        <section class="deep-dive" aria-labelledby="deep-22-title">
+<h3 id="deep-22-title">机制追踪：启动一个容器时，内核按什么顺序施加隔离与控制？</h3>
+<p>容器不是“启动一个轻量虚拟机”，而是一组内核机制的组合。按运行时的大致顺序看：</p>
+<ol class="causal-steps">
+<li><strong>创建命名空间：</strong>运行时通过 <code>clone()</code>/<code>unshare()</code> 传入 <code>CLONE_NEW*</code> 标志，为新进程的组建立 mount、PID、NET、UTS、IPC、user 等 namespace，塑造它“看到什么”。</li>
+<li><strong>重构文件系统视图：</strong>在新 mount namespace 中准备 OverlayFS 的 lower/upper/merged，用 <code>pivot_root()</code> 切换根目录并挂载对应的 <code>/proc</code>，使 PID 视图与挂载树一致。</li>
+<li><strong>放置到 cgroup：</strong>把进程加入 cgroup v2 层级，用 <code>cpu.max</code>/<code>memory.max</code> 等控制器限定“能用多少”。</li>
+<li><strong>收窄权限：</strong>按运行时配置削减 capability、应用 seccomp 过滤与 LSM 策略、设置用户映射，这决定了隔离强度而非仅靠 namespace。</li>
+<li><strong>exec 应用：</strong>最后 <code>execve()</code> 执行容器入口，成为新的 PID 1。至此“隔离 + 限制 + 文件视图”三件套生效，但它们仍共享宿主机内核。</li>
+</ol>
+<details><summary>为什么“共享内核”不等于“隔离很弱”？</summary><p>共享宿主内核确实意味着内核漏洞可能影响全体容器，远不如独立内核的强边界。但具体强度取决于 user namespace 映射、capability 舍弃、seccomp 白名单、LSM 策略与挂载选项。云厂商常在这几层叠加加固，因此不能仅凭“共享内核”一句下“等于没有隔离”的结论。</p></details>
+</section>
+
         <h2 id="section-03">cgroup v2层级结构</h2>
 
         <p>Namespace让进程"看到"一个隔离的世界，但如果你不限制资源，一个容器可以把宿主机的CPU和内存全部吃光。Cgroup（Control Group）就是干这个的——它对进程组进行资源限制、优先级控制和统计。</p>
@@ -259,6 +272,23 @@ $ sudo unshare --fork --pid --mount --uts --mount-proc /bin/bash
 
 # 4. 退出后就回到了宿主机的Namespace
 # exit</code></pre>
+
+<section class="practice-card" aria-labelledby="practice-22-title">
+<h3 id="practice-22-title">只读观察：命名空间编号与 cgroup 归属</h3>
+<p><strong>环境：</strong>Linux 主机，普通用户权限；只读取 /proc 与 cgroupfs，不用 <code>unshare</code> 创建新命名空间、不改资源限制。若环境无 <code>docker</code> 则跳过对比部分。</p>
+<pre><code># 当前 shell 的 8 个命名空间 inode 编号
+ls -l /proc/self/ns/
+# 当前进程所属的 cgroup 路径
+cat /proc/self/cgroup
+# cgroup v2 可用控制器（若为 v1 则路径不同）
+cat /sys/fs/cgroup/cgroup.controllers 2>/dev/null || echo '无 cgroup v2 统一层级'
+# 若有容器，对比其 PID 1 的命名空间（需权限）
+PID=$(docker inspect --format '{{.State.Pid}}' $(docker ps -q | head -n1) 2>/dev/null) \
+  && { echo "容器 PID=$PID"; ls -l /proc/$PID/ns/ 2>/dev/null; } \
+  || echo '无 docker/权限，跳过容器对比'</code></pre>
+<p><strong>预期：</strong>宿主机 shell 的 <code>ns</code> 符号链接指向一串 inode 编号；容器 PID 1 的这些编号若与宿主机不同，说明它处于独立命名空间视图。同一台机器上，容器与宿主机的 <code>net</code>、<code>pid</code>、<code>mnt</code> 编号通常不同，而两者共享同一个内核与 cgroup v2 根。</p>
+<p><strong>解释：</strong>namespace inode 编号只能说明“是否处于同一命名空间”，不能据此推断隔离强度；真正的隔离强度还需看 capability、seccomp、LSM 与用户映射。<code>/proc/self/cgroup</code> 在 v2 下通常只有一行 <code>0::/...</code>。<strong>清理：</strong>均为只读命令。</p>
+</section>
 
         <p>容器技术是现代云原生计算的基石。通过本章的学习，你应该建立了一个清晰的认知框架：Namespace提供隔离（"看到什么"），Cgroup提供限制（"能用多少"），OverlayFS提供文件系统视图（"文件从哪来"）。三者的组合就是容器的本质——一个被精心隔离和限制的进程。理解了这一点，无论后端的技术栈如何演进（Docker、containerd、Podman、Kata Containers），你都能抓住不变的底层原理。</p>
 

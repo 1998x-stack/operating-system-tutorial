@@ -64,6 +64,14 @@
 
 新增图示包括 `net-path.svg`、`ebpf-lifecycle.svg`、`kvm-vcpu.svg`、`crash-analysis.svg`、`perf-workflow.svg`、`boot-to-user.svg` 与 `frontier-map.svg`；Playwright 冒烟测试的组件断言扩展到前 26 篇。
 
+## 第 27–28 章逐篇精细化（2026-11）
+
+- [逐篇复核记录](docs/reviews/fine-grained-27-28.md)：沿用“机制追踪 + 只读微实验”标准，逐篇提交、逐篇检查，并为缺图章节补原创解释图。
+- [第 27 章](27.html)：宏内核/微内核、用户空间铁律与稳定 ABI 争论的“目标—约束—替代方案—代价”拆解；接口边界与可调参数只读核对。
+- [第 28 章](28.html)：一个综合项目从“跑起来”到“可下结论”的证据层级；四项目工具链与前提只读核对。
+
+新增图示为 `assets/diagrams/kernel-tradeoffs.svg` 与 `assets/diagrams/project-loop.svg`。至此第 01–28 章的逐篇精细化全部完成。
+
 ## 如何阅读
 
 1. **本地即开即用：**克隆仓库后双击 `index.html`，或用浏览器打开任意章节 HTML。新版目录不再依赖 `fetch()`，因此在 `file://` 下也可以浏览。

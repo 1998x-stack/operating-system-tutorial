@@ -73,6 +73,24 @@
       "locator": "kgdboc",
       "status": "verified",
       "notes": "Guest 串口、启动参数和 GDB 符号必须匹配。"
+    },
+    {
+      "id": "debug-23-08",
+      "claim": "kdump 依赖启动时通过 crashkernel 预留内存；主内核 panic 后经 kexec 跳入捕获内核，由 makedumpfile 过滤压缩后写出 vmcore。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://docs.kernel.org/admin-guide/kdump/kdump.html",
+      "locator": "crashkernel; kexec; makedumpfile",
+      "status": "verified",
+      "notes": "/proc/sys/kernel/kexec_loaded=1 只表示捕获内核已加载，不等于转储已验证。"
+    },
+    {
+      "id": "debug-23-09",
+      "claim": "离线分析 vmcore 时 vmlinux 与模块符号必须与崩溃内核完全匹配，否则 bt 与变量解读可能错误。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://man7.org/linux/man-pages/man8/crash.8.html",
+      "locator": "SYNOPSIS; vmlinux requirement",
+      "status": "verified",
+      "notes": "缺少匹配符号时应将结论标记为不确定。"
     }
   ]
 }

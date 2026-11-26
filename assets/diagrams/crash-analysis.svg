@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 350" role="img" aria-labelledby="t d">
+<title id="t">kdump 从内核崩溃到离线 vmcore 分析</title>
+<desc id="d">主内核正常运行时预留一块内存给捕获内核。发生 panic 或 oops 时，主内核通过 kexec 机制在不完整重启固件的情况下跳入捕获内核；捕获内核用 makedumpfile 把主内核内存过滤、压缩后保存为 vmcore 并重启。之后在离线环境用与 vmcore 完全匹配的 vmlinux 与模块符号运行 crash，通过 bt、log、ps、kmem 等命令还原现场。符号不匹配时 bt 与变量解读可能错误，必须标记为不确定。KASAN/UBSAN 与 kgdb 是补充手段，前者在运行期检测、后者可交互式停机检查。</desc>
+<g font-family="sans-serif">
+<text x="400" y="26" text-anchor="middle" font-size="17" fill="#203035">内核崩溃后的证据链：kdump 与离线分析</text>
+<rect x="40" y="46" width="230" height="72" rx="8" fill="#e7f4f0" stroke="#147f80" stroke-width="2"/>
+<text x="155" y="68" text-anchor="middle" font-size="13" fill="#203035">主内核运行中</text>
+<text x="155" y="87" text-anchor="middle" font-size="11" fill="#53676d">预留 crashkernel 内存</text>
+<text x="155" y="104" text-anchor="middle" font-size="11" fill="#53676d">kdump 服务已就绪</text>
+<rect x="285" y="46" width="230" height="72" rx="8" fill="#fbe9e1" stroke="#d06d4d" stroke-width="2"/>
+<text x="400" y="68" text-anchor="middle" font-size="13" fill="#203035">panic / oops 触发</text>
+<text x="400" y="87" text-anchor="middle" font-size="11" fill="#53676d">kexec 跳入捕获内核</text>
+<text x="400" y="104" text-anchor="middle" font-size="11" fill="#53676d">不完整重走固件启动</text>
+<rect x="530" y="46" width="230" height="72" rx="8" fill="#f2eefa" stroke="#7461ba" stroke-width="2"/>
+<text x="645" y="68" text-anchor="middle" font-size="13" fill="#203035">捕获内核保存 vmcore</text>
+<text x="645" y="87" text-anchor="middle" font-size="11" fill="#53676d">makedumpfile 过滤压缩</text>
+<text x="645" y="104" text-anchor="middle" font-size="11" fill="#53676d">写入磁盘后重启</text>
+<path d="M270 82 L285 82 M515 82 L530 82" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#a)"/>
+<rect x="150" y="164" width="500" height="60" rx="8" fill="#f6efdc" stroke="#916c22" stroke-width="2"/>
+<text x="400" y="186" text-anchor="middle" font-size="13" fill="#203035">离线分析：crash vmlinux vmcore</text>
+<text x="400" y="204" text-anchor="middle" font-size="11" fill="#53676d">bt（调用栈） · log（崩溃前日志） · ps / kmem / dis -l</text>
+<path d="M645 118 L645 144 L400 144 L400 164" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#a)"/>
+<rect x="150" y="248" width="500" height="56" rx="8" fill="#eef3f4" stroke="#53676d" stroke-width="1.5"/>
+<text x="400" y="270" text-anchor="middle" font-size="12" fill="#203035">前提：vmlinux 与模块符号必须与崩溃内核完全匹配（版本/补丁/构建）</text>
+<text x="400" y="289" text-anchor="middle" font-size="11" fill="#53676d">KASAN/UBSAN 运行期检测；kgdb 可交互停机，但会使系统暂停</text>
+<path d="M400 224 L400 248" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#a)"/>
+<text x="40" y="330" font-size="12" fill="#53676d">简化示意：是否生成 vmcore、过滤规则与命令可用性取决于发行版、内核配置与预留内存设置。</text>
+<defs><marker id="a" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#53676d"/></marker></defs>
+</g></svg>

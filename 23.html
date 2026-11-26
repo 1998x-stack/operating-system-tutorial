@@ -152,6 +152,21 @@ crash> mod       # 列出加载的内核模块</code></pre>
             <p><strong>重要提示</strong>：vmcore 文件可能非常大——一个256GB内存的服务器，vmcore也有256GB。用 <code>makedumpfile</code> 可以在保存时压缩并排除不必要的内存页（比如全零页和用户态页），把vmcore缩小到原来的5%-10%。生产环境务必配置 makedumpfile 的过滤规则。</p>
         </div>
 
+        <figure class="mechanism-figure"><img src="assets/diagrams/crash-analysis.svg" width="800" height="350" alt="从主内核崩溃、kexec 跳入捕获内核保存 vmcore，到离线用 crash 加载符号分析证据链"><figcaption>kdump 证据链：主内核崩溃后由预留内存中的捕获内核把原内核内存保存为 vmcore，重启后在离线环境用匹配符号的 <code>crash</code> 分析。符号版本不匹配会使调用栈解读错误，这是常被忽略的前置条件。图为概念流程示意。</figcaption></figure>
+
+        <section class="deep-dive" aria-labelledby="deep-23-title">
+<h3 id="deep-23-title">机制追踪：内核 panic 之后，一条可离线分析的证据链怎样形成？</h3>
+<p>“保存现场”不是事后补拍，而是崩溃前就布好的机制。按时间顺序看：</p>
+<ol class="causal-steps">
+<li><strong>预留捕获环境：</strong>启动时通过 <code>crashkernel</code> 预留内存并准备一个独立的捕获内核与转储目标。</li>
+<li><strong>捕获入口：</strong>主内核触发 panic/oops 后通过 kexec 跳入捕获内核，尽量不完整重走固件启动流程，以减少对内存现场的覆盖。</li>
+<li><strong>导出 vmcore：</strong>捕获内核用 <code>makedumpfile</code> 过滤全零页等无用内存并压缩，把结果写入磁盘，然后重启主系统。</li>
+<li><strong>离线还原：</strong>用与崩溃内核完全匹配的 <code>vmlinux</code> 与模块符号运行 <code>crash vmlinux vmcore</code>，先后查看 <code>bt</code>、<code>log</code>、<code>ps</code>、<code>kmem</code> 等。</li>
+<li><strong>提出并验证假设：</strong>根据栈与对象生命周期建立最小复现，再用 KASAN/UBSAN 或 kgdb 验证；修复后重跑原始触发路径与回归。</li>
+</ol>
+<details><summary>为什么“有 vmcore 却没结论”很常见？</summary><p>vmcore 只是现场，不是结论。常见阻塞点包括：符号与内核构建不匹配（自定义补丁、剥离符号、模块版本不符），内存被 panic 路径或后续操作覆盖，makedumpfile 过滤掉了关键页，或只有单行 panic 而缺少上下文。因此收集证据时要把内核版本、配置、模块列表、触发条件与完整调用栈一起留存，并把缺乏符号支撑的推断标为不确定。</p></details>
+</section>
+
         <h2 id="section-03">三、KASAN与UBSAN</h2>
 
         <p>内核里最常见的bug类型是什么？不是逻辑错误，而是内存损坏——use-after-free、out-of-bounds、栈溢出。用户态有ASan，内核态有KASAN（Kernel Address Sanitizer）。</p>
@@ -163,7 +178,7 @@ crash> mod       # 列出加载的内核模块</code></pre>
 CONFIG_KASAN=y
 CONFIG_KASAN_GENERIC=y
 # arm64 等平台还可能支持 CONFIG_KASAN_SW_TAGS 或 CONFIG_KASAN_HW_TAGS
-# 具体互斥关系、依赖与编译器要求请查目标内核的 Kconfig/文档</code></pre>>
+# 具体互斥关系、依赖与编译器要求请查目标内核的 Kconfig/文档</code></pre>
 
         <p>KASAN 会增加内存占用与运行时开销，具体幅度取决于 KASAN 模式（Generic、Software Tag-Based、Hardware Tag-Based）、架构、编译器和工作负载，不宜写成固定的 2–3 倍。报告通常可包含访问栈、分配栈和释放栈等线索，但可用信息取决于配置、对象分配路径和符号信息。</p>
 
@@ -225,7 +240,23 @@ $ gdb vmlinux
 <p>使用与 vmcore 完全匹配的符号文件运行 <code>crash vmlinux vmcore</code>，检查 <code>bt</code>、<code>log</code>、<code>ps</code>、相关任务和数据结构。若缺少符号或版本不匹配，必须把结论标记为不确定。</p>
 <h3>第三步：提出并验证假设</h3>
 <p>根据栈和对象生命周期建立最小复现，再选择 KASAN、UBSAN、lockdep 或 kgdb 等工具验证。每次只改变一个变量，记录补丁、配置和复测结果；修复后同时验证原始触发路径与相关回归测试。</p>
-</div>
+
+<section class="practice-card" aria-labelledby="practice-23-title">
+<h3 id="practice-23-title">只读观察：崩溃转储是否已就绪</h3>
+<p><strong>环境：</strong>Linux 主机，普通用户权限；只读取转储配置与日志，不触发 panic、不写 sysrq。是否启用 kdump、日志路径与命令可用性随发行版与内核配置变化。</p>
+<pre><code># 捕获内核是否已加载（1 表示已加载，但不等同于测试通过）
+cat /proc/sys/kernel/kexec_loaded 2>/dev/null || echo '无 kexec_loaded，可能未启用 kdump'
+# 内核命令行是否预留了 crashkernel
+cat /proc/cmdline | tr ' ' '\n' | grep -E '^crashkernel=' || echo '未见 crashkernel= 参数'
+# 现有崩溃转储（需权限）
+ls -la /var/crash 2>/dev/null || echo '/var/crash 不可读或不存在'
+# 动态调试控制文件是否存在（存在表示可运行时开关 pr_debug）
+ls -l /sys/kernel/debug/dynamic_debug/control 2>/dev/null || echo '无 dynamic_debug 控制文件（可能未挂载 debugfs）'
+# 最近的崩溃相关日志
+dmesg 2>/dev/null | tail -n 10 || echo 'dmesg 不可读，需权限'</code></pre>
+<p><strong>预期：</strong>启用了 kdump 的主机 <code>kexec_loaded</code> 常为 <code>1</code>，内核命令行中有 <code>crashkernel=</code>；<code>/var/crash</code> 存在上一次 vmcore 时说明转储链路曾经跑通。缺少 <code>dynamic_debug/control</code> 通常是因为未挂载 debugfs。</p>
+<p><strong>解释：</strong><code>kexec_loaded=1</code> 只说明捕获内核已在内存中就绪，不能证明崩溃时一定能成功转储；真正验证需要在维护窗口内用 <code>echo c &gt; /proc/sysrq-trigger</code> 触发一次并确认 vmcore 生成。这一步会重启系统，不属于只读范围，本章不执行。<strong>清理：</strong>均为只读命令。</p>
+</section>
 
         <p>这一章我们从printk的艺术到kdump+crash的离线和源码级分析，再到KASAN/UBSAN的自动检测和kgdb的交互式调试，最后用一个明确标注为假设场景的排查流程串起了整套工具链。内核调试的终极目标不是"会更多工具"，而是"用最少的工具快速锁定根因"。下一章我们将从"调试"转向"性能"——用perf、火焰图、blktrace等工具来分析和优化系统的性能瓶颈。性能调优的兴趣不比调试少，同样是硬功夫。</p>
 </div>

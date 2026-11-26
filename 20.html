@@ -92,7 +92,22 @@ $ bpftool map list                           # 列出BPF Map
 $ bpftool prog dump xlated id 42            # 查看BPF程序的反汇编代码
 $ bpftool trace                              # 实时查看trace_pipe输出</code></pre>
 
-        <h2 id="section-02">bpftrace一行命令追踪内核</h2>
+        <figure class="mechanism-figure"><img src="assets/diagrams/ebpf-lifecycle.svg" width="800" height="380" alt="eBPF 程序从用户态源码到验证器、JIT、挂载事件，以及通过 BPF Map 与用户态交换数据的链路"><figcaption>eBPF 的加载链路：源码经 clang 编译为字节码后由 <code>bpf(BPF_PROG_LOAD)</code> 提交；验证器静态检查后 JIT 编译并挂载到事件。程序只能经 BPF Map 与用户态交换数据，这既是数据通道也是能力边界。图中箭头表示概念顺序，不表示固定函数调用序列。</figcaption></figure>
+
+        <section class="deep-dive" aria-labelledby="deep-20-title">
+<h3 id="deep-20-title">机制追踪：一条 <code>bpftrace</code> 命令从编写到拿到输出，内核做了什么？</h3>
+<p>bpftrace 把一行脚本翻译成字节码并挂载，过程中的每一步都有边界与代价：</p>
+<ol class="causal-steps">
+<li><strong>解析与编译：</strong>bpftrace 把脚本翻译成 eBPF 字节码（内部经 LLVM），并生成挂载与 Map 定义信息。</li>
+<li><strong>加载与验证：</strong>字节码经 <code>bpf(BPF_PROG_LOAD)</code> 进入内核，验证器模拟执行所有可行路径，检查越界、空指针与有界循环；不合法则直接报错而非允许运行。</li>
+<li><strong>JIT 与挂载：</strong>通过后 JIT 编译成本机指令，程序挂载到指定 probe（如 <code>kprobe:do_sys_open</code>）；挂载点决定了可用的上下文与 helper。</li>
+<li><strong>事件触发执行：</strong>事件命中时运行 BPF 程序。程序不能直接打印或写文件，只能写入 Map（如哈希表、直方图聚合）。</li>
+<li><strong>用户态读取：</strong>bpftrace 在用户态周期读取 Map 并格式化输出；退出时清理挂载与 Map。这也意味着采样频率、Map 大小与输出量都会直接影响观测开销。</li>
+</ol>
+<details><summary>为什么 kprobe 能看到“任意函数”却仍然可能失败？</summary><p>即使函数符号存在，kprobe 也依赖该符号与参数布局：函数被内联、被编译器优化、或内核因安全缓解措施（如 CFI/收尾工具）限制时可能无法挂载；参数也需按寄存器/栈 ABI 手动解析。tracepoint 由内核开发者定义，字段语义固定，因此更稳定。选型时稳定性优先，kprobe 作为 tracepoint 覆盖不到时的补充。</p></details>
+</section>
+
+<h2 id="section-02">bpftrace一行命令追踪内核</h2>
 
         <p>bpftrace是一个基于eBPF的高级前端工具，语法类似awk。它的核心卖点就是——你不需要懂eBPF内部实现，用一行命令就能完成复杂的动态追踪任务。</p>
 
@@ -305,6 +320,25 @@ int sys_exit(struct bpf_raw_tracepoint_args *ctx) {
         <div class="tip">
             <p><strong>选型建议</strong>：BCC适合原型验证和教学场景，bpftrace适合现场排查问题，libbpf+CO-RE是生产环境的正确姿势。一个合格的SRE应该三种都会——bpftrace处理日常故障，BCC写一次性脚本，libbpf做长期监控agent的eBPF组件。</p>
         </div>
+
+<section class="practice-card" aria-labelledby="practice-20-title">
+<h3 id="practice-20-title">只读观察：eBPF 能力与已加载程序</h3>
+<p><strong>环境：</strong>Linux 主机；仅读取 sysfs/procfs 与列出已加载对象，不加载、不挂载、不删除任何程序。是否需要 root、是否存在 <code>bpftool</code>/<code>bpftrace</code> 随发行版与内核配置变化。</p>
+<pre><code># 内核是否开启 BTF（CO-RE 的前提，存在即表示已开启）
+ls -l /sys/kernel/btf/vmlinux 2>/dev/null || echo '无 BTF，CO-RE 受限'
+
+# 非特权用户是否允许加载 eBPF（1 表示已禁用）
+cat /proc/sys/kernel/unprivileged_bpf_disabled 2>/dev/null || echo '无此 sysctl，旧内核或未提供'
+
+# 列出已加载的 BPF 程序与 Map（只读；无权限则打印提示）
+sudo bpftool prog list 2>/dev/null | head -n 20 || echo 'bpftool 不可用或无权限，跳过'
+sudo bpftool map list 2>/dev/null | head -n 10 || echo 'bpftool 不可用或无权限，跳过'
+
+# 若已安装 bpftrace，只查看版本，不运行脚本
+bpftrace --version 2>/dev/null || echo 'bpftrace 未安装，跳过'</code></pre>
+<p><strong>预期：</strong>较新的内核通常在 <code>/sys/kernel/btf/vmlinux</code> 提供 BTF；<code>unprivileged_bpf_disabled</code> 常见为 <code>1</code>（非特权加载被禁），具体默认值随内核版本与发行版策略变化。<code>bpftool prog list</code> 会列出当前已有观察工具（如 systemd、监控 agent）加载的程序计数与类型。</p>
+<p><strong>解释：</strong>BTF 是 CO-RE “一次编译、多内核运行”的关键信息；<code>unprivileged_bpf_disabled</code> 体现了“验证器 + 权限”双重边界。列举已加载程序说明 eBPF 常由后台 agent 持续运行，而不是临时脚本；看到计数不等于已知其具体行为。<strong>清理：</strong>均为只读命令，无需回滚。</p>
+</section>
 
         <p>eBPF是操作系统可观测性领域的一次革命。从架构上看，它提供了用户态安全挂载代码到内核事件路径的能力；从工具链看，bpftrace的一行命令让动态追踪变得触手可及；从工程实践看，kprobe（灵活）和tracepoint（稳定）互为补充，适用于不同场景。学完本章，你应该能在自己的Linux机器上跑起第一个bpftrace脚本了。</p>
 

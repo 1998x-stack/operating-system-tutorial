@@ -55,6 +55,24 @@
       "locator": "BPF ring buffer",
       "status": "verified",
       "notes": "工具的 printf/事件输出方式可能随实现变化。"
+    },
+    {
+      "id": "bpf-20-07",
+      "claim": "BPF 程序只能通过 BPF Map 与用户态交换数据，不能直接写文件或输出到终端；用户态通过 bpf() 的 map 命令读取。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://docs.kernel.org/bpf/maps.html",
+      "locator": "BPF maps",
+      "status": "verified",
+      "notes": "具体输出通道（perf event array 或 ringbuf）由工具选择。"
+    },
+    {
+      "id": "bpf-20-08",
+      "claim": "/proc/sys/kernel/unprivileged_bpf_disabled 控制非特权用户是否可加载 eBPF；/sys/kernel/btf/vmlinux 存在表示内核提供 BTF 供 CO-RE 使用。",
+      "kind": "version-sensitive implementation/API",
+      "source_url": "https://docs.kernel.org/bpf/capability-errors.html",
+      "locator": "unprivileged_bpf_disabled",
+      "status": "verified",
+      "notes": "默认值与权限模型随内核版本和发行版变化。"
     }
   ]
 }

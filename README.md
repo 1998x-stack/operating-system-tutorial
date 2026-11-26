@@ -50,6 +50,20 @@
 
 新增图示包括 `assets/diagrams/lock-contention.svg`、`buddy-split-merge.svg`、`vfs-lookup.svg`、`io-uring-rings.svg`、`chardev-path.svg`、`irq-top-bottom.svg` 与 `time-bases.svg`；Playwright 冒烟测试的组件断言扩展到前 18 篇。
 
+## 第 19–26 章逐篇精细化（2026-11）
+
+- [逐篇复核记录](docs/reviews/fine-grained-19-26.md)：沿用“机制追踪 + 只读微实验”标准，逐篇提交、逐篇检查，并为缺图章节补原创解释图。
+- [第 19 章](19.html)：一次 `send()` 的分层加头路径与 Netfilter 钩子；`ss`/`nstat` 只读观察连接队列。
+- [第 20 章](20.html)：一条 `bpftrace` 从编译、验证到挂载与 Map 读取；BTF 与权限只读核对。
+- [第 21 章](21.html)：一次 `KVM_RUN` 到 VM-Exit 的循环与 vCPU steal；`systemd-detect-virt`/`/proc/stat` 只读观察。
+- [第 22 章](22.html)：容器隔离的叠放顺序；`/proc/self/ns` 与 cgroup 只读观察。
+- [第 23 章](23.html)：kdump/vmcore 证据链；`kexec_loaded`/`crashkernel` 只读核对。
+- [第 24 章](24.html)：`perf record` 到火焰图的采样路径；PSI 与 `vmstat` 基线只读观察。
+- [第 25 章](25.html)：一次 `iret` 到 Ring 3 的前置条件；引导扇区 512 字节/`55aa` 只读核对。
+- [第 26 章](26.html)：前沿说法的证据分层核对；本机能力只读观察。
+
+新增图示包括 `net-path.svg`、`ebpf-lifecycle.svg`、`kvm-vcpu.svg`、`crash-analysis.svg`、`perf-workflow.svg`、`boot-to-user.svg` 与 `frontier-map.svg`；Playwright 冒烟测试的组件断言扩展到前 26 篇。
+
 ## 如何阅读
 
 1. **本地即开即用：**克隆仓库后双击 `index.html`，或用浏览器打开任意章节 HTML。新版目录不再依赖 `fetch()`，因此在 `file://` 下也可以浏览。

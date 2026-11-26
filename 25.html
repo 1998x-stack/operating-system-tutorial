@@ -108,6 +108,8 @@ $ qemu-system-x86_64 -drive format=raw,file=disk.img -m 256M
             <p><strong>踩坑提醒</strong>：引导扇区必须恰好512字节，最后两个字节必须是 <code>0x55 0xAA</code>（小端序，所以代码中写 <code>dw 0xaa55</code>）。如果最后两个字节不对，BIOS会认为这个磁盘不可启动。另一个常见坑是 <code>ORG 0x7C00</code> 和段寄存器必须匹配——很多新手在实模式下的地址计算上栽跟头。</p>
         </div>
 
+        <figure class="mechanism-figure"><img src="assets/diagrams/boot-to-user.svg" width="800" height="380" alt="从固件加载引导扇区、进入保护模式、初始化页分配器与 IDT，到用 iret 切换到 Ring 3 并经受控入口请求内核的启动链"><figcaption>最小启动链：固件把引导扇区加载到 0x7C00，引导程序取内存图、置位 GDT/A20/CR0 进入保护模式，再初始化页分配器与 IDT，最后用 <code>iret</code> 构造返回帧切到 Ring 3。用户程序只能承受控入口（如 <code>int 0x80</code>）请求内核。图为 x86 教学路径示意。</figcaption></figure>
+
         <h2 id="section-02">二、进入保护模式</h2>
 
         <p>实模式有很多限制：只能访问1MB内存、没有内存保护、只能使用16位寄存器和寻址。现代OS必须运行在32位或64位的保护模式（Protected Mode）或长模式（Long Mode）下。从实模式进入保护模式的步骤是固定的三步曲：设置GDT → 开启A20地址线 → 设置CR0保护模式位。</p>
@@ -237,7 +239,7 @@ detect_memory:
     ; 真实 bootloader 应报告错误并停止使用不完整内存图，
     ; 不应把“只剩低端 1MB”当作通用安全回退策略。
     stc
-    ret</code></pre>>
+    ret</code></pre>
 
         <p>E820返回的每个条目包含：起始地址（8字节）、长度（8字节）、类型（4字节）。类型1表示可用内存，类型2表示保留区域，类型3表示ACPI回收内存，类型4表示ACPI NVS内存。我们只使用类型1的可用内存区域。 真实实现还必须检查返回的条目长度、24-byte 扩展属性有效位（若提供）、地址范围溢出和条目数量上限；仅凭 Type=1 就直接加入空闲页分配器是不安全的。应保留内核、引导数据、MMIO、固件保留区和低端内存等区域。</p>
 
@@ -450,9 +452,42 @@ void syscall_handler(struct regs_t *r) {
             <p><strong>核心洞见</strong>：从 Ring 0 到 Ring 3 的切换是操作系统安全模型的基石。用户进程无法直接执行 <code>cli</code>、<code>hlt</code> 等特权指令，无法访问内核地址空间，所有硬件操作必须经过系统调用——而系统调用的入口由内核完全控制。这个看似简单的权限分离，正是现代操作系统"用户程序崩溃不影响整个系统"的根本原因。</p>
         </div>
 
+        <section class="deep-dive" aria-labelledby="deep-25-title">
+<h3 id="deep-25-title">机制追踪：一次 <code>iret</code>，从 Ring 0 到 Ring 3 内核必须准备好什么？</h3>
+<p>切换到用户态不是执行一条指令那么简单，而是让 CPU 在不触发异常的情况下接受一套更低的权限。按顺序看：</p>
+<ol class="causal-steps">
+<li><strong>GDT 里有 Ring 3 描述符：</strong>用户态需要独立的代码/数据段（DPL=3），否则加载用户选择子就会触发 #GP。
+</li>
+<li><strong>段与页权限允许目标地址：</strong>用户代码所在页必须是用户可访问的（U/S 位），内核页应设 NX/不可写或完全对用户不可见。</li>
+<li><strong>准备可用的用户栈：</strong>用户态要有一个映射在用户空间的栈；iret 会从返回帧弹出 ss/esp，若指向内核地址空间则出错。</li>
+<li><strong>构造返回帧并 iret：</strong>栈上依次压入 ss、esp、eflags、cs、eip；iret 弹出这些字段并切换到指定特权级，这是从高特权级到低特权级的合法路径。</li>
+<li><strong>建立受控回入口：</strong>用户程序不能直接访问硬件，必须用 <code>int 0x80</code>/<code>syscall</code> 回到内核；内核在入口做权限与参数检查，再把 eax 作为返回值交给用户。</li>
+</ol>
+<details><summary>为什么“用户态代码不能访问内核”需要页表而不只是段？</summary><p>分段能限制基址与限长，但现代 x86-64 长模式下分段基本被绕过，权限主要由页表的 U/S 位决定。如果内核页被映射为用户可访问，Ring 3 代码仍可能读写它；因此“特权级隔离”必须与页表权限、NX 位以及正确的栈切换一起使用，单靠段寄存器不足以保证隔离。</p></details>
+</section>
+
         <p>写完这五个步骤，你的微型OS就具备了真实OS最核心的骨架：从BIOS引导、到保护模式、到物理内存管理、到中断处理、最后到用户态进程。虽然它没有文件系统、没有网络栈、没有进程调度（目前只有一个进程），但它已经完成了一个操作系统最本质的使命——管理和保护硬件资源，为应用程序提供执行环境。</p>
 
         <p>如果你想继续扩展它，接下来可以做的事情包括：实现一个简易的FAT文件系统读取器、添加多任务调度器让多个用户进程轮流运行、或者扩展系统调用接口。每一件都是对前面章节所学知识的实践落地。</p>
+
+<section class="practice-card" aria-labelledby="practice-25-title">
+<h3 id="practice-25-title">只读核对：工具链与引导扇区产物</h3>
+<p><strong>环境：</strong>任意 Linux/macOS 主机；只检查工具版本与已有产物，不编译、不运行 QEMU。命令可用性与机器类型随发行版和 QEMU 版本变化。</p>
+<pre><code># 确认交叉/汇编工具链是否存在
+for t in nasm gcc ld objdump readelf qemu-system-x86_64; do
+  printf '%-22s' "$t"; command -v "$t" >/dev/null && "$t" --version 2>/dev/null | head -n1 || echo '未安装'
+done
+# 若已有 boot.bin（512 字节引导扇区），核对长度与结尾标识
+if [ -f boot.bin ]; then
+  wc -c boot.bin
+  od -An -tx1 -j 510 -N 2 boot.bin     # 应为 55 aa
+  objdump -D -b binary -m i8086 boot.bin | head -n 20
+else
+  echo '当前目录没有 boot.bin，先用 nasm 编译一个再回来核对'
+fi</code></pre>
+<p><strong>预期：</strong><code>nasm</code>、<code>objdump</code>、<code>qemu-system-x86_64</code> 等能打印版本；存在 <code>boot.bin</code> 时 <code>wc -c</code> 为 512，最后两字节为 <code>55 aa</code>，<code>objdump</code> 以 i8086 反汇编能看出实模式指令。</p>
+<p><strong>解释：</strong>引导扇区必须是 512 字节且以 <code>0x55AA</code> 结尾，否则固件会判定不可启动；<code>objdump -b binary</code> 读原始二进制时需指定架构。这些核对只能证明产物格式，不能证明它能在真实固件上启动——那需要在 QEMU 中实际运行观察。<strong>清理：</strong>均为只读命令，不产生新文件。</p>
+</section>
 
         <p>下一章我们将从"动手写"的视角重新拉回宏观，看看现代操作系统的前沿趋势——从eBPF到安全架构、从Rust for Linux到Unikernel和Zircon微内核，今天的OS设计正在发生哪些深刻的变革。</p>
 </div>

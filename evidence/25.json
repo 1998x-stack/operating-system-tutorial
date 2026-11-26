@@ -55,6 +55,24 @@
       "locator": "UEFI Specification",
       "status": "verified",
       "notes": "实验需明确使用 SeaBIOS/BIOS 固件还是 UEFI。"
+    },
+    {
+      "id": "boot-25-07",
+      "claim": "x86 从高特权级到低特权级的合法路径是中断/异常返回（iret/sysret 等），需要预先构造包含 ss/esp/eflags/cs/eip 的返回帧。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html",
+      "locator": "INTEL SDM Vol. 3, IRET; privilege-level transitions",
+      "status": "derived",
+      "notes": "长模式下分段基本被绕过，隔离主要依赖页表权限与 NX。"
+    },
+    {
+      "id": "boot-25-08",
+      "claim": "引导扇区必须为 512 字节且以 0x55AA 结尾，否则 BIOS 会判定磁盘不可启动。",
+      "kind": "implementation or API behavior",
+      "source_url": "https://wiki.osdev.org/Boot_Sequence",
+      "locator": "Boot Sequence; boot signature",
+      "status": "derived",
+      "notes": "仅适用于传统 BIOS 启动路径；UEFI 不同。"
     }
   ]
 }

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 380" role="img" aria-labelledby="t d">
+<title id="t">从 BIOS 引导到 Ring 3 用户态的最小启动链</title>
+<desc id="d">加电后固件（BIOS 或 UEFI）完成自检并把引导扇区加载到 0x7C00，此时 x86 处于 16 位实模式。引导程序先获取内存映射（E820），设置 GDT、开启 A20 地址线并置 CR0 的 PE 位，进入 32 位保护模式。随后初始化物理页分配器（位图）与 IDT，加载中断处理入口。要通过 iret 构造返回帧才能从 Ring 0 切换到 Ring 3；用户程序只能通过 int 0x80 等受控入口请求内核服务。UEFI、ARM/RISC-V 的引导与特权级切换流程不同，本图仅描述 x86 教学路径。</desc>
+<g font-family="sans-serif">
+<text x="400" y="26" text-anchor="middle" font-size="17" fill="#203035">最小启动链：从固件到用户态</text>
+<rect x="40" y="48" width="230" height="62" rx="8" fill="#e7f4f0" stroke="#147f80" stroke-width="2"/>
+<text x="155" y="72" text-anchor="middle" font-size="13" fill="#203035">固件（BIOS/UEFI）</text>
+<text x="155" y="91" text-anchor="middle" font-size="11" fill="#53676d">自检 → 加载引导扇区到 0x7C00</text>
+<rect x="285" y="48" width="230" height="62" rx="8" fill="#e7f4f0" stroke="#147f80" stroke-width="2"/>
+<text x="400" y="72" text-anchor="middle" font-size="13" fill="#203035">16 位实模式汇编</text>
+<text x="400" y="91" text-anchor="middle" font-size="11" fill="#53676d">BIOS 中断打印 / E820 取内存图</text>
+<rect x="530" y="48" width="230" height="62" rx="8" fill="#f2eefa" stroke="#7461ba" stroke-width="2"/>
+<text x="645" y="72" text-anchor="middle" font-size="13" fill="#203035">进入保护模式</text>
+<text x="645" y="91" text-anchor="middle" font-size="11" fill="#53676d">GDT + 开 A20 + CR0.PE</text>
+<path d="M270 79 L285 79 M515 79 L530 79" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#a)"/>
+<rect x="40" y="138" width="230" height="62" rx="8" fill="#f6efdc" stroke="#916c22" stroke-width="2"/>
+<text x="155" y="162" text-anchor="middle" font-size="13" fill="#203035">物理页分配器</text>
+<text x="155" y="181" text-anchor="middle" font-size="11" fill="#53676d">E820 可用区 + 位图管理 4KB 页</text>
+<rect x="285" y="138" width="230" height="62" rx="8" fill="#f6efdc" stroke="#916c22" stroke-width="2"/>
+<text x="400" y="162" text-anchor="middle" font-size="13" fill="#203035">IDT 与中断入口</text>
+<text x="400" y="181" text-anchor="middle" font-size="11" fill="#53676d">门描述符 / 定时器 / 键盘 / EOI</text>
+<rect x="530" y="138" width="230" height="62" rx="8" fill="#fbe9e1" stroke="#d06d4d" stroke-width="2"/>
+<text x="645" y="162" text-anchor="middle" font-size="13" fill="#203035">Ring 0 → Ring 3</text>
+<text x="645" y="181" text-anchor="middle" font-size="11" fill="#53676d">构造返回帧 + iret</text>
+<path d="M645 110 L645 138" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#a)"/>
+<path d="M270 169 L285 169 M515 169 L530 169" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#a)"/>
+<rect x="200" y="232" width="400" height="62" rx="8" fill="#eef3f4" stroke="#53676d" stroke-width="1.5"/>
+<text x="400" y="256" text-anchor="middle" font-size="13" fill="#203035">用户程序只经受控入口请求内核</text>
+<text x="400" y="275" text-anchor="middle" font-size="11" fill="#53676d">int 0x80 / syscall → 内核分发与权限检查</text>
+<path d="M645 200 L645 214 L400 214 L400 232" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#a)"/>
+<text x="40" y="322" font-size="12" fill="#53676d">切换不可逆：置位 CR0.PE 后无法在不重启的情况下回到实模式；GDT/IDT 每一项都有精确的硬件语义。</text>
+<text x="40" y="344" font-size="12" fill="#53676d">跨架构提醒：UEFI 与 ARM/RISC-V 的固件、页表与特权级转换方式与 x86 教学路径不同。</text>
+<text x="40" y="366" font-size="12" fill="#53676d">图为流程示意，代码为教学骨架，未做安全加固。</text>
+<defs><marker id="a" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#53676d"/></marker></defs>
+</g></svg>

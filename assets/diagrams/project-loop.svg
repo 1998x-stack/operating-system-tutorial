@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" role="img" aria-labelledby="t d">
+<title id="t">四个综合项目的证据产出与共同验证环</title>
+<desc id="d">四个综合项目分别产出不同层次的证据：eBPF 调度延迟观测产出直方图与程序附件记录；字符设备驱动产出模块加载与读写路径；xv6 写时拷贝 fork 产出页引用计数与隔离行为；perf 火焰图产出采样聚合结果。四者共用同一条验证环：先定义目标环境与基线，再最小实现，再记录构建与运行证据，最后区分代码草图、成功运行和性能结论，并写明清理与回滚。图为教学示意，不代表某一内核版本的实现或任何性能量化结论。</desc>
+<g font-family="sans-serif">
+<text x="400" y="26" text-anchor="middle" font-size="17" fill="#203035">四个综合项目：同一个“目标→实现→证据”的落地环</text>
+<rect x="40" y="48" width="360" height="52" rx="8" fill="#e7f4f0" stroke="#147f80" stroke-width="1.5"/>
+<text x="56" y="70" font-size="13" fill="#203035">① eBPF 调度延迟（第 20 章）</text>
+<text x="56" y="88" font-size="11" fill="#53676d">证据：runqlat 直方图 + 附件/Map 记录，需区分采样窗口</text>
+<rect x="400" y="48" width="360" height="52" rx="8" fill="#f2eefa" stroke="#7461ba" stroke-width="1.5"/>
+<text x="416" y="70" font-size="13" fill="#203035">② 字符设备驱动（第 16 章）</text>
+<text x="416" y="88" font-size="11" fill="#53676d">证据：模块加载、设备节点与 read/write 路径</text>
+<rect x="40" y="112" width="360" height="52" rx="8" fill="#f6efdc" stroke="#916c22" stroke-width="1.5"/>
+<text x="56" y="134" font-size="13" fill="#203035">③ xv6 COW fork（第 08/12 章）</text>
+<text x="56" y="152" font-size="11" fill="#53676d">证据：页引用计数与父子隔离行为，须对齐 kfree 设计</text>
+<rect x="400" y="112" width="360" height="52" rx="8" fill="#fbe9e1" stroke="#d06d4d" stroke-width="1.5"/>
+<text x="416" y="134" font-size="13" fill="#203035">④ 内核火焰图（第 24 章）</text>
+<text x="416" y="152" font-size="11" fill="#53676d">证据：perf 采样聚合栈；宽色块不必然可优化</text>
+<text x="400" y="196" text-anchor="middle" font-size="13" fill="#203035">共同验证环（每个项目都要走一遍）</text>
+<rect x="40" y="212" width="700" height="120" rx="10" fill="#f7faf9" stroke="#53676d" stroke-width="1.5"/>
+<text x="60" y="242" font-size="12" fill="#203035">1. 定目标与基线：写清内核/工具版本、workload、可丢弃 VM/测试机</text>
+<text x="60" y="266" font-size="12" fill="#203035">2. 最小实现：先跑通最小路径，再逐步扩展，不直接上生产</text>
+<text x="60" y="290" font-size="12" fill="#203035">3. 记录证据：构建命令、原始输出、失败排查与实验报告</text>
+<text x="60" y="314" font-size="12" fill="#203035">4. 分清结论层级：代码草图 ≠ 成功运行 ≠ 性能/可靠性结论；写明清理与回滚</text>
+<text x="40" y="360" font-size="12" fill="#53676d">四个项目覆盖观测、驱动接口、教学内核修改与性能分析四类证据，验证标准各不相同。</text>
+<text x="40" y="382" font-size="12" fill="#53676d">图为教学示意，不构成任何性能或可靠性结论。</text>
+</g></svg>

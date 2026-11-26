@@ -52,6 +52,21 @@
 <div class="article-body">
 <p>综合项目的目标是把前面章节的机制转化为可复现的工程练习。本章提供 eBPF 调度延迟观测、字符设备驱动、xv6 写时复制 fork 和 perf 火焰图四条路线；它们分别覆盖观测、驱动接口、教学内核修改和性能分析。</p><p>每个项目都应记录目标环境、内核/工具版本、构建命令、预期输出、失败排查与清理步骤。内核模块和 eBPF 程序只应在可丢弃的虚拟机或专用测试机运行；性能项目必须先定义 workload 和基线。示例代码用于学习，不应未经审计直接部署到生产环境。</p>
 
+        <figure class="mechanism-figure"><img src="assets/diagrams/project-loop.svg" width="800" height="400" alt="四个综合项目各自产出什么证据，以及它们共用的目标到证据验证环的概念图"><figcaption>四个项目覆盖四类不同证据：eBPF 调度延迟观测、字符设备驱动的读写路径、xv6 写时拷贝 fork 的页引用计数与隔离行为、perf 火焰图的采样聚合。它们共用同一条验证环——先定目标与基线，再最小实现，再记录构建与运行证据，最后分清“代码草图 / 成功运行 / 性能结论”三个层级并写明清理与回滚。图为教学示意，不代表某一内核版本的实现或任何性能量化结论。</figcaption></figure>
+
+        <section class="deep-dive" aria-labelledby="deep-28-title">
+<h3 id="deep-28-title">机制追踪：一个综合项目从“跑起来”到“可下结论”要经过哪几步？</h3>
+<p>综合项目最容易出错的地方，不是代码写不出来，而是把“代码写好了”“跑起来了”“性能变好了”混为一谈。一条可复现的结论要依次经过：</p>
+<ol class="causal-steps">
+<li><strong>锁定环境与版本：</strong>内核版本、编译器/工具链、库依赖都会改变行为；记录它们，否则结论无法复现，也无法判断是否过时。</li>
+<li><strong>隔离执行面：</strong>内核模块与 eBPF 程序可能让整机崩溃或影响调度，只在可丢弃的虚拟机/专用测试机上运行，并准备恢复路径。</li>
+<li><strong>先跑通最小路径：</strong>先证明探针能挂上、驱动能被打开、fork 能返回，再逐步扩展；每一步都应有可观察的输出，而不是一次性堆完代码。</li>
+<li><strong>区分证据层级：</strong>直方图、dmesg 行、页引用计数日志属于原始证据；<code>perf</code> 火焰图的宽色块只说明采样把成本归到这里，并不自动等于“这里可优化”。</li>
+<li><strong>写明边界与清理：</strong>样本量、采样窗口、未验证的部分都要标注；卸载模块、删除设备、恢复 xv6 源码、删除临时文件的步骤也要写进报告。</li>
+</ol>
+<details><summary>为什么“火焰图上最宽的色块”不能直接当作优化目标？</summary><p>火焰图是采样结果的聚合视图：某帧很宽，说明采样时程序较频繁地停在那段调用栈，但可能是必要的计算、可能是等待、也可能被内联/符号缺失导致归属错误。要下优化结论，还需要基线对比、更细的计数（如 <code>perf stat</code>）、以及改动后的重复测量；否则只是把“热点”误读成“瓶颈”。</p></details>
+</section>
+
         <h2 id="section-01">一、项目一：用eBPF分析调度延迟</h2>
 
         <p>调度延迟（Scheduling Latency）是指一个进程从变成"可运行"状态到真正在CPU上开始执行之间的等待时间。这是衡量OS调度器性能的核心指标。我们将在第20章eBPF知识的基础上，编写一个真正的eBPF程序来追踪runqlat。</p>
@@ -504,6 +519,25 @@ $ firefox kernel_flame.svg</code></pre>
         <div class="tip">
             <p><strong>进阶挑战</strong>：生成火焰图后，试试用<code>perf diff</code>比较优化前和优化后的火焰图差异。例如，在一次内核配置调整前后各采集30秒数据，用<code>perf diff baseline.data perf.data</code>查看哪些函数的CPU占用发生了变化。这种"前后对比"的分析方法是性能调优的标准流程。</p>
         </div>
+
+<section class="practice-card" aria-labelledby="practice-28-title">
+<h3 id="practice-28-title">只读核对：四个项目所需的工具链与前提是否就绪</h3>
+<p><strong>环境：</strong>Linux 主机，普通用户权限；只查询版本与路径，不编译、不加载模块、不运行 eBPF 探针。工具是否存在与路径随发行版变化，缺失时不要自行在生产主机上安装。</p>
+<pre><code># 内核与编译器：驱动与 eBPF 项目的起点
+uname -r; gcc --version 2>/dev/null | head -n 1; clang --version 2>/dev/null | head -n 1
+# 可观测性工具（不运行探针，只查版本）
+perf --version 2>/dev/null || echo '无 perf（需 linux-tools 对应版本）'
+bpftrace --version 2>/dev/null || echo '无 bpftrace'
+# BTF 与权限前提：eBPF CO-RE 依赖 vmlinux BTF 与相应能力
+ls -l /sys/kernel/btf/vmlinux 2>/dev/null || echo '无 vmlinux BTF：CO-RE 不可用'
+sysctl kernel.unprivileged_bpf_disabled 2>/dev/null || echo '无法读取该 sysctl'
+# 虚拟化/教学内核前提（不启动虚拟机）
+qemu-system-x86_64 --version 2>/dev/null | head -n 1 || echo '无 qemu'
+ls -d ~/xv6* /opt/xv6* 2>/dev/null || echo '未发现常见 xv6 目录，需自行准备'
+</code></pre>
+<p><strong>预期：</strong><code>uname -r</code> 与编译器版本决定可用头文件与语法；<code>/sys/kernel/btf/vmlinux</code> 存在是 eBPF CO-RE 程序可移植的前提之一；<code>unprivileged_bpf_disabled</code> 说明未特权用户能否加载 BPF。<code>perf</code>、<code>bpftrace</code>、<code>qemu</code> 缺失时，相应项目需先解决环境。</p>
+<p><strong>解释：</strong>工具存在只证明“具备尝试的前提”，不等于项目已跑通，更不等于得到性能结论。驱动与 eBPF 项目应在可丢弃虚机中执行；本命令均为只读，未安装任何软件、未运行探针。<strong>清理：</strong>无（若有后续编译产生的 <code>.ko</code>/临时文件，自行删除）。</p>
+</section>
 
         <h2 id="section-05">五、课程总结与进阶路线</h2>
 

@@ -91,7 +91,32 @@ if (time_after_eq(jiffies, timeout)) {
 
         <p>随着硬件的发展（CPU频率进入GHz时代、高精度事件计时器HPET的普及），每tick更新一次时间的模式已经无法满足需求。于是Linux 2.6.16引入了全新的高精度定时器子系统——hrtimer（High Resolution Timer）。</p>
 
-        <figure class="mechanism-figure"><img src="assets/diagrams/time-bases.svg" width="800" height="300" alt="CLOCK_REALTIME 与 CLOCK_MONOTONIC 两种时间基准与底层时钟源、jiffies 和 hrtimer 的关系"><figcaption>两种时间基准与底层时钟源：REALTIME 是会被 NTP/闰秒校准的墙上时间，MONOTONIC 自启动起单调递增；两者都由内核选定的硬件时钟源换算。周期 tick 驱动 jiffies，hrtimer 用一次性时钟事件编程。图为概念关系示意。</figcaption></figure>
+        <figure class="mechanism-figure"><svg class="mechanism-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" role="img" aria-labelledby="t-18-1 d-18-1">
+<title id="t-18-1">三种时间基准（REALTIME、MONOTONIC）与底层时钟源的关系</title>
+<desc id="d-18-1">CLOCK_REALTIME 是墙上时间，可被 NTP 或手动校准，也可能因闰秒跳变，适合日志与时间戳。CLOCK_MONOTONIC 自启动起单调递增，不受墙上时间校准影响，适合测量时长与超时。两者都由内核选用的硬件时钟源（如 TSC、HPET、kvm-clock）换算得到；周期性 tick 由 HZ 驱动 jiffies，而 hrtimer 使用一次性的时钟事件编程，不受 HZ 粒度限制。图只表示概念关系。</desc>
+<g font-family="sans-serif">
+<text x="400" y="26" text-anchor="middle" font-size="17" fill="#203035">时间基准与底层时钟源</text>
+<rect x="60" y="46" width="330" height="66" rx="8" fill="#fbe9e1" stroke="#d06d4d" stroke-width="2"/>
+<text x="225" y="68" text-anchor="middle" font-size="14" fill="#203035">CLOCK_REALTIME</text>
+<text x="225" y="88" text-anchor="middle" font-size="12" fill="#53676d">墙上时间：可被 NTP/手工校准</text>
+<text x="225" y="104" text-anchor="middle" font-size="12" fill="#53676d">会因校准或闰秒跳变</text>
+<rect x="410" y="46" width="330" height="66" rx="8" fill="#e7f4f0" stroke="#147f80" stroke-width="2"/>
+<text x="575" y="68" text-anchor="middle" font-size="14" fill="#203035">CLOCK_MONOTONIC</text>
+<text x="575" y="88" text-anchor="middle" font-size="12" fill="#53676d">自启动起单调递增</text>
+<text x="575" y="104" text-anchor="middle" font-size="12" fill="#53676d">不受墙上时间校准影响</text>
+<path d="M225 112 L225 132" stroke="#53676d" stroke-width="2" fill="none"/>
+<path d="M575 112 L575 132" stroke="#53676d" stroke-width="2" fill="none"/>
+<rect x="60" y="132" width="680" height="46" rx="8" fill="#f2eefa" stroke="#7461ba" stroke-width="2"/>
+<text x="400" y="152" text-anchor="middle" font-size="13" fill="#203035">内核选用的时钟源：TSC / HPET / PIT / kvm-clock（通过 clocksource 机制选定）</text>
+<text x="400" y="169" text-anchor="middle" font-size="12" fill="#53676d">把硬件计数换算为纳秒供两个基准使用</text>
+<rect x="60" y="192" width="330" height="56" rx="8" fill="#f6efdc" stroke="#916c22" stroke-width="2"/>
+<text x="225" y="214" text-anchor="middle" font-size="13" fill="#203035">周期性 tick：HZ → jiffies</text>
+<text x="225" y="233" text-anchor="middle" font-size="12" fill="#53676d">粗粒度计数</text>
+<rect x="410" y="192" width="330" height="56" rx="8" fill="#f6efdc" stroke="#916c22" stroke-width="2"/>
+<text x="575" y="214" text-anchor="middle" font-size="13" fill="#203035">hrtimer：一次性时钟事件</text>
+<text x="575" y="233" text-anchor="middle" font-size="12" fill="#53676d">不受 HZ 粒度限制</text>
+<text x="60" y="278" font-size="12" fill="#53676d">简化示意图：实际时钟源选择、tickless 行为与虚拟化时钟细节因架构与内核配置而异。</text>
+</g></svg><figcaption>两种时间基准与底层时钟源：REALTIME 是会被 NTP/闰秒校准的墙上时间，MONOTONIC 自启动起单调递增；两者都由内核选定的硬件时钟源换算。周期 tick 驱动 jiffies，hrtimer 用一次性时钟事件编程。图为概念关系示意。</figcaption></figure>
 
         <h3>红黑树定时器</h3>
         <p>传统的 <code>timer_list</code> 使用"时间轮"（timer wheel）算法——将定时器按到期时间分成多个桶（bucket），每次tick到来时扫描当前时间片的桶。这种算法在定时器数量较少时效率不错，但精度受限于HZ。</p>

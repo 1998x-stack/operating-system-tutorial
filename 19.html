@@ -93,7 +93,44 @@
 //     → ip_output → dev_queue_xmit → nf_hook
 //       → netdev_start_xmit → 网卡驱动 → 网卡</code></pre>
 
-        <figure class="mechanism-figure"><img src="assets/diagrams/net-path.svg" width="800" height="440" alt="TCP 数据包在应用、socket、传输层、网络层、链路层与网卡驱动之间的分层路径，以及 Netfilter 在发送与接收方向上的钩子位置"><figcaption>一次 TCP 收发的分层路径：发送方向自上而下经过 socket、TCP、IP、链路层到网卡驱动；接收方向自下而上，路由后分流为本机（INPUT）或转发（FORWARD）流量。右侧标出 Netfilter 钩子触发位置，sk_buff 通过移动 data 指针在各层复用同一缓冲区。图为概念层次示意，offload 与路由配置会改变实际路径。</figcaption></figure>
+        <figure class="mechanism-figure"><svg class="mechanism-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 440" role="img" aria-labelledby="t-19-1 d-19-1">
+<title id="t-19-1">TCP 数据包内核路径与 Netfilter 钩子位置</title>
+<desc id="d-19-1">发送方向自上而下：应用 send() 经 socket 层到 TCP 传输层，再经 IP 网络层与链路层交给网卡驱动发送。沿途 Netfilter 在 OUTPUT（本机发出）与 POSTROUTING（即将发出）触发。接收方向自下而上：网卡驱动经 NAPI 提交，数据包先经 PREROUTING（进入、路由前），路由后分流为本机流量（INPUT）或转发流量（FORWARD）。sk_buff 在各层通过移动 data 指针复用同一缓冲区。图为概念层次示意，不代表每个数据包逐行经过相同函数。</desc>
+<g font-family="sans-serif">
+<text x="400" y="26" text-anchor="middle" font-size="17" fill="#203035">一次 TCP 收发的分层路径与 Netfilter 钩子</text>
+<rect x="40" y="46" width="330" height="44" rx="8" fill="#e7f4f0" stroke="#147f80" stroke-width="2"/>
+<text x="205" y="64" text-anchor="middle" font-size="13" fill="#203035">应用层：send() / recv()</text>
+<text x="205" y="81" text-anchor="middle" font-size="11" fill="#53676d">用户态陷入内核态</text>
+<rect x="40" y="100" width="330" height="44" rx="8" fill="#f2eefa" stroke="#7461ba" stroke-width="2"/>
+<text x="205" y="118" text-anchor="middle" font-size="13" fill="#203035">socket 层：struct proto_ops</text>
+<text x="205" y="135" text-anchor="middle" font-size="11" fill="#53676d">按协议族找到 tcp_sendmsg</text>
+<rect x="40" y="154" width="330" height="44" rx="8" fill="#f2eefa" stroke="#7461ba" stroke-width="2"/>
+<text x="205" y="172" text-anchor="middle" font-size="13" fill="#203035">传输层：TCP 分段 / 拥塞控制</text>
+<text x="205" y="189" text-anchor="middle" font-size="11" fill="#53676d">写入 socket 发送队列</text>
+<rect x="40" y="208" width="330" height="44" rx="8" fill="#fbe9e1" stroke="#d06d4d" stroke-width="2"/>
+<text x="205" y="226" text-anchor="middle" font-size="13" fill="#203035">网络层：IP 头 / 路由 / 分片</text>
+<text x="205" y="243" text-anchor="middle" font-size="11" fill="#53676d">查 FIB 决定出接口</text>
+<rect x="40" y="262" width="330" height="44" rx="8" fill="#fbe9e1" stroke="#d06d4d" stroke-width="2"/>
+<text x="205" y="280" text-anchor="middle" font-size="13" fill="#203035">链路层：ARP / VLAN / QoS</text>
+<text x="205" y="297" text-anchor="middle" font-size="11" fill="#53676d">dev_queue_xmit 提交描述符</text>
+<rect x="40" y="316" width="330" height="44" rx="8" fill="#f6efdc" stroke="#916c22" stroke-width="2"/>
+<text x="205" y="334" text-anchor="middle" font-size="13" fill="#203035">驱动与网卡：Tx/Rx 环 + DMA</text>
+<text x="205" y="351" text-anchor="middle" font-size="11" fill="#53676d">接收侧由 NAPI 轮询收包</text>
+<path d="M205 90 L205 100 M205 144 L205 154 M205 198 L205 208 M205 252 L205 262 M205 306 L205 316" stroke="#53676d" stroke-width="2" fill="none"/>
+<path d="M380 66 L470 66" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#a-19-1)"/>
+<rect x="470" y="46" width="290" height="40" rx="6" fill="#eef3f4" stroke="#53676d" stroke-width="1.5"/>
+<text x="615" y="63" text-anchor="middle" font-size="12" fill="#203035">发送：OUTPUT → POSTROUTING</text>
+<text x="615" y="79" text-anchor="middle" font-size="11" fill="#53676d">先 OUTPUT（本机发出）再 POSTROUTING</text>
+<path d="M380 336 L470 336" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#a-19-1)"/>
+<rect x="470" y="300" width="290" height="76" rx="6" fill="#eef3f4" stroke="#53676d" stroke-width="1.5"/>
+<text x="615" y="319" text-anchor="middle" font-size="12" fill="#203035">接收：PREROUTING → 路由分流</text>
+<text x="615" y="337" text-anchor="middle" font-size="11" fill="#53676d">本机流量走 INPUT</text>
+<text x="615" y="353" text-anchor="middle" font-size="11" fill="#53676d">转发流量走 FORWARD → POSTROUTING</text>
+<text x="615" y="369" text-anchor="middle" font-size="11" fill="#53676d">各钩子内表顺序：raw→mangle→nat→filter</text>
+<defs><marker id="a-19-1" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#53676d"/></marker></defs>
+<text x="40" y="398" font-size="12" fill="#53676d">sk_buff 贯穿各层：封装时通过移动 data 指针预留头部，尽量复用同一缓冲区。</text>
+<text x="40" y="420" font-size="12" fill="#53676d">简化示意图：offload（TSO/GSO/GRO）、路由与 namespace 会改变实际路径，不表示固定函数序列。</text>
+</g></svg><figcaption>一次 TCP 收发的分层路径：发送方向自上而下经过 socket、TCP、IP、链路层到网卡驱动；接收方向自下而上，路由后分流为本机（INPUT）或转发（FORWARD）流量。右侧标出 Netfilter 钩子触发位置，sk_buff 通过移动 data 指针在各层复用同一缓冲区。图为概念层次示意，offload 与路由配置会改变实际路径。</figcaption></figure>
 
         <section class="deep-dive" aria-labelledby="deep-19-title">
 <h3 id="deep-19-title">机制追踪：一次 <code>send()</code> 调用，数据怎样一层层走到网卡？</h3>

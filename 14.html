@@ -84,7 +84,26 @@
 
         <p>当你访问一个文件如 <code>/home/user/doc.txt</code> 时，文件系统需要完成"从文件路径到磁盘块"的映射。这条映射链上有三个关键数据结构：dentry、inode和page cache。</p>
 
-        <figure class="mechanism-figure"><img src="assets/diagrams/vfs-lookup.svg" width="800" height="300" alt="一次 read 从应用到 VFS、页缓存、块设备的分层数据流"><figcaption>一次读取经过的分层：应用通过 fd 持有 struct file；VFS 把路径分量解析为 dentry 并指向 inode；inode 经 address_space 关联页缓存；未命中时才由具体文件系统向块设备提交 I/O。图为分层示意，不代表具体函数调用链。</figcaption></figure>
+        <figure class="mechanism-figure"><svg class="mechanism-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" role="img" aria-labelledby="t-14-1 d-14-1">
+<title id="t-14-1">一次文件读取在应用、VFS、页缓存与块设备之间的分层</title>
+<desc id="d-14-1">应用通过文件描述符发起的读写请求，先经过 VFS：把路径分量逐个解析为 dentry，再由 dentry 指向 inode。inode 通过 address_space 与页缓存关联，命中页缓存即无需访问设备；未命中时由具体文件系统（如 ext4、Btrfs）向块设备提交 I/O。图只表示分层与典型数据流，不代表某一内核版本的函数调用链。</desc>
+<defs><marker id="ah-14-1" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0L6 3L0 6z" fill="#53676d"/></marker></defs>
+<g font-family="sans-serif">
+<text x="400" y="26" text-anchor="middle" font-size="17" fill="#203035">一次 read() 经过的分层</text>
+<rect x="60" y="44" width="680" height="34" rx="8" fill="#e7f4f0" stroke="#147f80" stroke-width="2"/>
+<text x="400" y="66" text-anchor="middle" font-size="13" fill="#203035">应用：open(path) → fd 3 → struct file（读写偏移、打开模式）</text>
+<path d="M400 78 L400 98" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#ah-14-1)"/>
+<rect x="60" y="100" width="680" height="44" rx="8" fill="#f2eefa" stroke="#7461ba" stroke-width="2"/>
+<text x="400" y="120" text-anchor="middle" font-size="13" fill="#203035">VFS：路径分量逐个解析 → dentry（dcache）→ d_inode 指向 inode #12345</text>
+<text x="400" y="137" text-anchor="middle" font-size="12" fill="#53676d">文件名存在 dentry 中；inode 保存权限、大小、数据块指针等元数据</text>
+<path d="M400 144 L400 164" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#ah-14-1)"/>
+<rect x="60" y="166" width="680" height="40" rx="8" fill="#fbe9e1" stroke="#d06d4d" stroke-width="2"/>
+<text x="400" y="191" text-anchor="middle" font-size="13" fill="#203035">page cache：inode → address_space → 缓存 folio（命中则不访问设备）</text>
+<path d="M400 206 L400 224" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#ah-14-1)"/>
+<rect x="60" y="226" width="680" height="40" rx="8" fill="#f6efdc" stroke="#916c22" stroke-width="2"/>
+<text x="400" y="251" text-anchor="middle" font-size="13" fill="#203035">文件系统（ext4 / Btrfs）→ submit_bio → 块设备驱动</text>
+<text x="60" y="288" font-size="12" fill="#53676d">简化示意图：只表达对象之间的引用与数据流方向，不代表具体函数名、缓存淘汰策略或某一内核版本实现。</text>
+</g></svg><figcaption>一次读取经过的分层：应用通过 fd 持有 struct file；VFS 把路径分量解析为 dentry 并指向 inode；inode 经 address_space 关联页缓存；未命中时才由具体文件系统向块设备提交 I/O。图为分层示意，不代表具体函数调用链。</figcaption></figure>
 
         <h3>dentry（目录项缓存）</h3>
         <p>dentry是路径名与其对应inode之间的纽带。每个路径分量对应一个dentry——比如 <code>/home/user/doc.txt</code> 需要四个dentry：<code>/</code>、<code>home</code>、<code>user</code>、<code>doc.txt</code>。dentry缓存在dcache中，加速路径查找。下次快速访问同一路径时无需重新遍历目录。</p>

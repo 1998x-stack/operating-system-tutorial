@@ -57,7 +57,25 @@
 
         <p>内核管理物理内存的基本单位是"页帧"（Page Frame），即4KB大小的物理内存块（如果配置了大页就是2MB或1GB）。Buddy 分配器是 Linux 页分配器的重要组成部分，按 order 管理连续页框；实际分配还会受到 NUMA 节点、zone、水位线、迁移类型与 GFP 标志等条件影响。</p>
 
-        <figure class="mechanism-figure"><img src="assets/diagrams/buddy-split-merge.svg" width="800" height="300" alt="伙伴系统把一个 order 2 空闲块分裂成两个 order 1 块，释放后伙伴空闲则合并回 order 2"><figcaption>伙伴系统的一次分裂与合并：请求 2 页时把 order 2 块一分为二，一块分配、一块回到 order 1 链表；释放时若伙伴仍空闲就递归合并。图为规则示意，不代表具体链表顺序或某一内核版本实现。</figcaption></figure>
+        <figure class="mechanism-figure"><svg class="mechanism-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" role="img" aria-labelledby="t-13-1 d-13-1">
+<title id="t-13-1">伙伴系统：order-2 块分裂成两个 order-1，释放后再合并</title>
+<desc id="d-13-1">第一行是一个 order 2（4 页）的连续空闲块。请求 2 页时它被分裂成两个 order 1 块：一块交给调用者，另一块回到 order 1 空闲链表。当已分配的块被释放，若它的伙伴仍空闲，两块合并恢复为 order 2。图只表示分裂与合并的基本规则，实际分配还受 zone、迁移类型和 GFP 标志影响。</desc>
+<g font-family="sans-serif">
+<text x="400" y="26" text-anchor="middle" font-size="17" fill="#203035">伙伴系统的一次分裂与合并</text>
+<text x="80" y="60" font-size="14" fill="#147f80">① 分裂前：一个 order 2 空闲块</text>
+<rect x="80" y="70" width="640" height="34" rx="6" fill="#e7f4f0" stroke="#147f80" stroke-width="2"/>
+<text x="400" y="92" text-anchor="middle" font-size="13" fill="#203035">[ L · M · N · O ]　4 页连续</text>
+<text x="80" y="128" font-size="14" fill="#d06d4d">② 请求 2 页 → 分裂成两个 order 1 块</text>
+<rect x="80" y="138" width="320" height="34" rx="6" fill="#fbe9e1" stroke="#d06d4d" stroke-width="2"/>
+<text x="240" y="160" text-anchor="middle" font-size="13" fill="#203035">[ L · M ] 交给调用者</text>
+<rect x="400" y="138" width="320" height="34" rx="6" fill="#e7f4f0" stroke="#147f80" stroke-width="2"/>
+<text x="560" y="160" text-anchor="middle" font-size="13" fill="#203035">[ N · O ] 回到 order 1 空闲链表</text>
+<text x="80" y="196" font-size="14" fill="#7461ba">③ 释放 [ L · M ] → 检查伙伴 [ N · O ]</text>
+<rect x="80" y="206" width="640" height="34" rx="6" fill="#f2eefa" stroke="#7461ba" stroke-width="2"/>
+<text x="400" y="228" text-anchor="middle" font-size="13" fill="#203035">伙伴空闲 → 合并恢复为 order 2</text>
+<text x="80" y="268" font-size="12" fill="#53676d">简化示意：只表达分裂/合并规则，不表示具体空闲链表顺序或某一内核版本的实现。</text>
+<text x="80" y="288" font-size="12" fill="#53676d">order 0 为 4 KiB 基础页；order n 表示 2ⁿ 个连续页框。</text>
+</g></svg><figcaption>伙伴系统的一次分裂与合并：请求 2 页时把 order 2 块一分为二，一块分配、一块回到 order 1 链表；释放时若伙伴仍空闲就递归合并。图为规则示意，不代表具体链表顺序或某一内核版本实现。</figcaption></figure>
 
         <h3>算法的核心思想</h3>
 

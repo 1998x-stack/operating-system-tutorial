@@ -89,7 +89,26 @@ $ echo -n "0000:01:00.0" > /sys/bus/pci/drivers/nvme/bind</code></pre>
 
         <p>字符设备（char device）是最简单的设备类型——数据像字节流一样顺序读写。键盘、鼠标、串口都是典型的字符设备。写一个简单的字符设备驱动是理解Linux驱动框架的最佳入门实践。</p>
 
-        <figure class="mechanism-figure"><img src="assets/diagrams/chardev-path.svg" width="800" height="300" alt="一次字符设备 read 从应用到 VFS、驱动回调与硬件的分层路径"><figcaption>一次字符设备读取的分层：应用对设备节点 read；VFS 按主/次设备号找到 cdev 与 file_operations，交给驱动的 read 回调；驱动取数据后用 copy_to_user 拷回用户缓冲区。图为分层示意，不代表具体函数名。</figcaption></figure>
+        <figure class="mechanism-figure"><svg class="mechanism-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" role="img" aria-labelledby="t-16-1 d-16-1">
+<title id="t-16-1">一次字符设备 read() 从应用到驱动回调与硬件的分层路径</title>
+<desc id="d-16-1">应用对设备节点发起 open/read，VFS 按主次设备号找到注册的 cdev 与 file_operations，把请求交给驱动的 read 回调。驱动从硬件寄存器、FIFO 或 DMA 缓冲区取数据，再用 copy_to_user 拷回用户缓冲区，最后返回实际字节数。图只表示分层与典型调用方向，不代表具体函数名或某一内核版本实现。</desc>
+<defs><marker id="ah-16-1" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0L6 3L0 6z" fill="#53676d"/></marker></defs>
+<g font-family="sans-serif">
+<text x="400" y="26" text-anchor="middle" font-size="17" fill="#203035">字符设备驱动的一次读取</text>
+<rect x="60" y="44" width="680" height="34" rx="8" fill="#e7f4f0" stroke="#147f80" stroke-width="2"/>
+<text x="400" y="66" text-anchor="middle" font-size="13" fill="#203035">应用：open("/dev/mychar") → read(fd, buf, n)</text>
+<path d="M400 78 L400 98" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#ah-16-1)"/>
+<rect x="60" y="100" width="680" height="40" rx="8" fill="#f2eefa" stroke="#7461ba" stroke-width="2"/>
+<text x="400" y="125" text-anchor="middle" font-size="13" fill="#203035">VFS：按主/次设备号在 cdev 表找到 file_operations，绑定到 struct file</text>
+<path d="M400 140 L400 160" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#ah-16-1)"/>
+<rect x="60" y="162" width="680" height="46" rx="8" fill="#fbe9e1" stroke="#d06d4d" stroke-width="2"/>
+<text x="400" y="182" text-anchor="middle" font-size="13" fill="#203035">驱动：read 回调取数据，用 copy_to_user 拷回用户缓冲区</text>
+<text x="400" y="199" text-anchor="middle" font-size="12" fill="#53676d">不能直接 memcpy 用户地址；返回实际拷贝字节数（短读是正常的）</text>
+<path d="M400 208 L400 228" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#ah-16-1)"/>
+<rect x="60" y="230" width="680" height="40" rx="8" fill="#f6efdc" stroke="#916c22" stroke-width="2"/>
+<text x="400" y="255" text-anchor="middle" font-size="13" fill="#203035">硬件：寄存器 / FIFO / DMA 缓冲区（可能由中断通知完成）</text>
+<text x="60" y="290" font-size="12" fill="#53676d">简化示意图：只表达分层与调用方向，不代表具体回调名或某一内核版本实现。</text>
+</g></svg><figcaption>一次字符设备读取的分层：应用对设备节点 read；VFS 按主/次设备号找到 cdev 与 file_operations，交给驱动的 read 回调；驱动取数据后用 copy_to_user 拷回用户缓冲区。图为分层示意，不代表具体函数名。</figcaption></figure>
 
         <h3>驱动骨架</h3>
 

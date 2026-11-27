@@ -121,7 +121,40 @@ $ virsh list --all
             <p><strong>理解关键</strong>：对于宿主机来说，每个虚拟机就是一个普通的QEMU进程。<code>ps aux | grep qemu</code> 就能看到每个虚拟机的内存占用和CPU占用。之所以叫"虚拟化"而不是"模拟"，是因为大多数指令直接在CPU上执行（VT-x的non-root mode），只有敏感指令才经过VM-Exit陷入宿主机处理。所以虚拟机性能非常接近物理机——通常开销在2%-10%之间。</p>
         </div>
 
-        <figure class="mechanism-figure"><img src="assets/diagrams/kvm-vcpu.svg" width="800" height="400" alt="KVM 与 QEMU 的组件边界、通道 ioctl 驱动的客户机执行、vCPU 作为宿主机线程以及 virtio 共享队列的数据路径"><figcaption>组件边界：QEMU 在用户态通过 <code>/dev/kvm</code> 的 ioctl 驱动内核 KVM；<code>KVM_RUN</code> 让 vCPU 客户机执行，直到 VM-Exit 返回。每个 vCPU 对应宿主机上的一个线程，由宿主机调度器分配时间片；virtio 通过共享 virtqueue 降低 I/O 开销。图为概念示意，硬件术语因架构而异。</figcaption></figure>
+        <figure class="mechanism-figure"><svg class="mechanism-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" role="img" aria-labelledby="t-21-1 d-21-1">
+<title id="t-21-1">KVM、QEMU 与 vCPU 线程及 virtio 数据路径</title>
+<desc id="d-21-1">用户态 QEMU 通过 /dev/kvm 的 ioctl（KVM_CREATE_VM、KVM_CREATE_VCPU、KVM_SET_USER_MEMORY_REGION、KVM_RUN）驱动内核中的 KVM。KVM_RUN 让 vCPU 进入硬件虚拟化的客户机执行状态（Intel x86 称 VMX non-root），直到发生 VM-Exit、信号或其他退出条件才返回用户态处理。每个 vCPU 对宿主机而言是一个由宿主机调度器调度的线程，多个 vCPU 共享物理核心，因此会出现 CPU 窃取。virtio 让客户机与 VMM 共享 virtqueue 环形队列；vhost 可把该队列的处理下沉到宿主机内核，绕过 QEMU 用户态。图为组件边界示意。</desc>
+<g font-family="sans-serif">
+<text x="400" y="26" text-anchor="middle" font-size="17" fill="#203035">KVM / QEMU 组件边界与 vCPU 调度</text>
+<rect x="40" y="46" width="330" height="70" rx="8" fill="#e7f4f0" stroke="#147f80" stroke-width="2"/>
+<text x="205" y="68" text-anchor="middle" font-size="13" fill="#203035">用户态 VMM：QEMU 进程</text>
+<text x="205" y="87" text-anchor="middle" font-size="11" fill="#53676d">设备模型 / 内存配置 / vCPU 线程</text>
+<text x="205" y="104" text-anchor="middle" font-size="11" fill="#53676d">open("/dev/kvm") + ioctl</text>
+<rect x="430" y="46" width="330" height="70" rx="8" fill="#f2eefa" stroke="#7461ba" stroke-width="2"/>
+<text x="595" y="68" text-anchor="middle" font-size="13" fill="#203035">内核：KVM 模块</text>
+<text x="595" y="87" text-anchor="middle" font-size="11" fill="#53676d">KVM_CREATE_VM / VCPU</text>
+<text x="595" y="104" text-anchor="middle" font-size="11" fill="#53676d">SET_USER_MEMORY_REGION / KVM_RUN</text>
+<path d="M380 81 L430 81" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#a-21-1)"/>
+<text x="405" y="72" text-anchor="middle" font-size="10" fill="#53676d">ioctl</text>
+<rect x="150" y="146" width="500" height="66" rx="8" fill="#fbe9e1" stroke="#d06d4d" stroke-width="2"/>
+<text x="400" y="168" text-anchor="middle" font-size="13" fill="#203035">客户机执行：VMX non-root（AMD SVM / Arm 术语不同）</text>
+<text x="400" y="187" text-anchor="middle" font-size="11" fill="#53676d">多数指令直接执行；触发 VM-Exit 时返回 KVM</text>
+<text x="400" y="203" text-anchor="middle" font-size="11" fill="#53676d">KVM_RUN 阻塞的调用线程被唤醒并处理退出原因</text>
+<path d="M595 116 L595 146" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#a-21-1)"/>
+<path d="M150 179 L120 179 L120 120 L110 120" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#a-21-1)"/>
+<rect x="40" y="240" width="330" height="66" rx="8" fill="#f6efdc" stroke="#916c22" stroke-width="2"/>
+<text x="205" y="262" text-anchor="middle" font-size="13" fill="#203035">vCPU = 宿主机线程（CPU n/KVM）</text>
+<text x="205" y="281" text-anchor="middle" font-size="11" fill="#53676d">由宿主机调度器按时间片调度</text>
+<text x="205" y="298" text-anchor="middle" font-size="11" fill="#53676d">超卖时出现 CPU 窃取（steal）</text>
+<rect x="430" y="240" width="330" height="66" rx="8" fill="#eef3f4" stroke="#53676d" stroke-width="1.5"/>
+<text x="595" y="262" text-anchor="middle" font-size="13" fill="#203035">virtio：共享 virtqueue</text>
+<text x="595" y="281" text-anchor="middle" font-size="11" fill="#53676d">virtio-net / blk / scsi</text>
+<text x="595" y="298" text-anchor="middle" font-size="11" fill="#53676d">vhost 下沉到宿主机内核，绕过 QEMU</text>
+<text x="40" y="340" font-size="12" fill="#53676d">概念边界示意：KVM 提供 CPU/内存虚拟化，QEMU 承担用户态设备模型；两者职责常一起描述。</text>
+<text x="40" y="362" font-size="12" fill="#53676d">“虚拟机就是一个进程”只对资源归属近似成立，vCPU 线程映射与 I/O 路径仍会影响性能。</text>
+<text x="40" y="384" font-size="12" fill="#53676d">实际可用特性取决于 CPU 虚拟化扩展、内核模块与虚拟机监控器配置。</text>
+<defs><marker id="a-21-1" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#53676d"/></marker></defs>
+</g></svg><figcaption>组件边界：QEMU 在用户态通过 <code>/dev/kvm</code> 的 ioctl 驱动内核 KVM；<code>KVM_RUN</code> 让 vCPU 客户机执行，直到 VM-Exit 返回。每个 vCPU 对应宿主机上的一个线程，由宿主机调度器分配时间片；virtio 通过共享 virtqueue 降低 I/O 开销。图为概念示意，硬件术语因架构而异。</figcaption></figure>
 
 <h2 id="section-03">vCPU调度与CPU窃取</h2>
 

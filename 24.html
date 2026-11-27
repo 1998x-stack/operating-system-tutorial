@@ -86,7 +86,42 @@ $ perf script > out.perf</code></pre>
 
         <p>perf stat的几个关键指标解读：<code>instructions/cycle</code>（IPC）衡量CPU的效率，理想值在2-4之间，低于1说明有严重的停顿（比如缓存未命中或分支预测错误）；<code>cache-misses/cache-references</code> 比率超过10%通常意味着程序的数据局部性不好，需要考虑优化内存访问模式。</p>
 
-        <figure class="mechanism-figure"><img src="assets/diagrams/perf-workflow.svg" width="800" height="360" alt="性能诊断从定义基线、提出假设、采样剖析到对比验证的流程，以及各子系统对应的观测工具与常见陷阱"><figcaption>诊断流程与工具对应关系：先用可证伪的假设驱动观测，再按 CPU、调度、内存、I/O、网络子系统选择工具。右侧列出容易误导结论的陷阱（采样开销、缺符号、容器边界、单次基准、平均值掩盖尾延迟）。图为方法示意，不代表具体工具输出。</figcaption></figure>
+        <figure class="mechanism-figure"><svg class="mechanism-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 360" role="img" aria-labelledby="t-24-1 d-24-1">
+<title id="t-24-1">性能诊断流程与各子系统的观测工具</title>
+<desc id="d-24-1">性能诊断建议按顺序进行：先定义基线与工作负载，再提出可证伪的瓶颈假设，选择合适的观测手段采样，最后对照基线与重复实验缩小范围。CPU 维度用 perf 采样与运行队列延迟，内存维度看缺页、分配与泄漏检测，块设备用 blktrace 看请求生命周期、用 fio 做基准，网络与系统调用用 eBPF 工具。采样频率、符号解析、容器边界和观测本身的开销都会影响结论，单次结果不能写成普遍性能提升。图为流程示意。</desc>
+<g font-family="sans-serif">
+<text x="400" y="26" text-anchor="middle" font-size="17" fill="#203035">性能诊断流程：从可证伪假设到验证</text>
+<rect x="40" y="50" width="150" height="60" rx="8" fill="#e7f4f0" stroke="#147f80" stroke-width="2"/>
+<text x="115" y="75" text-anchor="middle" font-size="12" fill="#203035">定义基线与负载</text>
+<text x="115" y="94" text-anchor="middle" font-size="10" fill="#53676d">硬件/内核/参数/数据集</text>
+<rect x="220" y="50" width="150" height="60" rx="8" fill="#f2eefa" stroke="#7461ba" stroke-width="2"/>
+<text x="295" y="75" text-anchor="middle" font-size="12" fill="#203035">提出瓶颈假设</text>
+<text x="295" y="94" text-anchor="middle" font-size="10" fill="#53676d">可被观测证伪</text>
+<rect x="400" y="50" width="150" height="60" rx="8" fill="#fbe9e1" stroke="#d06d4d" stroke-width="2"/>
+<text x="475" y="75" text-anchor="middle" font-size="12" fill="#203035">采样与剖析</text>
+<text x="475" y="94" text-anchor="middle" font-size="10" fill="#53676d">控制频率与开销</text>
+<rect x="580" y="50" width="180" height="60" rx="8" fill="#f6efdc" stroke="#916c22" stroke-width="2"/>
+<text x="670" y="75" text-anchor="middle" font-size="12" fill="#203035">对比与重复验证</text>
+<text x="670" y="94" text-anchor="middle" font-size="10" fill="#53676d">记录原始数据</text>
+<path d="M190 80 L220 80 M370 80 L400 80 M550 80 L580 80" stroke="#53676d" stroke-width="2" fill="none" marker-end="url(#a-24-1)"/>
+<rect x="40" y="150" width="350" height="150" rx="8" fill="#eef3f4" stroke="#53676d" stroke-width="1.5"/>
+<text x="215" y="174" text-anchor="middle" font-size="13" fill="#203035">按子系统选择观测手段</text>
+<text x="60" y="200" font-size="11" fill="#203035">CPU：perf record/top（PMU 采样）</text>
+<text x="60" y="220" font-size="11" fill="#203035">调度：runqlat 运行队列等待</text>
+<text x="60" y="240" font-size="11" fill="#203035">内存：缺页 / kmemleak / SLUB debug</text>
+<text x="60" y="260" font-size="11" fill="#203035">I/O：blktrace 生命周期 + fio 基准</text>
+<text x="60" y="280" font-size="11" fill="#203035">网络/系统调用：bpftrace、BCC 工具</text>
+<rect x="410" y="150" width="350" height="150" rx="8" fill="#eef3f4" stroke="#53676d" stroke-width="1.5"/>
+<text x="585" y="174" text-anchor="middle" font-size="13" fill="#203035">容易误导的观测陷阱</text>
+<text x="430" y="200" font-size="11" fill="#203035">采样频率过高 → 观测本身改变时序</text>
+<text x="430" y="220" font-size="11" fill="#203035">缺符号 → 栈显示为地址或未知帧</text>
+<text x="430" y="240" font-size="11" fill="#203035">容器边界 → 宿主指标混入其他负载</text>
+<text x="430" y="260" font-size="11" fill="#203035">单次基准 → 缓存/预热导致结果偏差</text>
+<text x="430" y="280" font-size="11" fill="#203035">平均值 → 掩盖 P99 尾延迟</text>
+<text x="40" y="330" font-size="12" fill="#53676d">简化示意：perf/eBPF 需要相应权限，工具名与可用性随发行版和内核版本变化。</text>
+<text x="40" y="350" font-size="12" fill="#53676d">无基线与原始数据时，不应把单次观测写成普遍性的性能提升结论。</text>
+<defs><marker id="a-24-1" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#53676d"/></marker></defs>
+</g></svg><figcaption>诊断流程与工具对应关系：先用可证伪的假设驱动观测，再按 CPU、调度、内存、I/O、网络子系统选择工具。右侧列出容易误导结论的陷阱（采样开销、缺符号、容器边界、单次基准、平均值掩盖尾延迟）。图为方法示意，不代表具体工具输出。</figcaption></figure>
 
         <section class="deep-dive" aria-labelledby="deep-24-title">
 <h3 id="deep-24-title">机制追踪：一次 <code>perf record</code> 采样，数据怎样变成可验证的结论？</h3>
